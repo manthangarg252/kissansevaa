@@ -50,3 +50,16 @@ ml/data/
 ml/datasets/
 *.ckpt
 !ml-service/models/*.ckpt
+
+# Model formats
+*.pt
+*.pth
+*.safetensors
+*.gguf
+*.zip
+!*.tflite
+
+# ML runs and outputs
+ml/outputs/
+ml/runs/
+wandb/
