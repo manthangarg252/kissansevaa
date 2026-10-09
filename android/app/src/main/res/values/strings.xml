@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">KissanSevaAI</string>
+
+    <!-- Nav -->
+    <string name="nav_home">Home</string>
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_logout">Logout</string>
+    <string name="nav_chatbot">AI Assistant</string>
+
+    <!-- Common -->
+    <string name="common_loading">Loading…</string>
+    <string name="common_submit">Submit</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_save">Save</string>
+    <string name="common_search">Search…</string>
+    <string name="common_location">Location</string>
+    <string name="common_soil_type">Soil Type</string>
+    <string name="common_detect">Detect</string>
+    <string name="common_results">Results</string>
+    <string name="common_source">Source</string>
+    <string name="common_severity">Severity</string>
+    <string name="common_match">Match</string>
+    <string name="common_official_site">Visit Official Site</string>
+    <string name="common_call_now">Call Now</string>
+    <string name="common_error">Something went wrong</string>
+    <string name="common_retry">Retry</string>
+    <string name="common_no_data">No data available</string>
+    <string name="common_offline">You are offline</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">KissanSevaAI Dashboard</string>
+    <string name="dashboard_subtitle">Your complete smart farming toolkit.</string>
+    <string name="dashboard_cards_crop_detect">Crop Disease Detection (AI Model)</string>
+    <string name="dashboard_cards_livestock">Livestock Care</string>
+    <string name="dashboard_cards_market">Market Insights</string>
+    <string name="dashboard_cards_iot">IoT Monitoring</string>
+    <string name="dashboard_cards_schemes">Government Schemes</string>
+    <string name="dashboard_cards_loans">Loans &amp; Credit Hub</string>
+    <string name="dashboard_cards_traders">Traders &amp; Buyers</string>
+    <string name="dashboard_cards_carbon">Carbon Credits</string>
+    <string name="dashboard_cards_prices">Live Market Prices</string>
+
+    <!-- Crop -->
+    <string name="crop_title">Crop Disease Detection</string>
+    <string name="crop_detect_btn">Start Detection</string>
+    <string name="crop_upload_hint">Click to upload a leaf image</string>
+    <string name="crop_diagnosis_ready">Ready for Diagnosis</string>
+    <string name="crop_diagnosis_hint">Upload a clear image of the affected plant leaf. Our hybrid model uses a local model and high-level AI for verification.</string>
+    <string name="crop_analysis_result">Analysis Result</string>
+    <string name="crop_organic">Organic Treatment</string>
+    <string name="crop_chemical">Chemical Treatment</string>
+    <string name="crop_prevention">Prevention Steps</string>
+
+    <!-- Livestock -->
+    <string name="livestock_title">Livestock Care</string>
+    <string name="livestock_detection_tab">Disease Detection</string>
+    <string name="livestock_assistant_tab">AI Assistant</string>
+    <string name="livestock_health_check">Animal Health Check</string>
+    <string name="livestock_category">Animal Category</string>
+    <string name="livestock_run_diagnostics">Run Diagnostics</string>
+    <string name="livestock_diag_result">Diagnostic Result</string>
+    <string name="livestock_immediate_action">Immediate Action</string>
+    <string name="livestock_long_term">Long-term Care</string>
+    <string name="livestock_vet_advice">Veterinarian Advice</string>
+    <string name="livestock_chat_hint">Ask about animal feed, symptoms or care…</string>
+
+    <!-- Market -->
+    <string name="market_title">Market Insights</string>
+    <string name="market_subtitle">Personalized AI strategy to maximize your farm\'s profit and yield.</string>
+    <string name="market_farm_profile">Your Farm Profile</string>
+    <string name="market_current_crop">Current Crop</string>
+    <string name="market_get_recommendations">Get AI Recommendations</string>
+    <string name="market_strategy_title">Smart Crop Strategy</string>
+    <string name="market_awaiting_profile">Awaiting Profile</string>
+    <string name="market_profile_hint">Enter your farm details and click the button to generate a custom AI-powered crop and market strategy.</string>
+
+    <!-- IoT -->
+    <string name="iot_title">IoT Monitoring</string>
+    <string name="iot_subtitle">Real-time telemetry from your connected farm sensors.</string>
+    <string name="iot_syncing">Data syncing</string>
+    <string name="iot_temp">Temperature</string>
+    <string name="iot_humidity">Humidity</string>
+    <string name="iot_moisture">Soil Moisture</string>
+    <string name="iot_ph">pH Level</string>
+    <string name="iot_historical">Historical Trends</string>
+
+    <!-- Schemes -->
+    <string name="schemes_title">Government Schemes</string>
+    <string name="schemes_subtitle">Discover and apply for state and central government initiatives tailored for you.</string>
+    <string name="schemes_ai_btn">Get AI Recommendations</string>
+    <string name="schemes_eligibility">Eligibility</string>
+    <string name="schemes_apply_hint">Generate My Report</string>
+    <string name="schemes_modal_title">Personalized AI Schemes</string>
+
+    <!-- Loans -->
+    <string name="loans_title">Loans &amp; Credit Hub</string>
+    <string name="loans_subtitle">Access affordable credit, government-subsidized loans and smart guidance.</string>
+    <string name="loans_check_eligibility">Check Eligibility with AI</string>
+    <string name="loans_emi_calc">Smart EMI Calculator</string>
+    <string name="loans_monthly_emi">Monthly EMI</string>
+    <string name="loans_total_payable">Total Payable</string>
+    <string name="loans_total_interest">Total Interest</string>
+    <string name="loans_recommended_loan">Recommended Loan Type</string>
+    <string name="loans_risk_advisory">Risk Advisory</string>
+
+    <!-- Auth -->
+    <string name="auth_login_title">KissanSevaAI</string>
+    <string name="auth_login_subtitle">Smart solutions for modern farmers</string>
+    <string name="auth_email">Email Address</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_sign_in">Sign In</string>
+    <string name="auth_sign_up">Sign Up</string>
+    <string name="auth_no_account">Don\'t have an account?</string>
+    <string name="auth_already_account">Already have an account?</string>
+    <string name="auth_full_name">Full Name</string>
+    <string name="auth_create_account">Create Account</string>
+    <string name="auth_forgot_password">Forgot Password?</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_base_url">Server URL</string>
+    <string name="settings_engine_mode">AI Engine Mode</string>
+    <string name="settings_engine_auto">Auto</string>
+    <string name="settings_engine_remote">Remote (Server)</string>
+    <string name="settings_engine_ondevice">On-Device</string>
+
+    <!-- Chatbot -->
+    <string name="chatbot_title">AI Assistant</string>
+    <string name="chatbot_hint">Type your farming question…</string>
+    <string name="chatbot_send">Send</string>
+
+    <!-- Traders -->
+    <string name="traders_title">Traders &amp; Buyers</string>
+    <string name="traders_search_hint">Search by name or location…</string>
+
+    <!-- Carbon -->
+    <string name="carbon_title">Carbon Credits</string>
+    <string name="carbon_subtitle">Estimate your carbon credit eligibility based on your farming practices.</string>
+    <string name="carbon_farm_size">Farm Size (acres)</string>
+    <string name="carbon_crop_type">Crop Type</string>
+    <string name="carbon_method">Farming Method</string>
+    <string name="carbon_irrigation">Irrigation Type</string>
+    <string name="carbon_estimate_btn">Estimate Credits</string>
+
+    <!-- Prices -->
+    <string name="prices_title">Live Market Prices</string>
+    <string name="prices_subtitle">Real-time commodity prices from major Indian markets.</string>
+</resources>

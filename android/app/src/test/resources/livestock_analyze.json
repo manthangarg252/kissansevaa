@@ -1,0 +1,17 @@
+{
+  "source": "mock",
+  "_id": "6ac6437f2431ad9ad4d94051",
+  "id": "6ac6437f2431ad9ad4d94051",
+  "conditionName": "Bovine Dermatitis",
+  "confidence": 0.91,
+  "symptoms": [
+    "Skin lesions",
+    "Localized hair loss",
+    "Mild erythema",
+    "Restlessness"
+  ],
+  "immediateAction": "Isolate the animal to prevent cross-transmission and cleanse the affected area with warm mild antiseptic solution.",
+  "longTermCare": "Maintain clean, well-ventilated dry bedding and supplement feed with trace minerals.",
+  "vetConsultationAdvice": "Consult a local veterinarian for a prescription antibiotic ointment or anti-inflammatory treatment if symptoms persist.",
+  "imageUrl": "http://127.0.0.1:5055/uploads/1791378303270-test_cow.jpg"
+}

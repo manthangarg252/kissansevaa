@@ -1,0 +1,26 @@
+{
+  "source": "mock",
+  "cropName": "Wheat",
+  "diseaseName": "Yellow Rust",
+  "confidence": 0.89,
+  "summary": "Analysis for crop at Punjab (Loamy soil): Detected early symptoms of Yellow Rust (Puccinia striiformis).",
+  "severity": "Medium",
+  "treatment": {
+    "organic": [
+      "Spray neem seed kernel extract (5%)",
+      "Apply Trichoderma viride bio-fungicide"
+    ],
+    "chemical": [
+      "Spray Propiconazole 25% EC @ 1ml/L water",
+      "Apply Mancozeb 75% WP @ 2g/L"
+    ]
+  },
+  "prevention": [
+    "Plant resistant cultivars",
+    "Maintain optimal spacing for adequate air circulation",
+    "Avoid excess nitrogen application"
+  ],
+  "language": "en",
+  "_id": "6ac6437f2431ad9ad4d9404e",
+  "id": "6ac6437f2431ad9ad4d9404e"
+}

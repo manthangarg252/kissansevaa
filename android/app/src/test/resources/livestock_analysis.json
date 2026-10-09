@@ -1,0 +1,14 @@
+{
+  "conditionName": "Foot and Mouth Disease",
+  "confidence": "88%",
+  "symptoms": [
+    "Blisters on oral mucosa and tongue",
+    "Excessive salivation",
+    "Lameness",
+    "Drop in milk yield"
+  ],
+  "immediateAction": "Isolate affected cattle immediately. Disinfect stalls with 4% sodium carbonate.",
+  "longTermCare": "Provide soft and easily digestible feed. Apply antiseptic ointment on lesions.",
+  "vetConsultationAdvice": "Contact local veterinary officer immediately for ring vaccination and antibiotic coverage.",
+  "imageUrl": "http://127.0.0.1:5000/uploads/sample-livestock.jpg"
+}

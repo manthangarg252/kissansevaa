@@ -1,0 +1,24 @@
+{
+  "_id": "6ac3e835dcf2c2496a666e82",
+  "source": "gemini",
+  "cropName": "Tomato",
+  "diseaseName": "Early Blight",
+  "confidence": 0.94,
+  "severity": "medium",
+  "summary": "Early blight caused by Alternaria solani. Circular dark spots with concentric rings on leaves.",
+  "treatment": {
+    "organic": [
+      "Apply Neem oil 5ml/L every 7 days",
+      "Remove infected lower leaves"
+    ],
+    "chemical": [
+      "Spray Mancozeb 75% WP @ 2g/L water",
+      "Chlorothalonil 2g/L at early signs"
+    ]
+  },
+  "prevention": [
+    "Maintain crop rotation with non-solanaceous crops",
+    "Ensure adequate plant spacing for airflow"
+  ],
+  "createdAt": "2026-10-05T18:11:01.552Z"
+}
