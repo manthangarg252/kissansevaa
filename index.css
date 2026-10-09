@@ -1,0 +1,17 @@
+/* KissanSevaAI - Global Styles */
+/* Tailwind is loaded via CDN in index.html, this file is for custom overrides */
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom animation keyframes for animate-in classes used by Tailwind */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}

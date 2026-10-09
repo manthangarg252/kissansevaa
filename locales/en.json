@@ -1,0 +1,116 @@
+
+{
+  "nav": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "logout": "Logout",
+    "chatbot": "AI Assistant"
+  },
+  "common": {
+    "loading": "Loading...",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "search": "Search...",
+    "location": "Location",
+    "soil_type": "Soil Type",
+    "detect": "Detect",
+    "results": "Results",
+    "source": "Source",
+    "severity": "Severity",
+    "match": "Match",
+    "official_site": "Visit Official Site",
+    "call_now": "Call Now"
+  },
+  "dashboard": {
+    "title": "KissanSevaAI Dashboard",
+    "subtitle": "Your complete smart farming toolkit.",
+    "cards": {
+      "crop_detect": "Crop Disease Detection (AI Model)",
+      "livestock": "Livestock Care",
+      "market": "Market Insights",
+      "iot": "IoT Monitoring",
+      "schemes": "Government Schemes",
+      "loans": "Loans & Credit Hub",
+      "traders": "Traders & Buyers",
+      "carbon": "Carbon Credits",
+      "prices": "Live Market Prices"
+    }
+  },
+  "crop": {
+    "title": "Crop Disease Identification",
+    "detect_btn": "Run Diagnosis",
+    "upload_hint": "Click to upload an image of the leaf",
+    "diagnosis_ready": "Ready for Diagnosis",
+    "diagnosis_hint": "Upload a clear image of the affected plant leaf. Our hybrid model uses a local ViT classifier and high-end expert AI for verification.",
+    "analysis_result": "Analysis Result",
+    "organic": "Organic Treatment",
+    "chemical": "Chemical Treatment",
+    "prevention": "Prevention Steps"
+  },
+  "livestock": {
+    "title": "Livestock Care",
+    "detection_tab": "Disease Detection",
+    "assistant_tab": "AI Assistant",
+    "health_check": "Animal Health Check",
+    "category": "Animal Category",
+    "run_diagnostics": "Run Diagnostics",
+    "diag_result": "Diagnostics Result",
+    "immediate_action": "Immediate Action",
+    "long_term": "Long Term Care",
+    "vet_advice": "Vet's Advice",
+    "chat_hint": "Ask about animal diet, symptoms, or care..."
+  },
+  "market": {
+    "title": "Market Insights",
+    "subtitle": "Personalized AI strategy to maximize your farm's profit and yield.",
+    "farm_profile": "Your Farm Profile",
+    "current_crop": "Current Crop",
+    "get_recommendations": "Get AI Recommendations",
+    "strategy_title": "Smart Crop Strategy",
+    "awaiting_profile": "Awaiting Profile",
+    "profile_hint": "Input your farm details and click the button to generate a custom AI-driven crop and market strategy."
+  },
+  "iot": {
+    "title": "IoT Monitoring",
+    "subtitle": "Real-time telemetry from your connected farm sensors.",
+    "syncing": "Syncing Data",
+    "temp": "Temperature",
+    "humidity": "Humidity",
+    "moisture": "Soil Moisture",
+    "ph": "pH Level",
+    "historical": "Historical Trends"
+  },
+  "schemes": {
+    "title": "Government Schemes",
+    "subtitle": "Discover and apply for state and central government initiatives tailored for you.",
+    "ai_btn": "Get AI Recommendations",
+    "eligibility": "Eligibility",
+    "apply_hint": "Generate My Report",
+    "modal_title": "Personalized AI Schemes"
+  },
+  "loans": {
+    "title": "Loans & Credit Hub",
+    "subtitle": "Get affordable credit, government-backed loans, and smart guidance.",
+    "check_eligibility": "Check Eligibility with AI",
+    "emi_calc": "Smart EMI Calculator",
+    "monthly_emi": "Monthly EMI",
+    "total_payable": "Total Payable",
+    "total_interest": "Total Interest",
+    "recommended_loan": "Recommended Loan Type",
+    "risk_advisory": "Risk Advisory"
+  },
+  "auth": {
+    "login_title": "KissanSevaAI",
+    "login_subtitle": "Smart solutions for modern farmers",
+    "email": "Email Address",
+    "password": "Password",
+    "sign_in": "Sign In",
+    "sign_up": "Sign Up",
+    "no_account": "Don't have an account?",
+    "already_account": "Already have an account?",
+    "full_name": "Full Name",
+    "create_account": "Create Account",
+    "forgot_password": "Forgot Password?"
+  }
+}
