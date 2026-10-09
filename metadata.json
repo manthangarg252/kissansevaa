@@ -1,0 +1,8 @@
+{
+  "name": "KissanSevaAI",
+  "description": "A production-grade smart farming platform with AI-driven crop diagnosis, livestock care, market insights, and carbon credit estimation.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
