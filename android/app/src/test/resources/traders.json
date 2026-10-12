@@ -1,6 +1,6 @@
 [
   {
-    "_id": "6ac6437b2431ad9ad4d94042",
+    "_id": "6accaa1f134760f5db16699a",
     "name": "Punjab Agro Commodities",
     "location": "Khanna Mandi, Punjab",
     "dealsIn": [
@@ -10,13 +10,13 @@
     "phone": "+91 98123 45678",
     "rating": 4.8,
     "reviewCount": 28,
-    "createdAt": "2026-10-07T13:04:59.779Z",
-    "updatedAt": "2026-10-07T13:04:59.779Z",
+    "createdAt": "2026-10-12T09:36:31.378Z",
+    "updatedAt": "2026-10-12T09:36:31.378Z",
     "__v": 0,
-    "id": "6ac6437b2431ad9ad4d94042"
+    "id": "6accaa1f134760f5db16699a"
   },
   {
-    "_id": "6ac6437b2431ad9ad4d94041",
+    "_id": "6accaa1f134760f5db166999",
     "name": "Rajesh Kumar Traders",
     "location": "Azadpur Mandi, Delhi",
     "dealsIn": [
@@ -27,9 +27,9 @@
     "phone": "+91 98765 43210",
     "rating": 4.5,
     "reviewCount": 12,
-    "createdAt": "2026-10-07T13:04:59.779Z",
-    "updatedAt": "2026-10-07T13:04:59.779Z",
+    "createdAt": "2026-10-12T09:36:31.378Z",
+    "updatedAt": "2026-10-12T09:36:31.378Z",
     "__v": 0,
-    "id": "6ac6437b2431ad9ad4d94041"
+    "id": "6accaa1f134760f5db166999"
   }
 ]

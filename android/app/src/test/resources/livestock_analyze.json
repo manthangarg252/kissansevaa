@@ -1,17 +1,14 @@
 {
-  "source": "mock",
-  "_id": "6ac6437f2431ad9ad4d94051",
-  "id": "6ac6437f2431ad9ad4d94051",
-  "conditionName": "Bovine Dermatitis",
-  "confidence": 0.91,
+  "source": "gemini",
+  "_id": "6accaa32134760f5db1669a9",
+  "id": "6accaa32134760f5db1669a9",
+  "conditionName": "Indeterminate - Image Content Missing",
+  "confidence": 0,
   "symptoms": [
-    "Skin lesions",
-    "Localized hair loss",
-    "Mild erythema",
-    "Restlessness"
+    "The provided image is a solid color and does not contain visible animal features or symptoms."
   ],
-  "immediateAction": "Isolate the animal to prevent cross-transmission and cleanse the affected area with warm mild antiseptic solution.",
-  "longTermCare": "Maintain clean, well-ventilated dry bedding and supplement feed with trace minerals.",
-  "vetConsultationAdvice": "Consult a local veterinarian for a prescription antibiotic ointment or anti-inflammatory treatment if symptoms persist.",
-  "imageUrl": "http://127.0.0.1:5055/uploads/1791378303270-test_cow.jpg"
+  "immediateAction": "Please upload a clear, well-lit photograph of the cow, focusing on the specific areas of concern.",
+  "longTermCare": "Ensure livestock are regularly inspected for signs of illness such as lethargy, loss of appetite, or physical lesions.",
+  "vetConsultationAdvice": "If you suspect your cow is unwell, contact a qualified veterinarian immediately for a physical examination and diagnosis.",
+  "imageUrl": "http://127.0.0.1:5055/uploads/1791797805678-test_cow.jpg"
 }

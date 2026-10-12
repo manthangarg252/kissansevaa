@@ -81,9 +81,9 @@ async function run() {
       });
       const authData = await registerRes.json();
       console.log('Auth response status:', registerRes.status, 'token exists:', !!authData.token);
-      fs.writeFileSync(path.join(FIXTURES_DIR, 'auth_response.json'), JSON.stringify(authData, null, 2));
-
       const token = authData.token;
+      const authFixtureData = { ...authData, token: 'test.jwt.token' };
+      fs.writeFileSync(path.join(FIXTURES_DIR, 'auth_response.json'), JSON.stringify(authFixtureData, null, 2));
       const authHeaders = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
