@@ -78,7 +78,7 @@ fun getCropImageUrl(crop: String): String {
         crop.contains("Onion", true) -> "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?auto=format&fit=crop&w=400&q=70"
         crop.contains("Tomato", true) -> "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=400&q=70"
         crop.contains("Cotton", true) -> "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&w=400&q=70"
-        crop.contains("Soybean", true) -> "https://images.unsplash.com/photo-1599818816934-2e917d0a27e7?auto=format&fit=crop&w=400&q=70"
+        crop.contains("Soybean", true) -> "https://images.unsplash.com/photo-1595246140625-573b715d11dc?auto=format&fit=crop&w=400&q=70"
         crop.contains("Mustard", true) -> "https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=400&q=70"
         crop.contains("Maize", true) || crop.contains("Corn", true) -> "https://images.unsplash.com/photo-1551754655-cd27e38d2076?auto=format&fit=crop&w=400&q=70"
         else -> "https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=400&q=70"

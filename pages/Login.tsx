@@ -77,7 +77,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, language, setLanguage }) => {
       <div 
         className="absolute inset-0 z-0 scale-105"
         style={{
-          backgroundImage: 'url("https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=2000")',
+          backgroundImage: 'url("https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=800")',
           backgroundSize: 'cover',
           backgroundPosition: 'center'
         }}

@@ -49,7 +49,7 @@ fun SignupScreen(
         contentAlignment = Alignment.Center,
     ) {
         AsyncImage(
-            model = "https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=400&q=70",
+            model = "https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=800&q=75",
             contentDescription = null,
             contentScale = ContentScale.Crop,
             placeholder = painterResource(R.drawable.ic_image_placeholder),

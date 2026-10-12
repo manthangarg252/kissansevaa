@@ -53,7 +53,7 @@ fun LoginScreen(
         contentAlignment = Alignment.Center,
     ) {
         AsyncImage(
-            model = "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=400&q=70",
+            model = "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=75",
             contentDescription = null,
             contentScale = ContentScale.Crop,
             placeholder = painterResource(R.drawable.ic_image_placeholder),
