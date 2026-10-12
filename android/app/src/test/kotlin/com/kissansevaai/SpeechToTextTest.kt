@@ -17,6 +17,12 @@ class SpeechToTextTest {
     @Before
     fun setup() {
         context = mockk(relaxed = true)
+        mockkStatic(android.util.Log::class)
+        every { android.util.Log.i(any<String>(), any<String>()) } returns 0
+        every { android.util.Log.w(any<String>(), any<String>()) } returns 0
+        every { android.util.Log.e(any<String>(), any<String>()) } returns 0
+        every { android.util.Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
+
         mockkStatic(android.speech.SpeechRecognizer::class)
         every { android.speech.SpeechRecognizer.isRecognitionAvailable(any()) } returns true
         stt = AndroidSpeechToText(context)
@@ -55,6 +61,24 @@ class SpeechToTextTest {
         assertNull(stt.getUnsupportedReason("hi"))
         assertNull(stt.getUnsupportedReason("mr"))
         assertNull(stt.getUnsupportedReason("pa"))
+    }
+
+    @Test
+    fun `startListening creates SpeechRecognizer, attaches RecognitionListener, and calls startListening`() {
+        val mockRecognizer = mockk<android.speech.SpeechRecognizer>(relaxed = true)
+        every { android.speech.SpeechRecognizer.createSpeechRecognizer(any()) } returns mockRecognizer
+
+        stt.startListening(
+            langCode = "en",
+            onResult = {},
+            onError = {}
+        )
+
+        io.mockk.verify {
+            android.speech.SpeechRecognizer.createSpeechRecognizer(context)
+            mockRecognizer.setRecognitionListener(any())
+            mockRecognizer.startListening(any())
+        }
     }
 
 }

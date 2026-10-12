@@ -2,7 +2,7 @@ package com.kissansevaai
 
 import android.content.Context
 import com.kissansevaai.core.ai.ondevice.AndroidTextToSpeech
-import io.mockk.mockk
+import io.mockk.*
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -16,6 +16,11 @@ class TextToSpeechTest {
     @Before
     fun setup() {
         context = mockk(relaxed = true)
+        mockkStatic(android.util.Log::class)
+        every { android.util.Log.i(any<String>(), any<String>()) } returns 0
+        every { android.util.Log.w(any<String>(), any<String>()) } returns 0
+        every { android.util.Log.e(any<String>(), any<String>()) } returns 0
+        every { android.util.Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
         tts = AndroidTextToSpeech(context)
     }
 
@@ -31,13 +36,31 @@ class TextToSpeechTest {
     }
     
     @Test
-    fun `Sanskrit TTS falls back to Hindi`() {
-        // We know the app's explicit behavior uses Hindi fallback for Sanskrit when speaking 
-        // We test that mapping "sa" gives us the Locale which handles it
-        // Note: the snackbar is a UI side-effect, but we can verify the getLocale logic.
-        // Actually, let's verify if `AndroidTextToSpeech`'s engine intercepts "sa" during speak.
-        // For unit testing here, the locale mapping is the core logic.
-        val locale = tts.getLocaleForLanguage("sa")
-        assertEquals("sa", locale.language)
+    fun `Sanskrit TTS falls back to Hindi and triggers onFallback callback`() {
+        mockkConstructor(android.speech.tts.TextToSpeech::class)
+        every { anyConstructed<android.speech.tts.TextToSpeech>().isLanguageAvailable(Locale("sa", "IN")) } returns android.speech.tts.TextToSpeech.LANG_NOT_SUPPORTED
+        every { anyConstructed<android.speech.tts.TextToSpeech>().isLanguageAvailable(Locale("hi", "IN")) } returns android.speech.tts.TextToSpeech.LANG_AVAILABLE
+        every { anyConstructed<android.speech.tts.TextToSpeech>().speak(any(), any(), any(), any()) } returns android.speech.tts.TextToSpeech.SUCCESS
+
+        val ttsInstance = AndroidTextToSpeech(context)
+        ttsInstance.onInit(android.speech.tts.TextToSpeech.SUCCESS)
+
+        var fallbackFired = false
+        var originalLangReceived: String? = null
+        var fallbackLangReceived: String? = null
+
+        ttsInstance.speak(
+            text = "कृषि सेवा",
+            langCode = "sa",
+            onFallback = { orig, fb ->
+                fallbackFired = true
+                originalLangReceived = orig
+                fallbackLangReceived = fb
+            }
+        )
+
+        assertTrue(fallbackFired)
+        assertEquals("sa", originalLangReceived)
+        assertEquals("hi", fallbackLangReceived)
     }
 }
