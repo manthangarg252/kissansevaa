@@ -138,8 +138,8 @@ fun TradersScreen(onBack: () -> Unit, viewModel: TradersViewModel = hiltViewMode
                                         model = imageUrl,
                                         contentDescription = t.name,
                                         contentScale = ContentScale.Crop,
-                                        placeholder = painterResource(android.R.drawable.ic_menu_gallery),
-                                        error = painterResource(android.R.drawable.ic_dialog_alert),
+                                        placeholder = painterResource(R.drawable.ic_image_placeholder),
+                                        error = painterResource(R.drawable.ic_broken_image),
                                         modifier = Modifier.fillMaxSize(),
                                     )
                                 } else {

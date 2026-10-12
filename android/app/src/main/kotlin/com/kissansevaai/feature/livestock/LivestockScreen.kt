@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -196,8 +197,16 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
                 shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Slate800),
                 modifier = Modifier.fillMaxWidth().height(200.dp).clickable { showSourceChooser = true },
             ) {
-                if (selectedUri != null) AsyncImage(selectedUri, "Animal", Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp)), contentScale = ContentScale.Crop)
-                else Box(Modifier.fillMaxSize(), Alignment.Center) {
+                if (selectedUri != null) {
+                    AsyncImage(
+                        model = selectedUri,
+                        contentDescription = "Animal",
+                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp)),
+                        contentScale = ContentScale.Crop,
+                        placeholder = painterResource(R.drawable.ic_image_placeholder),
+                        error = painterResource(R.drawable.ic_broken_image),
+                    )
+                } else Box(Modifier.fillMaxSize(), Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Default.CloudUpload, null, tint = Slate500, modifier = Modifier.size(48.dp))
                         Text("Upload animal photo", color = Slate500)

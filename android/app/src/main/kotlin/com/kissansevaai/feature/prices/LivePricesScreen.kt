@@ -73,15 +73,15 @@ class PricesViewModel @Inject constructor(
 
 fun getCropImageUrl(crop: String): String {
     return when {
-        crop.contains("Wheat", true) -> "https://images.unsplash.com/photo-1574943320219-553eb213f72d?auto=format&fit=crop&q=80&w=200"
-        crop.contains("Rice", true) || crop.contains("Paddy", true) -> "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=200"
-        crop.contains("Onion", true) -> "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?auto=format&fit=crop&q=80&w=200"
-        crop.contains("Tomato", true) -> "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&q=80&w=200"
-        crop.contains("Cotton", true) -> "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&q=80&w=200"
-        crop.contains("Soybean", true) -> "https://images.unsplash.com/photo-1599818816934-2e917d0a27e7?auto=format&fit=crop&q=80&w=200"
-        crop.contains("Mustard", true) -> "https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&q=80&w=200"
-        crop.contains("Maize", true) || crop.contains("Corn", true) -> "https://images.unsplash.com/photo-1551754655-cd27e38d2076?auto=format&fit=crop&q=80&w=200"
-        else -> "https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&q=80&w=200"
+        crop.contains("Wheat", true) -> "https://images.unsplash.com/photo-1574943320219-553eb213f72d?auto=format&fit=crop&w=400&q=70"
+        crop.contains("Rice", true) || crop.contains("Paddy", true) -> "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=400&q=70"
+        crop.contains("Onion", true) -> "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?auto=format&fit=crop&w=400&q=70"
+        crop.contains("Tomato", true) -> "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=400&q=70"
+        crop.contains("Cotton", true) -> "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&w=400&q=70"
+        crop.contains("Soybean", true) -> "https://images.unsplash.com/photo-1599818816934-2e917d0a27e7?auto=format&fit=crop&w=400&q=70"
+        crop.contains("Mustard", true) -> "https://images.unsplash.com/photo-1508747703725-719777637510?auto=format&fit=crop&w=400&q=70"
+        crop.contains("Maize", true) || crop.contains("Corn", true) -> "https://images.unsplash.com/photo-1551754655-cd27e38d2076?auto=format&fit=crop&w=400&q=70"
+        else -> "https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=400&q=70"
     }
 }
 
@@ -133,8 +133,8 @@ fun LivePricesScreen(onBack: () -> Unit, viewModel: PricesViewModel = hiltViewMo
                                     model = getCropImageUrl(p.crop),
                                     contentDescription = p.crop,
                                     contentScale = ContentScale.Crop,
-                                    placeholder = painterResource(android.R.drawable.ic_menu_gallery),
-                                    error = painterResource(android.R.drawable.ic_dialog_alert),
+                                    placeholder = painterResource(R.drawable.ic_image_placeholder),
+                                    error = painterResource(R.drawable.ic_broken_image),
                                     modifier = Modifier
                                         .size(46.dp)
                                         .clip(RoundedCornerShape(12.dp)),

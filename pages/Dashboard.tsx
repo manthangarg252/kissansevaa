@@ -37,55 +37,55 @@ const Dashboard: React.FC = () => {
     { 
       id: 'crop', 
       title: t('dashboard.cards.crop_detect'), 
-      image: 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=800', 
+      image: 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&w=400&q=70', 
       path: '/crop-disease' 
     },
     { 
       id: 'livestock', 
       title: t('dashboard.cards.livestock'), 
-      image: 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&q=80&w=800', 
+      image: 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=400&q=70', 
       path: '/livestock' 
     },
     { 
       id: 'market', 
       title: t('dashboard.cards.market'), 
-      image: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&q=80&w=800', 
+      image: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=400&q=70', 
       path: '/market-insights' 
     },
     { 
       id: 'iot', 
       title: t('dashboard.cards.iot'), 
-      image: 'https://etimg.etb2bimg.com/photo/109715182.cms', 
+      image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=400&q=70', 
       path: '/iot' 
     },
     { 
       id: 'schemes', 
       title: t('dashboard.cards.schemes'), 
-      image: 'https://images.moneycontrol.com/static-mcnews/2023/05/Parliament_building_1684893413434_1684893413549-770x435.png?impolicy=website&width=770&height=431', 
+      image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=400&q=70', 
       path: '/schemes' 
     },
     { 
       id: 'loans', 
       title: t('dashboard.cards.loans'), 
-      image: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=800', 
+      image: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=400&q=70', 
       path: '/loans' 
     },
     { 
       id: 'traders', 
       title: t('dashboard.cards.traders'), 
-      image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800', 
+      image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=70', 
       path: '/traders' 
     },
     { 
       id: 'carbon', 
       title: t('dashboard.cards.carbon'), 
-      image: 'https://images.unsplash.com/photo-1511497584788-876760111969?auto=format&fit=crop&q=80&w=800', 
+      image: 'https://images.unsplash.com/photo-1511497584788-876760111969?auto=format&fit=crop&w=400&q=70', 
       path: '/carbon' 
     },
     { 
       id: 'prices', 
       title: t('dashboard.cards.prices'), 
-      image: 'https://images.moneycontrol.com/static-mcnews/2022/05/market-8-770x433.jpg', 
+      image: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=400&q=70', 
       path: '/live-prices' 
     },
   ];
