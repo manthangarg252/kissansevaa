@@ -11,8 +11,8 @@
     "modalPrice": 2300,
     "unit": "quintal",
     "trend": "up",
-    "updatedAt": "2026-10-12T09:36:31.670Z",
-    "lastUpdated": "2026-10-12T09:36:31.670Z"
+    "updatedAt": "2026-10-12T14:46:36.031Z",
+    "lastUpdated": "2026-10-12T14:46:36.031Z"
   },
   {
     "_id": "mp_2",
@@ -26,8 +26,8 @@
     "modalPrice": 3000,
     "unit": "quintal",
     "trend": "stable",
-    "updatedAt": "2026-10-12T09:36:31.670Z",
-    "lastUpdated": "2026-10-12T09:36:31.670Z"
+    "updatedAt": "2026-10-12T14:46:36.031Z",
+    "lastUpdated": "2026-10-12T14:46:36.031Z"
   },
   {
     "_id": "mp_3",
@@ -41,8 +41,8 @@
     "modalPrice": 1600,
     "unit": "quintal",
     "trend": "down",
-    "updatedAt": "2026-10-12T09:36:31.670Z",
-    "lastUpdated": "2026-10-12T09:36:31.670Z"
+    "updatedAt": "2026-10-12T14:46:36.031Z",
+    "lastUpdated": "2026-10-12T14:46:36.031Z"
   },
   {
     "_id": "mp_4",
@@ -56,8 +56,8 @@
     "modalPrice": 1100,
     "unit": "quintal",
     "trend": "up",
-    "updatedAt": "2026-10-12T09:36:31.670Z",
-    "lastUpdated": "2026-10-12T09:36:31.670Z"
+    "updatedAt": "2026-10-12T14:46:36.031Z",
+    "lastUpdated": "2026-10-12T14:46:36.031Z"
   },
   {
     "_id": "mp_5",
@@ -71,8 +71,8 @@
     "modalPrice": 7100,
     "unit": "quintal",
     "trend": "up",
-    "updatedAt": "2026-10-12T09:36:31.670Z",
-    "lastUpdated": "2026-10-12T09:36:31.670Z"
+    "updatedAt": "2026-10-12T14:46:36.031Z",
+    "lastUpdated": "2026-10-12T14:46:36.031Z"
   },
   {
     "_id": "mp_6",
@@ -86,7 +86,7 @@
     "modalPrice": 4700,
     "unit": "quintal",
     "trend": "down",
-    "updatedAt": "2026-10-12T09:36:31.670Z",
-    "lastUpdated": "2026-10-12T09:36:31.670Z"
+    "updatedAt": "2026-10-12T14:46:36.031Z",
+    "lastUpdated": "2026-10-12T14:46:36.031Z"
   }
 ]

@@ -1,14 +1,14 @@
 {
   "source": "gemini",
-  "_id": "6accaa32134760f5db1669a9",
-  "id": "6accaa32134760f5db1669a9",
-  "conditionName": "Indeterminate - Image Content Missing",
+  "_id": "6accf2e32ad648559c9719f3",
+  "id": "6accf2e32ad648559c9719f3",
+  "conditionName": "No condition identifiable",
   "confidence": 0,
   "symptoms": [
-    "The provided image is a solid color and does not contain visible animal features or symptoms."
+    "The provided image does not contain a visible cow or any symptoms to analyze."
   ],
-  "immediateAction": "Please upload a clear, well-lit photograph of the cow, focusing on the specific areas of concern.",
-  "longTermCare": "Ensure livestock are regularly inspected for signs of illness such as lethargy, loss of appetite, or physical lesions.",
-  "vetConsultationAdvice": "If you suspect your cow is unwell, contact a qualified veterinarian immediately for a physical examination and diagnosis.",
-  "imageUrl": "http://127.0.0.1:5055/uploads/1791797805678-test_cow.jpg"
+  "immediateAction": "Please upload a clear, well-lit photograph of the cow, focusing on any specific areas of concern such as the eyes, skin, or limbs.",
+  "longTermCare": "Maintain standard herd management practices, including a balanced diet, clean water, and regular health screenings.",
+  "vetConsultationAdvice": "Consult a veterinarian immediately if any animal exhibits signs of distress, reduced milk production, or changes in appetite.",
+  "imageUrl": "http://127.0.0.1:5055/uploads/1791816408481-test_cow.jpg"
 }
