@@ -1,4 +1,3 @@
-
 import mongoose from 'mongoose';
 
 const cropAnalysisSchema = mongoose.Schema({
@@ -6,6 +5,14 @@ const cropAnalysisSchema = mongoose.Schema({
   cropName: { type: String },
   diseaseName: { type: String, required: true },
   confidence: { type: Number },
+  top_cosine_similarity: { type: Number },
+  neighbor_agreement: { type: Number },
+  needs_review: { type: Boolean, default: false },
+  matches: [{
+    class_name: String,
+    cosine_similarity: Number
+  }],
+  warning: { type: String },
   severity: { type: String },
   summary: { type: String },
   treatment: {
@@ -14,7 +21,7 @@ const cropAnalysisSchema = mongoose.Schema({
   },
   prevention: [String],
   imagePath: { type: String },
-  source: { type: String, enum: ['model', 'gemini', 'mock'] }
+  source: { type: String, enum: ['dinov2', 'model', 'gemini', 'mock', 'model_assets_missing'] }
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },

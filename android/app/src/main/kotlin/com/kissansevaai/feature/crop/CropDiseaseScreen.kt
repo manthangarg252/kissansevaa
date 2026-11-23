@@ -429,27 +429,51 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Header with confidence and TTS
+                        // Header with confidence, source badge, and TTS
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Surface(
-                                shape = RoundedCornerShape(9999.dp),
-                                color = GreenTint
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                Surface(
+                                    shape = RoundedCornerShape(9999.dp),
+                                    color = GreenTint
                                 ) {
-                                    Icon(Icons.Default.CheckCircle, null, tint = DeepEmerald, modifier = Modifier.size(14.dp))
-                                    Spacer(Modifier.width(4.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    ) {
+                                        Icon(Icons.Default.CheckCircle, null, tint = DeepEmerald, modifier = Modifier.size(14.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(
+                                            text = "${"%.0f".format((r.confidence ?: 0.9) * 100)}% Match",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = DeepEmerald
+                                        )
+                                    }
+                                }
+
+                                val sourceLabel = when (r.source) {
+                                    "dinov2" -> "DINOv2-S/14"
+                                    "gemini" -> "Gemini Vision"
+                                    else -> r.source?.uppercase() ?: "AI Model"
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(9999.dp),
+                                    color = if (r.source == "dinov2") GreenTintLight else SurfaceContainerLow,
+                                    border = BorderStroke(1.dp, if (r.source == "dinov2") DeepEmerald.copy(alpha = 0.5f) else BorderMedium)
+                                ) {
                                     Text(
-                                        text = "${"%.0f".format((r.confidence ?: 0.9) * 100)}% Confident",
+                                        text = sourceLabel,
                                         style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = DeepEmerald
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (r.source == "dinov2") DeepEmerald else TextMuted,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                     )
                                 }
                             }
@@ -461,6 +485,135 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                 lang = currentLang,
                                 onFallbackExplanation = { fallbackMsg -> permissionNotice = fallbackMsg }
                             )
+                        }
+
+                        // Uncertainty Warning Banner
+                        if (r.needs_review || r.warning != null) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = AmberTint,
+                                border = BorderStroke(1.dp, HarvestAmber.copy(alpha = 0.5f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.Top,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Warning,
+                                        contentDescription = "Uncertainty Warning",
+                                        tint = HarvestAmber,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(
+                                            text = "Uncertain Prediction / समीक्षा आवश्यक",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = SecondaryOrange
+                                        )
+                                        Text(
+                                            text = r.warning ?: "Cosine similarity or neighbor agreement is below safe confidence thresholds. Please verify with a local agricultural extension officer.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = TextCharcoal
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Similarity & Neighbor Agreement Metrics
+                        if (r.top_cosine_similarity != null || r.neighbor_agreement != null) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    r.top_cosine_similarity?.let { cosSim ->
+                                        Card(
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = CardDefaults.cardColors(containerColor = GreenBg),
+                                            border = BorderStroke(1.dp, GreenTint),
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Column(modifier = Modifier.padding(10.dp)) {
+                                                Text("Cosine Similarity", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                                                Text(
+                                                    text = "%.3f".format(cosSim),
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = DeepEmerald
+                                                )
+                                            }
+                                        }
+                                    }
+                                    r.neighbor_agreement?.let { agreement ->
+                                        Card(
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = CardDefaults.cardColors(containerColor = GreenBg),
+                                            border = BorderStroke(1.dp, GreenTint),
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Column(modifier = Modifier.padding(10.dp)) {
+                                                Text("Neighbor Agreement", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                                                Text(
+                                                    text = "${"%.1f".format(agreement * 100)}%",
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = DeepEmerald
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                Text(
+                                    text = "* Neighbor agreement reflects k-NN reference voting, not a calibrated medical probability.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TextMuted,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+
+                        // Nearest Reference Matches (Top 5)
+                        if (r.matches.isNotEmpty()) {
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow),
+                                border = BorderStroke(1.dp, BorderLight),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(
+                                        text = "Top Reference Matches (शीर्ष संदर्भ मिलान)",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextCharcoal
+                                    )
+                                    r.matches.take(5).forEachIndexed { idx, match ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "${idx + 1}. ${match.class_name.replace("___", " - ").replace("_", " ")}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = TextCharcoal,
+                                                modifier = Modifier.weight(1f),
+                                                maxLines = 1
+                                            )
+                                            Text(
+                                                text = "Sim: ${"%.3f".format(match.cosine_similarity)}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = DeepEmerald
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         // Disease & Crop details
@@ -597,6 +750,15 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                 }
                             }
                         }
+
+                        HorizontalDivider(color = BorderLight)
+                        Text(
+                            text = "⚠️ Disclaimer: This tool provides automated visual screening based on computer vision. Always consult an agronomist or local Krishi Vigyan Kendra (KVK) before applying chemical or large-scale treatments.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextMuted,
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp
+                        )
                     }
                 }
             }

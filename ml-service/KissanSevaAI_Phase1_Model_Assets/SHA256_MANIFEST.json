@@ -1,0 +1,22 @@
+{
+  "classes.json": {
+    "size_bytes": 2020,
+    "sha256": "3c91dc3457721268568335aab1d7b86861d55470f4fe0ec530b55ad3444c89f1"
+  },
+  "crop_index.faiss": {
+    "size_bytes": 6586413,
+    "sha256": "0a10a77ff47918d968e4d52a714e50bedc41af32149054a0a0ac4c1c2d5c5009"
+  },
+  "dinov2_vits14_cls_mean.onnx": {
+    "size_bytes": 88357409,
+    "sha256": "167c811f462d93db8048dbc9b990ee4c3041b599170ba07ecf1a51046423d02b"
+  },
+  "model_meta.json": {
+    "size_bytes": 625,
+    "sha256": "7409a155695cd356bcc1f1c22182c1dfc57c10e127f118673df53d4e3fb55353"
+  },
+  "train_labels.npy": {
+    "size_bytes": 8704,
+    "sha256": "c984dac2ba78c0bc9dfd5744d878b17fd04c8108862bb66930e28259b9e71e96"
+  }
+}

@@ -50,12 +50,24 @@ data class CropTreatment(
 )
 
 @Serializable
+data class CropMatch(
+    val class_name: String = "",
+    val cosine_similarity: Double = 0.0,
+)
+
+@Serializable
 data class CropAnalysisResult(
     @SerialName("_id") val id: String? = null,
     val source: String? = null,
     val cropName: String? = null,
     val diseaseName: String = "",
     val confidence: Double? = null,
+    val top_cosine_similarity: Double? = null,
+    val neighbor_agreement: Double? = null,
+    val needs_review: Boolean = false,
+    val matches: List<CropMatch> = emptyList(),
+    val warning: String? = null,
+    val confidence_type: String? = null,
     val severity: String? = null,
     val summary: String? = null,
     val treatment: CropTreatment = CropTreatment(),

@@ -2,7 +2,7 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import { analyzeCrop, getHistory } from '../controllers/cropController.js';
+import { analyzeCrop, getHistory, getModelStatus } from '../controllers/cropController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 import { fileURLToPath } from 'url';
@@ -31,5 +31,6 @@ const router = express.Router();
 
 router.post('/analyze', protect, upload.single('image'), analyzeCrop);
 router.get('/history', protect, getHistory);
+router.get('/model-status', getModelStatus);
 
 export default router;

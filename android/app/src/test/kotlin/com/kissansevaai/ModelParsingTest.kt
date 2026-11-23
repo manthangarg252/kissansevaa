@@ -117,6 +117,37 @@ class ModelParsingTest {
     }
 
     @Test
+    fun `parse dinov2 crop analysis with matches and uncertainty`() {
+        val jsonStr = """
+            {
+                "diseaseName": "Tomato Early Blight",
+                "cropName": "Tomato",
+                "source": "dinov2",
+                "confidence": 0.88,
+                "top_cosine_similarity": 0.884,
+                "neighbor_agreement": 0.80,
+                "needs_review": false,
+                "confidence_type": "similarity_score",
+                "matches": [
+                    {"class_name": "Tomato___Early_blight", "cosine_similarity": 0.884},
+                    {"class_name": "Tomato___Target_Spot", "cosine_similarity": 0.761}
+                ],
+                "severity": "medium",
+                "summary": "Detected Early Blight"
+            }
+        """.trimIndent()
+        val result = json.decodeFromString<CropAnalysisResult>(jsonStr)
+        assertEquals("dinov2", result.source)
+        assertEquals("Tomato Early Blight", result.diseaseName)
+        assertEquals(0.884, result.top_cosine_similarity!!, 0.001)
+        assertEquals(0.80, result.neighbor_agreement!!, 0.001)
+        assertFalse(result.needs_review)
+        assertEquals(2, result.matches.size)
+        assertEquals("Tomato___Early_blight", result.matches[0].class_name)
+        assertEquals(0.884, result.matches[0].cosine_similarity, 0.001)
+    }
+
+    @Test
     fun `parse empty or missing fields gracefully`() {
         // Minimal crop analysis with only required field
         val minimal = """{"diseaseName": "Unknown"}"""

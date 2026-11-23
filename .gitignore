@@ -64,6 +64,7 @@ ml/datasets/
 *.gguf
 *.zip
 !*.tflite
+ml-service/KissanSevaAI_Phase1_Model_Assets/model_assets/
 
 # ML runs and outputs
 ml/outputs/
