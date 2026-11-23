@@ -46,10 +46,16 @@ backend/uploads/
 # Python / ML
 __pycache__/
 *.pyc
+venv/
+ml-service/venv/
 ml/data/
 ml/datasets/
+/models/
+"/models /"
+/models*/
+*.onnx
+*.bin
 *.ckpt
-!ml-service/models/*.ckpt
 
 # Model formats
 *.pt

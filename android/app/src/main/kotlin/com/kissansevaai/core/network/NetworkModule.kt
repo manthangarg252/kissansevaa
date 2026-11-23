@@ -54,10 +54,30 @@ object NetworkModule {
             .build()
     }
 
+    private fun isProbablyEmulator(): Boolean {
+        val f = android.os.Build.FINGERPRINT
+        val m = android.os.Build.MODEL
+        val h = android.os.Build.HARDWARE
+        return f.startsWith("generic") || f.startsWith("unknown") ||
+                m.contains("google_sdk") || m.contains("Emulator") || m.contains("Android SDK built for x86") ||
+                h.contains("goldfish") || h.contains("ranchu")
+    }
+
     @Provides
     @Singleton
     fun provideRetrofit(client: OkHttpClient, dataStore: DataStoreManager): Retrofit {
-        val baseUrl = runBlocking { dataStore.baseUrl.first() } ?: BuildConfig.BASE_URL
+        val configuredUrl = runBlocking { dataStore.baseUrl.first() }
+        val baseUrl = configuredUrl ?: run {
+            if (BuildConfig.DEBUG) {
+                if (isProbablyEmulator()) {
+                    "http://10.0.2.2:5050"
+                } else {
+                    "http://192.168.1.4:5050"
+                }
+            } else {
+                BuildConfig.BASE_URL
+            }
+        }
         val url = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
         return Retrofit.Builder()
             .baseUrl(url)

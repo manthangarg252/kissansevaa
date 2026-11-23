@@ -8,7 +8,7 @@ import { getGeminiChatResponse } from '../geminiService';
 const localeMap: Record<string, string> = {
   en: 'en-IN',
   hi: 'hi-IN',
-  sa: 'hi-IN', 
+  bho: 'hi-IN',
   pa: 'pa-IN',
   mr: 'mr-IN'
 };

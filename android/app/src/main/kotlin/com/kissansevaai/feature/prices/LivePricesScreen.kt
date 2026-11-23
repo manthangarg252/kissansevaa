@@ -1,23 +1,29 @@
 package com.kissansevaai.feature.prices
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingFlat
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingFlat
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -92,34 +98,132 @@ fun LivePricesScreen(onBack: () -> Unit, viewModel: PricesViewModel = hiltViewMo
     val error by viewModel.error.collectAsState()
     var search by remember { mutableStateOf("") }
 
-    FeatureScaffold(title = stringResource(R.string.prices_title), onBack = onBack) { _ ->
-        Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+    FeatureScaffold(
+        title = stringResource(R.string.prices_title),
+        subtitle = "दैनिक मंडी भाव व बाजार रुझान",
+        onBack = onBack
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
             OutlinedTextField(
-                search, { search = it; viewModel.fetch(it.ifBlank { null }) },
-                placeholder = { Text(stringResource(R.string.common_search)) },
-                singleLine = true, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                value = search,
+                onValueChange = {
+                    search = it
+                    viewModel.fetch(it.ifBlank { null })
+                },
+                placeholder = { Text("Search by crop name (e.g. Wheat, Cotton)...") },
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = DeepEmerald) },
+                trailingIcon = {
+                    if (search.isNotEmpty()) {
+                        IconButton(onClick = {
+                            search = ""
+                            viewModel.fetch(null)
+                        }) {
+                            Icon(Icons.Default.Clear, null, tint = TextMuted)
+                        }
+                    }
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = DeepEmerald,
+                    unfocusedBorderColor = BorderMedium
+                )
             )
-            LoadingOverlay(isLoading)
+
+            var selectedCropFilter by remember { mutableStateOf("All") }
+
+            // Quick Commodity Chips
+            androidx.compose.foundation.lazy.LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                items(listOf("All", "Cotton", "Wheat", "Rice", "Onion", "Tomato", "Soybean", "Mustard")) { cropName ->
+                    Surface(
+                        shape = RoundedCornerShape(9999.dp),
+                        color = if (selectedCropFilter == cropName) GreenTint else CardWhite,
+                        border = BorderStroke(1.dp, if (selectedCropFilter == cropName) DeepEmerald else BorderMedium),
+                        modifier = Modifier.clickable {
+                            selectedCropFilter = cropName
+                            viewModel.fetch(if (cropName == "All") null else cropName)
+                        }
+                    ) {
+                        Text(
+                            text = cropName,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (selectedCropFilter == cropName) DeepEmerald else TextCharcoal,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                }
+            }
+
+            LoadingOverlay(isLoading && prices.isEmpty())
             error?.let { err ->
                 Card(
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                    colors = CardDefaults.cardColors(containerColor = ErrorContainer),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = err,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(16.dp),
+                        color = OnErrorContainer,
+                        modifier = Modifier.padding(14.dp),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(bottom = 16.dp)) {
+
+            if (prices.isEmpty() && !isLoading) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardWhite),
+                    border = BorderStroke(1.dp, BorderLight),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text("No market rates found", fontWeight = FontWeight.Bold, color = TextCharcoal)
+                        Text("No price listings match '$search'. Tap below to view all APMC rates.", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                        Button(
+                            onClick = {
+                                search = ""
+                                selectedCropFilter = "All"
+                                viewModel.fetch(null)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
+                            shape = RoundedCornerShape(9999.dp)
+                        ) {
+                            Text("View All Rates", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(bottom = 24.dp)
+            ) {
                 items(prices, key = { "${it.crop}_${it.market}" }) { p ->
-                    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Slate900)) {
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardWhite),
+                        border = BorderStroke(1.dp, BorderLight),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Row(
-                            Modifier
+                            modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(14.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -136,38 +240,49 @@ fun LivePricesScreen(onBack: () -> Unit, viewModel: PricesViewModel = hiltViewMo
                                     placeholder = painterResource(R.drawable.ic_image_placeholder),
                                     error = painterResource(R.drawable.ic_broken_image),
                                     modifier = Modifier
-                                        .size(46.dp)
+                                        .size(48.dp)
                                         .clip(RoundedCornerShape(12.dp)),
                                 )
                                 Spacer(Modifier.width(12.dp))
                                 Column {
                                     Text(
-                                        p.crop,
+                                        text = p.crop,
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = Slate100,
+                                        color = TextCharcoal,
                                     )
                                     Text(
-                                        "${p.market}, ${p.state}",
-                                        color = Slate400,
+                                        text = "${p.market}, ${p.state}",
+                                        color = TextMuted,
                                         style = MaterialTheme.typography.bodySmall,
                                     )
                                 }
                             }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(horizontalAlignment = Alignment.End) {
                                 Text(
-                                    "₹${"%.0f".format(p.price)}/${p.unit}",
+                                    text = "₹${"%.0f".format(p.price)}/${p.unit}",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = Emerald400,
+                                    color = DeepEmerald,
                                 )
-                                Spacer(Modifier.width(4.dp))
-                                val (icon, color) = when (p.trend) {
-                                    "up" -> Icons.Default.TrendingUp to Emerald400
-                                    "down" -> Icons.Default.TrendingDown to Red400
-                                    else -> Icons.Default.TrendingFlat to Slate400
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    val (icon, color) = when (p.trend) {
+                                        "up" -> Icons.Default.TrendingUp to DeepEmerald
+                                        "down" -> Icons.Default.TrendingDown to ErrorRed
+                                        else -> Icons.AutoMirrored.Filled.TrendingFlat to TextMuted
+                                    }
+                                    Icon(icon, null, tint = color, modifier = Modifier.size(16.dp))
+                                    Text(
+                                        text = if (p.trend == "up") "Rising" else if (p.trend == "down") "Falling" else "Steady",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = color,
+                                        fontSize = 11.sp
+                                    )
                                 }
-                                Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
                             }
                         }
                     }

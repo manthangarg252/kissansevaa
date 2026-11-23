@@ -30,6 +30,7 @@ const cropResponseSchema = {
 const langMap = {
   en: 'English',
   hi: 'Hindi (Devanagari script)',
+  bho: 'Bhojpuri (Devanagari script)',
   mr: 'Marathi (Devanagari script)',
   pa: 'Punjabi (Gurmukhi script)',
   sa: 'Sanskrit (Devanagari script)'
@@ -127,17 +128,20 @@ export const getTreatmentDetails = async (predictedClass, location, soilType, la
     return JSON.parse(response.text);
   } catch (error) {
     console.warn('[Gemini Vision] getTreatmentDetails live call failed, falling back to dev fallback:', error.message);
+    const parts = predictedClass.includes('/') ? predictedClass.split('/') : predictedClass.split('___');
+    const rawCrop = parts[0] || "Wheat";
+    const rawDisease = (parts[1] || parts[0]).replace(/_/g, ' ');
     return {
-      cropName: predictedClass.split('___')[0] || "Wheat",
-      diseaseName: predictedClass.split('___')[1] || "Leaf Blight",
+      cropName: rawCrop,
+      diseaseName: rawDisease,
       confidence: 0.88,
-      summary: `Treatment recommendations for ${predictedClass} at ${location}.`,
+      summary: `Treatment recommendations for ${rawDisease} (${rawCrop}) at ${location || 'Farm'}.`,
       severity: "Medium",
       treatment: {
-        organic: ["Apply biological control agent Bacillus subtilis @ 5g/L"],
-        chemical: ["Spray Carbendazim 50% WP @ 1g/L water"]
+        organic: ["Apply biological control agent Bacillus subtilis @ 5g/L", "Neem oil spray (5ml/L)"],
+        chemical: ["Spray Carbendazim 50% WP @ 1g/L water", "Apply Mancozeb 75% WP @ 2g/L"]
       },
-      prevention: ["Crop rotation", "Clean field borders", "Balanced fertilization"]
+      prevention: ["Crop rotation with non-host crops", "Clean field borders", "Balanced NPK fertilization"]
     };
   }
 };

@@ -26,6 +26,15 @@ class AuthViewModel @Inject constructor(
         .map { !it.isNullOrBlank() }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
+    val baseUrl: StateFlow<String?> = dataStore.baseUrl
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    fun setBaseUrl(url: String) {
+        viewModelScope.launch {
+            dataStore.setBaseUrl(url)
+        }
+    }
+
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState
 

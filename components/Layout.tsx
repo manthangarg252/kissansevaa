@@ -20,9 +20,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const languages = [
     { code: 'en', name: 'English', native: 'English', color: 'bg-blue-600' },
     { code: 'hi', name: 'Hindi', native: 'हिन्दी', color: 'bg-emerald-600' },
+    { code: 'bho', name: 'Bhojpuri', native: 'भोजपुरी', color: 'bg-teal-600' },
     { code: 'mr', name: 'Marathi', native: 'मराठी', color: 'bg-indigo-600' },
-    { code: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', color: 'bg-orange-600' },
-    { code: 'sa', name: 'Sanskrit', native: 'संस्कृतम्', color: 'bg-amber-600' }
+    { code: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', color: 'bg-orange-600' }
   ];
 
   const changeLanguage = (code: string) => {

@@ -7,8 +7,8 @@
         <domain includeSubdomains="false">127.0.0.1</domain>
     </domain-config>
 
-    <!-- All other domains must use HTTPS -->
-    <base-config cleartextTrafficPermitted="false">
+    <!-- Debug-variant only: allow cleartext HTTP for local development (Wi-Fi, USB, emulator) -->
+    <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>

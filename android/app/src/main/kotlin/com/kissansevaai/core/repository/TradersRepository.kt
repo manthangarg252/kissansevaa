@@ -2,6 +2,7 @@ package com.kissansevaai.core.repository
 
 import com.kissansevaai.core.common.Resource
 import com.kissansevaai.core.common.toUserFriendlyMessage
+import com.kissansevaai.core.data.CatalogData
 import com.kissansevaai.core.database.TraderDao
 import com.kissansevaai.core.database.toEntity
 import com.kissansevaai.core.model.Trader
@@ -27,7 +28,12 @@ class TradersRepository @Inject constructor(
     fun getTraders(crop: String? = null, state: String? = null): Flow<Resource<List<Trader>>> = flow {
         emit(Resource.Loading)
 
-        val cachedEntities = traderDao.getAllTraders().first()
+        var cachedEntities = traderDao.getAllTraders().first()
+        if (cachedEntities.isEmpty()) {
+            traderDao.insertAll(CatalogData.DEFAULT_TRADERS.map { it.toEntity() })
+            cachedEntities = traderDao.getAllTraders().first()
+        }
+
         val cached = cachedEntities.map { it.toDomain() }
         if (cached.isNotEmpty()) {
             val filteredCached = filterTraders(cached, crop, state)

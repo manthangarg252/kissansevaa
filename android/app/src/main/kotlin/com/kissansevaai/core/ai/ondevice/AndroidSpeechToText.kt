@@ -50,7 +50,7 @@ class AndroidSpeechToText @Inject constructor(
         if (!isRecognitionAvailable) return false
         val normalized = normalizeLang(langCode)
         if (normalized == "sa") return false
-        return normalized in listOf("en", "hi", "mr", "pa")
+        return normalized in listOf("en", "hi", "mr", "pa", "bho")
     }
 
     override fun getUnsupportedReason(langCode: String): String? {
@@ -61,7 +61,7 @@ class AndroidSpeechToText @Inject constructor(
         if (normalized == "sa") {
             return "Voice recognition is not supported in Sanskrit on this device. Please use text input or switch language."
         }
-        if (normalized !in listOf("en", "hi", "mr", "pa")) {
+        if (normalized !in listOf("en", "hi", "mr", "pa", "bho")) {
             return "Voice recognition is not supported for $langCode"
         }
         return null
@@ -92,6 +92,7 @@ class AndroidSpeechToText @Inject constructor(
                     "hi" -> "hi-IN"
                     "mr" -> "mr-IN"
                     "pa" -> "pa-IN"
+                    "bho" -> "bho-IN"
                     "sa" -> "sa-IN"
                     else -> "en-IN"
                 }
@@ -176,6 +177,7 @@ class AndroidSpeechToText @Inject constructor(
             lower.startsWith("hi") -> "hi"
             lower.startsWith("mr") -> "mr"
             lower.startsWith("pa") -> "pa"
+            lower.startsWith("bho") -> "bho"
             lower.startsWith("sa") -> "sa"
             else -> lower
         }

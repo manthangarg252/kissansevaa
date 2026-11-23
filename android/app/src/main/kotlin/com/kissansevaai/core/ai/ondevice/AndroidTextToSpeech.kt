@@ -109,6 +109,7 @@ class AndroidTextToSpeech @Inject constructor(
             "hi" -> Locale("hi", "IN")
             "mr" -> Locale("mr", "IN")
             "pa" -> Locale("pa", "IN")
+            "bho" -> Locale("bho", "IN")
             "sa" -> Locale("sa", "IN")
             else -> Locale("en", "IN")
         }
@@ -235,6 +236,7 @@ class AndroidTextToSpeech @Inject constructor(
             lower.startsWith("hi") -> "hi"
             lower.startsWith("mr") -> "mr"
             lower.startsWith("pa") -> "pa"
+            lower.startsWith("bho") -> "bho"
             lower.startsWith("sa") -> "sa"
             else -> lower
         }

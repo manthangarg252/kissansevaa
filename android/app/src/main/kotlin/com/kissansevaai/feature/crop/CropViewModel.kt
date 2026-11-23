@@ -57,6 +57,32 @@ class CropViewModel @Inject constructor(
         }
     }
 
+    fun createSampleLeafUri(crop: String, disease: String): Uri {
+        val fileName = "sample_${crop.lowercase()}_${disease.lowercase().replace(" ", "_")}.jpg"
+        val file = java.io.File(context.cacheDir, fileName)
+        if (!file.exists()) {
+            val bitmap = android.graphics.Bitmap.createBitmap(500, 500, android.graphics.Bitmap.Config.RGB_565)
+            val canvas = android.graphics.Canvas(bitmap)
+            val bgPaint = android.graphics.Paint().apply { color = android.graphics.Color.rgb(34, 139, 34) }
+            canvas.drawRect(0f, 0f, 500f, 500f, bgPaint)
+            val spotPaint = android.graphics.Paint().apply { color = android.graphics.Color.rgb(218, 165, 32) }
+            canvas.drawCircle(180f, 150f, 45f, spotPaint)
+            canvas.drawCircle(320f, 280f, 60f, spotPaint)
+            canvas.drawCircle(220f, 380f, 35f, spotPaint)
+            val textPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.WHITE
+                textSize = 30f
+                isAntiAlias = true
+                textAlign = android.graphics.Paint.Align.CENTER
+            }
+            canvas.drawText("$crop: $disease", 250f, 250f, textPaint)
+            java.io.FileOutputStream(file).use { out ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
+            }
+        }
+        return Uri.fromFile(file)
+    }
+
     fun analyze(imageUri: Uri, location: String, soilType: String) {
         viewModelScope.launch {
             _uiState.value = CropUiState(isLoading = true)

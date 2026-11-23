@@ -1,5 +1,8 @@
 package com.kissansevaai.feature.schemes
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -8,16 +11,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.ListAlt
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -96,60 +100,204 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
     val state by viewModel.uiState.collectAsState()
     var selectedTab by remember { mutableIntStateOf(0) }
     var searchQuery by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("All") }
 
-    var stateField by remember { mutableStateOf("") }
-    var farmSize by remember { mutableStateOf("") }
-    var crop by remember { mutableStateOf("") }
-    var soilType by remember { mutableStateOf("") }
-    var landType by remember { mutableStateOf("") }
+    var stateField by remember { mutableStateOf("Gujarat") }
+    var farmSize by remember { mutableStateOf("5") }
+    var crop by remember { mutableStateOf("Cotton & Groundnut") }
+    var soilType by remember { mutableStateOf("Black Cotton") }
+    var landType by remember { mutableStateOf("Irrigated") }
 
     val uriHandler = LocalUriHandler.current
 
     FeatureScaffold(
         title = stringResource(R.string.schemes_title),
-        subtitle = stringResource(R.string.schemes_subtitle),
+        subtitle = "सरकारी योजनाएं, अनुदान एवं पात्रता",
         onBack = onBack
-    ) { _ ->
-        Column(Modifier.fillMaxSize()) {
-            TabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = Slate900,
-                contentColor = Emerald400,
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            // Modern Tab Row
+            Surface(
+                color = CardWhite,
+                border = BorderStroke(1.dp, BorderLight),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    text = { Text("Government Schemes", fontWeight = FontWeight.SemiBold) },
-                    icon = { Icon(Icons.Default.ListAlt, contentDescription = null) }
-                )
-                Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    text = { Text("AI Advisor", fontWeight = FontWeight.SemiBold) },
-                    icon = { Icon(Icons.Default.AutoAwesome, contentDescription = null) }
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(9999.dp),
+                        color = if (selectedTab == 0) DeepEmerald else SurfaceContainerLow,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { selectedTab = 0 }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(vertical = 10.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountBalance,
+                                contentDescription = null,
+                                tint = if (selectedTab == 0) Color.White else TextMuted,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "Schemes (योजनाएं)",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (selectedTab == 0) Color.White else TextCharcoal
+                            )
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(9999.dp),
+                        color = if (selectedTab == 1) DeepEmerald else SurfaceContainerLow,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { selectedTab = 1 }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(vertical = 10.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = if (selectedTab == 1) Color.White else TextMuted,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "AI Advisor (सलाहकार)",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (selectedTab == 1) Color.White else TextCharcoal
+                            )
+                        }
+                    }
+                }
             }
 
             if (selectedTab == 0) {
-                Column(Modifier.fillMaxSize().padding(16.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Search Bar
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text(stringResource(R.string.common_search)) },
+                        placeholder = { Text("Search schemes by name or benefit...") },
+                        leadingIcon = { Icon(Icons.Default.Search, null, tint = DeepEmerald) },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Default.Clear, null, tint = TextMuted)
+                                }
+                            }
+                        },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = DeepEmerald,
+                            unfocusedBorderColor = BorderMedium
+                        )
                     )
+
+                    // Filter chips row
+                    androidx.compose.foundation.lazy.LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(listOf("All", "Subsidies", "Financial", "Insurance", "Irrigation", "Organic", "Technology")) { cat ->
+                            Surface(
+                                shape = RoundedCornerShape(9999.dp),
+                                color = if (selectedCategory == cat) GreenTint else CardWhite,
+                                border = BorderStroke(1.dp, if (selectedCategory == cat) DeepEmerald else BorderMedium),
+                                modifier = Modifier.clickable { selectedCategory = cat }
+                            ) {
+                                Text(
+                                    text = cat,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (selectedCategory == cat) DeepEmerald else TextCharcoal,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
 
                     LoadingOverlay(isSchemesLoading && schemes.isEmpty())
 
-                    val filteredSchemes = remember(schemes, searchQuery) {
-                        if (searchQuery.isBlank()) schemes
-                        else schemes.filter {
-                            it.name.contains(searchQuery, ignoreCase = true) ||
-                            it.category.contains(searchQuery, ignoreCase = true) ||
-                            it.description.contains(searchQuery, ignoreCase = true)
+                    val filteredSchemes = remember(schemes, searchQuery, selectedCategory) {
+                        var list = schemes
+                        if (selectedCategory != "All") {
+                            list = list.filter { scheme ->
+                                when (selectedCategory) {
+                                    "Subsidies" -> scheme.description.contains("subsidy", ignoreCase = true) ||
+                                            scheme.description.contains("grant", ignoreCase = true) ||
+                                            scheme.description.contains("support", ignoreCase = true) ||
+                                            scheme.category.contains("Income", ignoreCase = true) ||
+                                            scheme.category.contains("Organic", ignoreCase = true)
+                                    "Financial" -> scheme.category.contains("Financial", ignoreCase = true) ||
+                                            scheme.category.contains("Income", ignoreCase = true) ||
+                                            scheme.name.contains("KCC", ignoreCase = true)
+                                    else -> scheme.category.contains(selectedCategory, ignoreCase = true) ||
+                                            scheme.description.contains(selectedCategory, ignoreCase = true)
+                                }
+                            }
+                        }
+                        if (searchQuery.isNotBlank()) {
+                            list = list.filter {
+                                it.name.contains(searchQuery, ignoreCase = true) ||
+                                it.category.contains(searchQuery, ignoreCase = true) ||
+                                it.description.contains(searchQuery, ignoreCase = true)
+                            }
+                        }
+                        list
+                    }
+
+                    if (filteredSchemes.isEmpty() && !isSchemesLoading) {
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = CardWhite),
+                            border = BorderStroke(1.dp, BorderLight),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Icon(Icons.Default.SearchOff, null, tint = TextMuted, modifier = Modifier.size(40.dp))
+                                Text("No schemes found", fontWeight = FontWeight.Bold, color = TextCharcoal)
+                                Text("Try changing your search or filter criteria", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                Button(
+                                    onClick = {
+                                        searchQuery = ""
+                                        selectedCategory = "All"
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
+                                    shape = RoundedCornerShape(9999.dp)
+                                ) {
+                                    Text("Reset Filters", fontWeight = FontWeight.Bold)
+                                }
+                            }
                         }
                     }
 
@@ -161,69 +309,107 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
                         items(filteredSchemes, key = { it.id.ifBlank { it.name } }) { scheme ->
                             Card(
                                 shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = Slate800),
+                                colors = CardDefaults.cardColors(containerColor = CardWhite),
+                                border = BorderStroke(1.dp, BorderLight),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
                                     Row(
-                                        Modifier.fillMaxWidth(),
+                                        modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
                                             text = scheme.name,
                                             style = MaterialTheme.typography.titleMedium,
-                                            color = Slate100,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextCharcoal,
                                             modifier = Modifier.weight(1f)
                                         )
                                         Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = Emerald600.copy(alpha = 0.2f),
-                                            border = null
+                                            shape = RoundedCornerShape(9999.dp),
+                                            color = GreenTint
                                         ) {
                                             Text(
                                                 text = scheme.category,
-                                                color = Emerald400,
+                                                color = DeepEmerald,
                                                 style = MaterialTheme.typography.labelSmall,
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                             )
                                         }
                                     }
 
                                     Text(
                                         text = scheme.description,
-                                        color = Slate300,
-                                        style = MaterialTheme.typography.bodyMedium
+                                        color = TextCharcoal,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        lineHeight = 20.sp
                                     )
 
-                                    if (scheme.eligibility.isNotEmpty()) {
-                                        Text(
-                                            text = "Eligibility:",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = Slate400,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        scheme.eligibility.forEach { item ->
-                                            Text(
-                                                text = "• $item",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = Slate400
-                                            )
+                                    if (scheme.benefits.isNotBlank()) {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = GreenBg,
+                                            border = BorderStroke(1.dp, GreenTint),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Icon(Icons.Default.MonetizationOn, null, tint = DeepEmerald, modifier = Modifier.size(16.dp))
+                                                Text(
+                                                    text = "लाभ (Benefit): ${scheme.benefits}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = DeepEmerald
+                                                )
+                                            }
                                         }
                                     }
 
-                                    scheme.link?.takeIf { it.isNotBlank() }?.let { linkUrl ->
-                                        OutlinedButton(
+                                    if (scheme.eligibility.isNotEmpty()) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                            Text(
+                                                text = "पात्रता (Eligibility):",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = TextMuted
+                                            )
+                                            scheme.eligibility.forEach { item ->
+                                                Row(
+                                                    verticalAlignment = Alignment.Top,
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    Icon(Icons.Default.Check, null, tint = DeepEmerald, modifier = Modifier.size(14.dp))
+                                                    Text(item, color = TextCharcoal, style = MaterialTheme.typography.bodySmall)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    scheme.link?.takeIf { it.isNotBlank() }?.let { schemeUrl ->
+                                        Button(
                                             onClick = {
-                                                try { uriHandler.openUri(linkUrl) } catch (_: Exception) {}
+                                                try { uriHandler.openUri(schemeUrl) } catch (_: Exception) {}
                                             },
-                                            modifier = Modifier.align(Alignment.End),
-                                            shape = RoundedCornerShape(8.dp),
-                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Emerald400)
+                                            modifier = Modifier.fillMaxWidth().height(42.dp),
+                                            shape = RoundedCornerShape(9999.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald)
                                         ) {
-                                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
-                                            Spacer(Modifier.width(6.dp))
-                                            Text("Visit Portal", style = MaterialTheme.typography.labelMedium)
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Text("आधिकारिक पोर्टल पर आवेदन करें (Apply)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                                Icon(Icons.AutoMirrored.Filled.OpenInNew, null, modifier = Modifier.size(16.dp))
+                                            }
                                         }
                                     }
                                 }
@@ -232,35 +418,114 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
                     }
                 }
             } else {
+                // Tab 1: AI Advisor
                 Column(
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Card(
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Slate800),
+                        colors = CardDefaults.cardColors(containerColor = CardWhite),
+                        border = BorderStroke(1.dp, BorderLight),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedTextField(stateField, { stateField = it }, label = { Text("State") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                            OutlinedTextField(farmSize, { farmSize = it }, label = { Text("Farm Size (acres)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                            OutlinedTextField(crop, { crop = it }, label = { Text("Crop") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                            OutlinedTextField(soilType, { soilType = it }, label = { Text(stringResource(R.string.common_soil_type)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                            OutlinedTextField(landType, { landType = it }, label = { Text("Land Type") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                text = "अपने खेत की जानकारी दर्ज करें",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = TextCharcoal
+                            )
+                            Text(
+                                text = "AI will recommend best government subsidies tailored to your farm",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextMuted
+                            )
+
+                            OutlinedTextField(
+                                value = stateField,
+                                onValueChange = { stateField = it },
+                                label = { Text("State (राज्य)") },
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = farmSize,
+                                onValueChange = { farmSize = it },
+                                label = { Text("Farm Size (एकड़ में)") },
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = crop,
+                                onValueChange = { crop = it },
+                                label = { Text("Primary Crop (मुख्य फसल)") },
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = soilType,
+                                onValueChange = { soilType = it },
+                                label = { Text("Soil Type (मिट्टी का प्रकार)") },
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = landType,
+                                onValueChange = { landType = it },
+                                label = { Text("Irrigation / Land Type") },
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            Button(
+                                onClick = { viewModel.recommend(stateField, farmSize, crop, soilType, landType) },
+                                enabled = !state.isLoading,
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                shape = RoundedCornerShape(9999.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald)
+                            ) {
+                                if (state.isLoading) {
+                                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                                } else {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(Icons.Default.AutoAwesome, null)
+                                        Text("अनुशंसित योजनाएं प्राप्त करें (Get Subsidies)", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
                         }
                     }
-                    Button(
-                        onClick = { viewModel.recommend(stateField, farmSize, crop, soilType, landType) },
-                        enabled = !state.isLoading && stateField.isNotBlank(),
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Emerald600)
-                    ) {
-                        Text(stringResource(R.string.schemes_ai_btn))
-                    }
+
                     LoadingOverlay(state.isLoading)
-                    state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                    state.response?.let { AiResponseCard(stringResource(R.string.schemes_modal_title), it) }
+
+                    state.error?.let {
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = ErrorContainer),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(text = it, color = OnErrorContainer, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(12.dp))
+                        }
+                    }
+
+                    state.response?.let {
+                        AiResponseCard("AI Recommended Government Schemes", it)
+                    }
                 }
             }
         }

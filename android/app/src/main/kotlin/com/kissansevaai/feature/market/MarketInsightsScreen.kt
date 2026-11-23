@@ -1,14 +1,21 @@
 package com.kissansevaai.feature.market
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -55,33 +62,152 @@ data class MarketUiState(val isLoading: Boolean = false, val response: String? =
 @Composable
 fun MarketInsightsScreen(onBack: () -> Unit, viewModel: MarketViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsState()
-    var location by remember { mutableStateOf("") }
-    var soilType by remember { mutableStateOf("") }
-    var farmSize by remember { mutableStateOf("") }
-    var currentCrop by remember { mutableStateOf("") }
-    var irrigation by remember { mutableStateOf("") }
+    var location by remember { mutableStateOf("Rajkot, Gujarat") }
+    var soilType by remember { mutableStateOf("Black Cotton") }
+    var farmSize by remember { mutableStateOf("5") }
+    var currentCrop by remember { mutableStateOf("Cotton") }
+    var irrigation by remember { mutableStateOf("Canal") }
 
-    FeatureScaffold(title = stringResource(R.string.market_title), subtitle = stringResource(R.string.market_subtitle), onBack = onBack) { _ ->
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Slate800), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(stringResource(R.string.market_farm_profile), style = MaterialTheme.typography.titleMedium, color = Emerald400)
-                    OutlinedTextField(location, { location = it }, label = { Text(stringResource(R.string.common_location)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(soilType, { soilType = it }, label = { Text(stringResource(R.string.common_soil_type)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(farmSize, { farmSize = it }, label = { Text("Farm Size (acres)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(currentCrop, { currentCrop = it }, label = { Text(stringResource(R.string.market_current_crop)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(irrigation, { irrigation = it }, label = { Text("Irrigation Type") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+    FeatureScaffold(
+        title = stringResource(R.string.market_title),
+        subtitle = "स्मार्ट बाजार रणनीति एवं बिक्री परामर्श",
+        onBack = onBack
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = CardWhite),
+                border = BorderStroke(1.dp, BorderLight),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Farm Profile & Market Parameters",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextCharcoal
+                    )
+
+                    OutlinedTextField(
+                        value = location,
+                        onValueChange = { location = it },
+                        label = { Text(stringResource(R.string.common_location)) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = DeepEmerald,
+                            unfocusedBorderColor = BorderMedium
+                        )
+                    )
+
+                    OutlinedTextField(
+                        value = soilType,
+                        onValueChange = { soilType = it },
+                        label = { Text(stringResource(R.string.common_soil_type)) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = DeepEmerald,
+                            unfocusedBorderColor = BorderMedium
+                        )
+                    )
+
+                    OutlinedTextField(
+                        value = farmSize,
+                        onValueChange = { farmSize = it },
+                        label = { Text("Farm Size (in acres)") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = DeepEmerald,
+                            unfocusedBorderColor = BorderMedium
+                        )
+                    )
+
+                    OutlinedTextField(
+                        value = currentCrop,
+                        onValueChange = { currentCrop = it },
+                        label = { Text(stringResource(R.string.market_current_crop)) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = DeepEmerald,
+                            unfocusedBorderColor = BorderMedium
+                        )
+                    )
+
+                    OutlinedTextField(
+                        value = irrigation,
+                        onValueChange = { irrigation = it },
+                        label = { Text("Irrigation Type") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = DeepEmerald,
+                            unfocusedBorderColor = BorderMedium
+                        )
+                    )
                 }
             }
+
             Button(
                 onClick = { viewModel.recommend(location, soilType, farmSize, currentCrop, irrigation) },
                 enabled = !state.isLoading && location.isNotBlank(),
-                modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Emerald600),
-            ) { Text(stringResource(R.string.market_get_recommendations)) }
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(9999.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+            ) {
+                if (state.isLoading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.AutoAwesome, null)
+                        Text(
+                            text = "📊 " + stringResource(R.string.market_get_recommendations),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+            }
+
             LoadingOverlay(state.isLoading)
-            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            state.response?.let { AiResponseCard(stringResource(R.string.market_strategy_title), it) }
+
+            state.error?.let {
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = ErrorContainer),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(text = it, color = OnErrorContainer, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(12.dp))
+                }
+            }
+
+            state.response?.let {
+                AiResponseCard(stringResource(R.string.market_strategy_title), it)
+            }
         }
     }
 }

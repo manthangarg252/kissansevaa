@@ -1,10 +1,16 @@
 package com.kissansevaai.feature.auth
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Agriculture
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -12,19 +18,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.kissansevaai.R
 import com.kissansevaai.ui.theme.*
-
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import coil3.compose.AsyncImage
 
 @Composable
 fun SignupScreen(
@@ -45,69 +49,141 @@ fun SignupScreen(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize().background(Slate950),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(SurfaceBg)
+            .padding(16.dp),
         contentAlignment = Alignment.Center,
     ) {
-        AsyncImage(
-            model = "https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=800&q=75",
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            placeholder = painterResource(R.drawable.ic_image_placeholder),
-            error = painterResource(R.drawable.ic_broken_image),
-            modifier = Modifier
-                .fillMaxSize()
-                .alpha(0.25f),
-        )
         Card(
-            modifier = Modifier.widthIn(max = 400.dp).padding(24.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Slate900),
+            modifier = Modifier
+                .widthIn(max = 420.dp)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState()),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = CardWhite),
+            border = BorderStroke(1.dp, BorderLight),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         ) {
             Column(
-                modifier = Modifier.padding(32.dp),
+                modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text(stringResource(R.string.auth_create_account), style = MaterialTheme.typography.headlineLarge, color = Emerald400)
+                Surface(
+                    shape = CircleShape,
+                    color = GreenTint,
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Agriculture,
+                            contentDescription = null,
+                            tint = DeepEmerald,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = stringResource(R.string.auth_create_account),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextCharcoal
+                    )
+                    Text(
+                        text = "किसान सेवा मंच से जुड़ें",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextMuted
+                    )
+                }
 
                 OutlinedTextField(
-                    value = name, onValueChange = { name = it },
+                    value = name,
+                    onValueChange = { name = it },
                     label = { Text(stringResource(R.string.auth_full_name)) },
-                    leadingIcon = { Icon(Icons.Default.Person, null) },
-                    singleLine = true, modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = { Icon(Icons.Default.Person, null, tint = DeepEmerald) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                )
-                OutlinedTextField(
-                    value = email, onValueChange = { email = it },
-                    label = { Text(stringResource(R.string.auth_email)) },
-                    leadingIcon = { Icon(Icons.Default.Email, null) },
-                    singleLine = true, modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
-                )
-                OutlinedTextField(
-                    value = password, onValueChange = { password = it },
-                    label = { Text(stringResource(R.string.auth_password)) },
-                    leadingIcon = { Icon(Icons.Default.Lock, null) },
-                    visualTransformation = PasswordVisualTransformation(),
-                    singleLine = true, modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = DeepEmerald,
+                        unfocusedBorderColor = BorderMedium
+                    )
                 )
 
-                state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text(stringResource(R.string.auth_email)) },
+                    leadingIcon = { Icon(Icons.Default.Email, null, tint = DeepEmerald) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = DeepEmerald,
+                        unfocusedBorderColor = BorderMedium
+                    )
+                )
+
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text(stringResource(R.string.auth_password)) },
+                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = DeepEmerald) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = DeepEmerald,
+                        unfocusedBorderColor = BorderMedium
+                    )
+                )
+
+                state.error?.let {
+                    Card(
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = ErrorContainer),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(it, color = OnErrorContainer, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(10.dp))
+                    }
+                }
 
                 Button(
                     onClick = { viewModel.register(name.trim(), email.trim(), password) },
                     enabled = !state.isLoading && name.isNotBlank() && email.isNotBlank() && password.length >= 6,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Emerald600),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(9999.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
                 ) {
-                    if (state.isLoading) CircularProgressIndicator(Modifier.size(20.dp), Slate950, strokeWidth = 2.dp)
-                    else Text(stringResource(R.string.auth_sign_up))
+                    if (state.isLoading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("खाता बनाएं / Register", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
                 }
 
-                TextButton(onClick = onNavigateToLogin) {
-                    Text(stringResource(R.string.auth_already_account), color = Slate400)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("पहले से खाता है? ", style = MaterialTheme.typography.bodyMedium, color = TextMuted)
+                    Text(
+                        text = "लॉगिन करें (Sign In)",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = DeepEmerald,
+                        modifier = Modifier.clickable { onNavigateToLogin() }
+                    )
                 }
             }
         }

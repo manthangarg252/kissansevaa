@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">किसानसेवाAI</string>
+
+    <!-- Nav -->
+    <string name="nav_home">मुख्य पन्ना</string>
+    <string name="nav_dashboard">डैशबोर्ड</string>
+    <string name="nav_logout">लॉगआउट</string>
+    <string name="nav_chatbot">AI सलाहकार</string>
+
+    <!-- Common -->
+    <string name="common_loading">लोड हो रहल बा…</string>
+    <string name="common_submit">जमा करीं</string>
+    <string name="common_cancel">रद करीं</string>
+    <string name="common_save">सहेजीं</string>
+    <string name="common_search">खोजीं…</string>
+    <string name="common_location">जगह</string>
+    <string name="common_soil_type">माटी के प्रकार</string>
+    <string name="common_detect">पता लगाईं</string>
+    <string name="common_results">नतीजा</string>
+    <string name="common_source">स्रोत</string>
+    <string name="common_severity">गंभीरता</string>
+    <string name="common_match">मिलान</string>
+    <string name="common_official_site">सरकारी वेबसाइट पर जाईं</string>
+    <string name="common_call_now">अभी फोन करीं</string>
+    <string name="common_error">कुछ गड़बड़ भइल</string>
+    <string name="common_retry">दोबारा कोशिश करीं</string>
+    <string name="common_no_data">कवनो जानकारी नइखे</string>
+    <string name="common_offline">रउआ ऑफलाइन बानी</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">किसान सेवा AI डैशबोर्ड</string>
+    <string name="dashboard_subtitle">रउआ खातिर पूरा स्मार्ट खेती टूलकिट।</string>
+    <string name="dashboard_cards_crop_detect">फसल बेमारी पहचान (AI मॉडल)</string>
+    <string name="dashboard_cards_livestock">पशुधन के देखभाल</string>
+    <string name="dashboard_cards_market">बाजार रणनीति व भाव</string>
+    <string name="dashboard_cards_iot">खेत सेंसर व IoT</string>
+    <string name="dashboard_cards_schemes">सरकारी योजना</string>
+    <string name="dashboard_cards_loans">किसान लोन व क्रेडिट</string>
+    <string name="dashboard_cards_traders">व्यापारी व खरीदार</string>
+    <string name="dashboard_cards_carbon">कार्बन क्रेडिट कमाई</string>
+    <string name="dashboard_cards_prices">लाइव मंडी भाव</string>
+
+    <!-- Crop -->
+    <string name="crop_title">फसल बेमारी पहचान</string>
+    <string name="crop_detect_btn">जांच शुरू करीं</string>
+    <string name="crop_upload_hint">पतई के फोटो अपलोड करे खातिर छुईं</string>
+    <string name="crop_diagnosis_ready">जांच खातिर तैयार बा</string>
+    <string name="crop_diagnosis_hint">बेमार पतई के साफ फोटो अपलोड करीं। हमनी के AI मॉडल तुरंत रोग अउर इलाज बताई।</string>
+    <string name="crop_analysis_result">जांच नतीजा</string>
+    <string name="crop_organic">जैविक उपचार</string>
+    <string name="crop_chemical">रासायनिक उपचार</string>
+    <string name="crop_prevention">बचाव के उपाय</string>
+
+    <!-- Livestock -->
+    <string name="livestock_title">पशुधन देखभाल</string>
+    <string name="livestock_detection_tab">बेमारी जांच</string>
+    <string name="livestock_assistant_tab">AI सलाहकार</string>
+    <string name="livestock_health_check">पशु सेहत जांच</string>
+    <string name="livestock_category">पशु के प्रकार</string>
+    <string name="livestock_run_diagnostics">जांच शुरू करीं</string>
+    <string name="livestock_diag_result">जांच के नतीजा</string>
+    <string name="livestock_immediate_action">तुरंत करे वाला काम</string>
+    <string name="livestock_long_term">आगे के देखभाल</string>
+    <string name="livestock_vet_advice">डॉक्टर के सलाह</string>
+    <string name="livestock_chat_hint">पशु चारा, बेमारी चाहे इलाज के बारे में पूछीं…</string>
+
+    <!-- Market -->
+    <string name="market_title">बाजार रणनीति</string>
+    <string name="market_subtitle">फसल के जादे मुनाफा पावे खातिर AI सलाह।</string>
+    <string name="market_farm_profile">रउआ खेत के जानकारी</string>
+    <string name="market_current_crop">अभी के फसल</string>
+    <string name="market_get_recommendations">AI सलाह पाईं</string>
+    <string name="market_strategy_title">स्मार्ट फसल रणनीति</string>
+    <string name="market_awaiting_profile">जानकारी के इंतजार बा</string>
+    <string name="market_profile_hint">खेत के जानकारी भरीं अउर बटन दबाईं ताकि AI बढ़िया रणनीति बता सके।</string>
+
+    <!-- IoT -->
+    <string name="iot_title">खेत सेंसर व IoT</string>
+    <string name="iot_subtitle">खेत में लागल सेंसर के लाइव जानकारी।</string>
+    <string name="iot_syncing">डेटा आ रहल बा</string>
+    <string name="iot_temp">तापमान</string>
+    <string name="iot_humidity">हवा के नमी</string>
+    <string name="iot_moisture">माटी के नमी</string>
+    <string name="iot_ph">पीएच मान (pH)</string>
+    <string name="iot_historical">पिछला रुझान</string>
+
+    <!-- Schemes -->
+    <string name="schemes_title">सरकारी योजना</string>
+    <string name="schemes_subtitle">रउआ खातिर केंद्र अउर राज्य सरकार के लाभकारी योजना।</string>
+    <string name="schemes_ai_btn">AI योजना खोज</string>
+    <string name="schemes_eligibility">पात्रता</string>
+    <string name="schemes_apply_hint">हमार रिपोर्ट बनाईं</string>
+    <string name="schemes_modal_title">रउआ खातिर खास योजना</string>
+
+    <!-- Loans -->
+    <string name="loans_title">किसान लोन व क्रेडिट</string>
+    <string name="loans_subtitle">कम ब्याज पर सरकारी कृषि लोन अउर केसीसी के सुविधा।</string>
+    <string name="loans_check_eligibility">AI से पात्रता जांचीं</string>
+    <string name="loans_emi_calc">स्मार्ट EMI कैलकुलेटर</string>
+    <string name="loans_monthly_emi">महिना के किस्त (EMI)</string>
+    <string name="loans_total_payable">कुल चुकावे वाला रकम</string>
+    <string name="loans_total_interest">कुल ब्याज</string>
+    <string name="loans_recommended_loan">सबसे बढ़िया लोन</string>
+    <string name="loans_risk_advisory">जोखिम सलाह</string>
+
+    <!-- Auth -->
+    <string name="auth_login_title">किसानसेवाAI</string>
+    <string name="auth_login_subtitle">किसान भाई लोग खातिर आधुनिक समाधान</string>
+    <string name="auth_email">ईमेल पता</string>
+    <string name="auth_password">पासवर्ड</string>
+    <string name="auth_sign_in">साइन इन करीं</string>
+    <string name="auth_sign_up">नया खाता बनाईं</string>
+    <string name="auth_no_account">खाता नइखे?</string>
+    <string name="auth_already_account">पहिले से खाता बा?</string>
+    <string name="auth_full_name">पूरा नाम</string>
+    <string name="auth_create_account">खाता बनाईं</string>
+    <string name="auth_forgot_password">पासवर्ड भूल गइनी?</string>
+
+    <!-- Settings -->
+    <string name="settings_title">सेटिंग्स</string>
+    <string name="settings_language">भाषा (Language)</string>
+    <string name="settings_base_url">सर्वर पता</string>
+    <string name="settings_engine_mode">AI इंजन</string>
+    <string name="settings_engine_auto">ऑटो (Auto)</string>
+    <string name="settings_engine_remote">सर्वर (Remote)</string>
+    <string name="settings_engine_ondevice">फोन पर (On-Device)</string>
+
+    <!-- Chatbot -->
+    <string name="chatbot_title">AI किसान मित्र</string>
+    <string name="chatbot_hint">खेती के कवनो सवाल पूछीं…</string>
+    <string name="chatbot_send">भेजीं</string>
+
+    <!-- Traders -->
+    <string name="traders_title">व्यापारी व खरीदार</string>
+    <string name="traders_search_hint">नाम चाहे मंडी से खोजीं…</string>
+
+    <!-- Carbon -->
+    <string name="carbon_title">कार्बन क्रेडिट कमाई</string>
+    <string name="carbon_subtitle">जैविक खेती से कार्बन क्रेडिट कमावे के अनुमान लगाईं।</string>
+    <string name="carbon_farm_size">खेत के साइज (एकड़)</string>
+    <string name="carbon_crop_type">फसल के प्रकार</string>
+    <string name="carbon_method">खेती के तरीका</string>
+    <string name="carbon_irrigation">सिंचाई प्रणाली</string>
+    <string name="carbon_estimate_btn">कमाई के अनुमान लगाईं</string>
+
+    <!-- Prices -->
+    <string name="prices_title">लाइव मंडी भाव</string>
+    <string name="prices_subtitle">देश के प्रमुख मंडी से आज के ताजा भाव।</string>
+</resources>
+

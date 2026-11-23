@@ -5,6 +5,7 @@ import { Type } from "@google/genai";
 const langMap = {
   en: 'English',
   hi: 'Hindi',
+  bho: 'Bhojpuri',
   mr: 'Marathi',
   pa: 'Punjabi',
   sa: 'Sanskrit'
