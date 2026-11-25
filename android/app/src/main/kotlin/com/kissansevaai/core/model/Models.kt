@@ -59,12 +59,15 @@ data class CropMatch(
 data class CropAnalysisResult(
     @SerialName("_id") val id: String? = null,
     val source: String? = null,
+    val predictionSource: String? = null,
+    val advisorySource: String? = null,
     val cropName: String? = null,
     val diseaseName: String = "",
     val confidence: Double? = null,
     val top_cosine_similarity: Double? = null,
     val neighbor_agreement: Double? = null,
     val needs_review: Boolean = false,
+    val treatmentWithheld: Boolean = false,
     val matches: List<CropMatch> = emptyList(),
     val warning: String? = null,
     val confidence_type: String? = null,
@@ -121,6 +124,20 @@ data class ChatResponse(val response: String)
 
 // ── Market ──
 
+fun getCommodityCategory(crop: String): String {
+    val lower = crop.lowercase()
+    val vegetables = listOf("onion", "प्याज", "potato", "आलू", "tomato", "टमाटर", "chilli", "मिर्च", "cauliflower", "फूलगोभी", "cabbage", "पत्तागोभी", "okra", "भिंडी", "brinjal", "बैंगन", "carrot", "गाजर", "garlic", "लहसुन", "ginger", "अदरक", "spinach", "पालक", "peas", "मटर", "gourd", "लौकी", "करेला", "capsicum")
+    val fruits = listOf("apple", "सेब", "banana", "केला", "mango", "आम", "pomegranate", "अनार", "orange", "संतरा", "grapes", "अंगूर", "papaya", "पपीता", "guava", "अमरूद", "watermelon", "तरबूज", "lemon", "नींबू", "pineapple", "mosambi", "strawberry")
+
+    for (v in vegetables) {
+        if (lower.contains(v)) return "vegetable"
+    }
+    for (f in fruits) {
+        if (lower.contains(f)) return "fruit"
+    }
+    return "crop"
+}
+
 @Serializable
 data class MarketPrice(
     @SerialName("_id") val id: String? = null,
@@ -133,11 +150,15 @@ data class MarketPrice(
     val market: String = "",
     val state: String = "",
     val trend: String = "stable",
+    val category: String? = null,
     val updatedAt: String? = null,
     val lastUpdated: String? = null,
 ) {
     val effectivePrice: Double
         get() = if (price > 0.0) price else (modalPrice ?: 0.0)
+
+    val effectiveCategory: String
+        get() = category?.ifBlank { null } ?: getCommodityCategory(crop)
 }
 
 @Serializable

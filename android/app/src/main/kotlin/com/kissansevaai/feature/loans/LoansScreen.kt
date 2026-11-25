@@ -27,6 +27,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kissansevaai.R
+import com.kissansevaai.core.ai.FieldExtractor
+import com.kissansevaai.core.ai.SpeechToText
 import com.kissansevaai.core.common.Resource
 import com.kissansevaai.core.data.DataStoreManager
 import com.kissansevaai.core.model.LoanAdvisorRequest
@@ -35,12 +37,16 @@ import com.kissansevaai.core.model.LoanProduct
 import com.kissansevaai.core.model.LoanProfile
 import com.kissansevaai.core.repository.LoansRepository
 import com.kissansevaai.ui.component.FeatureScaffold
+import com.kissansevaai.ui.component.FieldMicButton
 import com.kissansevaai.ui.component.LoadingOverlay
+import com.kissansevaai.ui.component.VoiceFormFillButton
 import com.kissansevaai.ui.theme.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.pow
@@ -50,7 +56,12 @@ import kotlin.math.roundToLong
 class LoansViewModel @Inject constructor(
     private val repository: LoansRepository,
     private val ds: DataStoreManager,
+    val speechToText: SpeechToText,
+    val fieldExtractor: FieldExtractor,
 ) : ViewModel() {
+
+    val language: StateFlow<String> = ds.language
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "en")
 
     private val _loans = MutableStateFlow<List<LoanProduct>>(emptyList())
     val loans: StateFlow<List<LoanProduct>> = _loans
@@ -119,6 +130,8 @@ fun LoansScreen(onBack: () -> Unit, viewModel: LoansViewModel = hiltViewModel())
     var creditScore by remember { mutableStateOf("720") }
     var cropType by remember { mutableStateOf("Cotton") }
     var stateField by remember { mutableStateOf("Gujarat") }
+    var loanNotice by remember { mutableStateOf<String?>(null) }
+    val currentLang by viewModel.language.collectAsState()
 
     val uriHandler = LocalUriHandler.current
 
@@ -231,7 +244,7 @@ fun LoansScreen(onBack: () -> Unit, viewModel: LoansViewModel = hiltViewModel())
                                         }
 
                                         if (loan.provider.isNotBlank()) {
-                                            Text(text = "Provider: ${loan.provider}", color = TextMuted, style = MaterialTheme.typography.bodySmall)
+                                            Text(text = "${stringResource(R.string.loans_provider_prefix)} ${loan.provider}", color = TextMuted, style = MaterialTheme.typography.bodySmall)
                                         }
 
                                         Row(
@@ -240,13 +253,13 @@ fun LoansScreen(onBack: () -> Unit, viewModel: LoansViewModel = hiltViewModel())
                                         ) {
                                             if (loan.interestRate.isNotBlank()) {
                                                 Column(Modifier.weight(1f)) {
-                                                    Text("Interest Rate", color = TextMuted, style = MaterialTheme.typography.labelSmall)
+                                                    Text(stringResource(R.string.loans_interest_rate), color = TextMuted, style = MaterialTheme.typography.labelSmall)
                                                     Text(loan.interestRate, color = DeepEmerald, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
                                                 }
                                             }
                                             if (loan.maxAmount.isNotBlank()) {
                                                 Column(Modifier.weight(1f)) {
-                                                    Text("Max Amount", color = TextMuted, style = MaterialTheme.typography.labelSmall)
+                                                    Text(stringResource(R.string.loans_max_amount), color = TextMuted, style = MaterialTheme.typography.labelSmall)
                                                     Text(loan.maxAmount, color = TextCharcoal, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
                                                 }
                                             }
@@ -255,7 +268,7 @@ fun LoansScreen(onBack: () -> Unit, viewModel: LoansViewModel = hiltViewModel())
                                         Text(text = loan.description, color = TextCharcoal, style = MaterialTheme.typography.bodyMedium)
 
                                         if (loan.benefits.isNotEmpty()) {
-                                            Text("Key Benefits:", color = TextMuted, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                            Text(stringResource(R.string.loans_key_benefits), color = TextMuted, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                             loan.benefits.forEach { b ->
                                                 Text("• $b", color = TextCharcoal, style = MaterialTheme.typography.bodySmall)
                                             }
@@ -271,7 +284,7 @@ fun LoansScreen(onBack: () -> Unit, viewModel: LoansViewModel = hiltViewModel())
                                                 colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald)
                                             ) {
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Text("Apply / Details", fontWeight = FontWeight.Bold)
+                                                    Text(stringResource(R.string.loans_apply_details), fontWeight = FontWeight.Bold)
                                                     Spacer(Modifier.width(6.dp))
                                                     Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
                                                 }
@@ -300,11 +313,11 @@ fun LoansScreen(onBack: () -> Unit, viewModel: LoansViewModel = hiltViewModel())
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                Text("Smart Farm Loan EMI Calculator", style = MaterialTheme.typography.titleMedium, color = TextCharcoal, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.loans_emi_calculator), style = MaterialTheme.typography.titleMedium, color = TextCharcoal, fontWeight = FontWeight.Bold)
 
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Text("Loan Amount", color = TextMuted, style = MaterialTheme.typography.labelMedium)
+                                        Text(stringResource(R.string.loans_loan_amount), color = TextMuted, style = MaterialTheme.typography.labelMedium)
                                         Text(
                                             "₹${loanAmount.roundToLong().toString().replace(Regex("(\\d)(?=(\\d{3})+(?!\\d))"), "$1,")}",
                                             color = DeepEmerald,
@@ -329,7 +342,7 @@ fun LoansScreen(onBack: () -> Unit, viewModel: LoansViewModel = hiltViewModel())
                                     OutlinedTextField(
                                         value = interestRate,
                                         onValueChange = { interestRate = it },
-                                        label = { Text("Interest Rate (%)") },
+                                        label = { Text(stringResource(R.string.loans_interest_rate_percent)) },
                                         singleLine = true,
                                         shape = RoundedCornerShape(12.dp),
                                         modifier = Modifier.weight(1f)
@@ -337,7 +350,7 @@ fun LoansScreen(onBack: () -> Unit, viewModel: LoansViewModel = hiltViewModel())
                                     OutlinedTextField(
                                         value = tenureMonths,
                                         onValueChange = { tenureMonths = it },
-                                        label = { Text("Tenure (Months)") },
+                                        label = { Text(stringResource(R.string.loans_tenure_months)) },
                                         singleLine = true,
                                         shape = RoundedCornerShape(12.dp),
                                         modifier = Modifier.weight(1f)
@@ -378,7 +391,7 @@ fun LoansScreen(onBack: () -> Unit, viewModel: LoansViewModel = hiltViewModel())
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    Text("MONTHLY ESTIMATED EMI", color = DeepEmerald, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    Text(stringResource(R.string.loans_monthly_emi), color = DeepEmerald, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                     Text("₹$emi", color = DeepEmerald, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
 
                                     HorizontalDivider(color = GreenTint, modifier = Modifier.padding(vertical = 4.dp))
@@ -414,19 +427,98 @@ fun LoansScreen(onBack: () -> Unit, viewModel: LoansViewModel = hiltViewModel())
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Text("Farm Financial Profile", fontWeight = FontWeight.Bold, color = TextCharcoal)
-                                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    OutlinedTextField(value = age, onValueChange = { age = it }, label = { Text("Age") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(1f))
-                                    OutlinedTextField(value = farmSize, onValueChange = { farmSize = it }, label = { Text("Farm Size (acres)") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(1f))
+                                Text(stringResource(R.string.loans_financial_profile), fontWeight = FontWeight.Bold, color = TextCharcoal)
+
+                                loanNotice?.let { notice ->
+                                    Card(
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = CardDefaults.cardColors(containerColor = GreenBg),
+                                        border = BorderStroke(1.dp, GreenTint),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            text = notice,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = DeepEmerald,
+                                            modifier = Modifier.padding(10.dp)
+                                        )
+                                    }
                                 }
-                                OutlinedTextField(value = income, onValueChange = { income = it }, label = { Text("Annual Income (₹)") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(value = existingLoans, onValueChange = { existingLoans = it }, label = { Text("Existing Loans (₹)") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
+
+                                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.loans_field_name)) }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    OutlinedTextField(value = creditScore, onValueChange = { creditScore = it }, label = { Text("Credit Score") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(1f))
-                                    OutlinedTextField(value = cropType, onValueChange = { cropType = it }, label = { Text("Crop Type") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(1f))
+                                    OutlinedTextField(value = age, onValueChange = { age = it }, label = { Text(stringResource(R.string.loans_field_age)) }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(1f))
+                                    OutlinedTextField(
+                                        value = farmSize,
+                                        onValueChange = { farmSize = it },
+                                        label = { Text(stringResource(R.string.loans_field_farm_size)) },
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier.weight(1.2f),
+                                        trailingIcon = {
+                                            FieldMicButton(
+                                                speechToText = viewModel.speechToText,
+                                                lang = currentLang,
+                                                onResult = { farmSize = it.filter { c -> c.isDigit() || c == '.' }.ifBlank { it } },
+                                                onError = { loanNotice = it }
+                                            )
+                                        }
+                                    )
                                 }
-                                OutlinedTextField(value = stateField, onValueChange = { stateField = it }, label = { Text("State") }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = income, onValueChange = { income = it }, label = { Text(stringResource(R.string.loans_field_annual_income)) }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(value = existingLoans, onValueChange = { existingLoans = it }, label = { Text(stringResource(R.string.loans_field_existing_loans)) }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth())
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    OutlinedTextField(value = creditScore, onValueChange = { creditScore = it }, label = { Text(stringResource(R.string.loans_field_credit_score)) }, singleLine = true, shape = RoundedCornerShape(12.dp), modifier = Modifier.weight(1f))
+                                    OutlinedTextField(
+                                        value = cropType,
+                                        onValueChange = { cropType = it },
+                                        label = { Text(stringResource(R.string.loans_field_crop_type)) },
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier.weight(1.2f),
+                                        trailingIcon = {
+                                            FieldMicButton(
+                                                speechToText = viewModel.speechToText,
+                                                lang = currentLang,
+                                                onResult = { cropType = it },
+                                                onError = { loanNotice = it }
+                                            )
+                                        }
+                                    )
+                                }
+                                OutlinedTextField(
+                                    value = stateField,
+                                    onValueChange = { stateField = it },
+                                    label = { Text(stringResource(R.string.loans_field_state)) },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    trailingIcon = {
+                                        FieldMicButton(
+                                            speechToText = viewModel.speechToText,
+                                            lang = currentLang,
+                                            onResult = { stateField = it },
+                                            onError = { loanNotice = it }
+                                        )
+                                    }
+                                )
+
+                                VoiceFormFillButton(
+                                    fields = listOf("name", "age", "farmSize", "income", "existingLoans", "creditScore", "cropType", "state"),
+                                    lang = currentLang,
+                                    speechToText = viewModel.speechToText,
+                                    fieldExtractor = viewModel.fieldExtractor,
+                                    onFill = { data ->
+                                        data["name"]?.let { name = it }
+                                        data["age"]?.let { age = it.filter { c -> c.isDigit() } }
+                                        data["farmSize"]?.let { farmSize = it.filter { c -> c.isDigit() || c == '.' } }
+                                        data["income"]?.let { income = it.filter { c -> c.isDigit() } }
+                                        data["cropType"]?.let { cropType = it }
+                                        data["state"]?.let { stateField = it }
+                                    },
+                                    onMessage = { msg -> loanNotice = msg },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                             }
                         }
 

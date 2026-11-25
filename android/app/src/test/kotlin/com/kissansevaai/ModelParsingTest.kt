@@ -157,4 +157,35 @@ class ModelParsingTest {
         assertNull(result.severity)
         assertEquals(emptyList<String>(), result.prevention)
     }
+
+    @Test
+    fun `parse uncertain dinov2 response with withheld treatments and separate attribution`() {
+        val jsonStr = """
+            {
+                "diseaseName": "Wheat Black Rust",
+                "cropName": "Wheat",
+                "source": "dinov2",
+                "predictionSource": "dinov2",
+                "advisorySource": "gemini",
+                "confidence": null,
+                "top_cosine_similarity": 0.482,
+                "neighbor_agreement": 0.40,
+                "needs_review": true,
+                "treatmentWithheld": true,
+                "treatment": {"organic": [], "chemical": []},
+                "warning": "Uncertain prediction: all treatment prescriptions withheld."
+            }
+        """.trimIndent()
+        val result = json.decodeFromString<CropAnalysisResult>(jsonStr)
+        assertEquals("dinov2", result.source)
+        assertEquals("dinov2", result.predictionSource)
+        assertEquals("gemini", result.advisorySource)
+        assertNull(result.confidence)
+        assertEquals(0.482, result.top_cosine_similarity!!, 0.001)
+        assertEquals(0.40, result.neighbor_agreement!!, 0.001)
+        assertTrue(result.needs_review)
+        assertTrue(result.treatmentWithheld)
+        assertTrue(result.treatment.organic.isEmpty())
+        assertTrue(result.treatment.chemical.isEmpty())
+    }
 }

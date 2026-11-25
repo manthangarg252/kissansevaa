@@ -25,7 +25,7 @@ class PricesRepository @Inject constructor(
      * Emits cached prices from Room immediately, then refreshes from network and writes through to Room.
      * Fixes previously swallowed network errors by propagating Resource.Error.
      */
-    fun getMarketPrices(crop: String? = null, state: String? = null): Flow<Resource<List<MarketPrice>>> = flow {
+    fun getMarketPrices(crop: String? = null, state: String? = null, category: String? = null, refresh: Boolean = false): Flow<Resource<List<MarketPrice>>> = flow {
         emit(Resource.Loading)
 
         var cachedEntities = marketPriceDao.getAllMarketPrices().first()
@@ -35,23 +35,32 @@ class PricesRepository @Inject constructor(
         }
 
         val cached = cachedEntities.map { it.toDomain() }
-        if (cached.isNotEmpty()) {
-            val filteredCached = filterPrices(cached, crop, state)
+        var emittedCache = false
+        if (cached.isNotEmpty() && !refresh) {
+            val filteredCached = filterPrices(cached, crop, state, category)
             emit(Resource.Success(filteredCached))
+            emittedCache = true
         }
 
         try {
-            val networkPrices = api.getMarketPrices(crop = crop, state = state)
+            val networkPrices = api.getMarketPrices(
+                crop = crop,
+                state = state,
+                category = if (category.isNullOrBlank() || category.equals("all", ignoreCase = true)) null else category,
+                refresh = if (refresh) true else null
+            )
             if (networkPrices.isNotEmpty()) {
                 marketPriceDao.insertAll(networkPrices.map { it.toEntity() })
                 val allUpdated = marketPriceDao.getAllMarketPrices().first().map { it.toDomain() }
-                emit(Resource.Success(filterPrices(allUpdated, crop, state)))
-            } else if (cached.isEmpty()) {
-                emit(Resource.Success(emptyList()))
+                emit(Resource.Success(filterPrices(allUpdated, crop, state, category)))
+            } else if (!emittedCache) {
+                emit(Resource.Success(filterPrices(cached, crop, state, category)))
             }
         } catch (e: Exception) {
             if (cached.isEmpty()) {
                 emit(Resource.Error(e.toUserFriendlyMessage(), e))
+            } else if (!emittedCache) {
+                emit(Resource.Success(filterPrices(cached, crop, state, category)))
             }
         }
     }.flowOn(Dispatchers.IO)
@@ -80,11 +89,13 @@ class PricesRepository @Inject constructor(
         }
     }.flowOn(Dispatchers.IO)
 
-    private fun filterPrices(prices: List<MarketPrice>, crop: String?, state: String?): List<MarketPrice> {
+    private fun filterPrices(prices: List<MarketPrice>, crop: String?, state: String?, category: String? = null): List<MarketPrice> {
         return prices.filter { p ->
             val matchCrop = crop.isNullOrBlank() || p.crop.contains(crop, ignoreCase = true)
             val matchState = state.isNullOrBlank() || p.state.contains(state, ignoreCase = true)
-            matchCrop && matchState
+            val matchCategory = category.isNullOrBlank() || category.equals("all", ignoreCase = true) ||
+                    p.effectiveCategory.equals(category, ignoreCase = true)
+            matchCrop && matchState && matchCategory
         }
     }
 }

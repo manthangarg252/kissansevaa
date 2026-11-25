@@ -31,14 +31,20 @@ import com.kissansevaai.core.data.DataStoreManager
 import com.kissansevaai.core.model.Scheme
 import com.kissansevaai.core.model.SchemeRecommendationRequest
 import com.kissansevaai.core.repository.SchemesRepository
+import com.kissansevaai.core.ai.FieldExtractor
+import com.kissansevaai.core.ai.SpeechToText
 import com.kissansevaai.ui.component.AiResponseCard
 import com.kissansevaai.ui.component.FeatureScaffold
+import com.kissansevaai.ui.component.FieldMicButton
 import com.kissansevaai.ui.component.LoadingOverlay
+import com.kissansevaai.ui.component.VoiceFormFillButton
 import com.kissansevaai.ui.theme.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -46,7 +52,12 @@ import javax.inject.Inject
 class SchemesViewModel @Inject constructor(
     private val repository: SchemesRepository,
     private val ds: DataStoreManager,
+    val speechToText: SpeechToText,
+    val fieldExtractor: FieldExtractor,
 ) : ViewModel() {
+
+    val language: StateFlow<String> = ds.language
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "en")
 
     private val _schemes = MutableStateFlow<List<Scheme>>(emptyList())
     val schemes: StateFlow<List<Scheme>> = _schemes
@@ -107,6 +118,8 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
     var crop by remember { mutableStateOf("Cotton & Groundnut") }
     var soilType by remember { mutableStateOf("Black Cotton") }
     var landType by remember { mutableStateOf("Irrigated") }
+    var formNotice by remember { mutableStateOf<String?>(null) }
+    val currentLang by viewModel.language.collectAsState()
 
     val uriHandler = LocalUriHandler.current
 
@@ -201,7 +214,7 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search schemes by name or benefit...") },
+                        placeholder = { Text(stringResource(R.string.schemes_search_placeholder)) },
                         leadingIcon = { Icon(Icons.Default.Search, null, tint = DeepEmerald) },
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) {
@@ -285,8 +298,8 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Icon(Icons.Default.SearchOff, null, tint = TextMuted, modifier = Modifier.size(40.dp))
-                                Text("No schemes found", fontWeight = FontWeight.Bold, color = TextCharcoal)
-                                Text("Try changing your search or filter criteria", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                Text(stringResource(R.string.schemes_no_schemes_found), fontWeight = FontWeight.Bold, color = TextCharcoal)
+                                Text(stringResource(R.string.schemes_no_schemes_desc), style = MaterialTheme.typography.bodySmall, color = TextMuted)
                                 Button(
                                     onClick = {
                                         searchQuery = ""
@@ -295,7 +308,7 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
                                     colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
                                     shape = RoundedCornerShape(9999.dp)
                                 ) {
-                                    Text("Reset Filters", fontWeight = FontWeight.Bold)
+                                    Text(stringResource(R.string.schemes_reset_filters), fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -407,7 +420,7 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                                             ) {
-                                                Text("आधिकारिक पोर्टल पर आवेदन करें (Apply)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                                Text(stringResource(R.string.schemes_apply_btn), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                                 Icon(Icons.AutoMirrored.Filled.OpenInNew, null, modifier = Modifier.size(16.dp))
                                             }
                                         }
@@ -437,55 +450,127 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Text(
-                                text = "अपने खेत की जानकारी दर्ज करें",
+                                text = stringResource(R.string.schemes_modal_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = TextCharcoal
                             )
                             Text(
-                                text = "AI will recommend best government subsidies tailored to your farm",
+                                text = stringResource(R.string.schemes_subtitle),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextMuted
                             )
 
+                            formNotice?.let { notice ->
+                                Card(
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = CardDefaults.cardColors(containerColor = GreenBg),
+                                    border = BorderStroke(1.dp, GreenTint),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = notice,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = DeepEmerald,
+                                        modifier = Modifier.padding(10.dp)
+                                    )
+                                }
+                            }
+
                             OutlinedTextField(
                                 value = stateField,
                                 onValueChange = { stateField = it },
-                                label = { Text("State (राज्य)") },
+                                label = { Text(stringResource(R.string.schemes_state_label)) },
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                trailingIcon = {
+                                    FieldMicButton(
+                                        speechToText = viewModel.speechToText,
+                                        lang = currentLang,
+                                        onResult = { stateField = it },
+                                        onError = { formNotice = it }
+                                    )
+                                }
                             )
                             OutlinedTextField(
                                 value = farmSize,
                                 onValueChange = { farmSize = it },
-                                label = { Text("Farm Size (एकड़ में)") },
+                                label = { Text(stringResource(R.string.schemes_farm_size_label)) },
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                trailingIcon = {
+                                    FieldMicButton(
+                                        speechToText = viewModel.speechToText,
+                                        lang = currentLang,
+                                        onResult = { farmSize = it.filter { c -> c.isDigit() || c == '.' }.ifBlank { it } },
+                                        onError = { formNotice = it }
+                                    )
+                                }
                             )
                             OutlinedTextField(
                                 value = crop,
                                 onValueChange = { crop = it },
-                                label = { Text("Primary Crop (मुख्य फसल)") },
+                                label = { Text(stringResource(R.string.schemes_primary_crop_label)) },
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                trailingIcon = {
+                                    FieldMicButton(
+                                        speechToText = viewModel.speechToText,
+                                        lang = currentLang,
+                                        onResult = { crop = it },
+                                        onError = { formNotice = it }
+                                    )
+                                }
                             )
                             OutlinedTextField(
                                 value = soilType,
                                 onValueChange = { soilType = it },
-                                label = { Text("Soil Type (मिट्टी का प्रकार)") },
+                                label = { Text(stringResource(R.string.schemes_soil_type_label)) },
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                trailingIcon = {
+                                    FieldMicButton(
+                                        speechToText = viewModel.speechToText,
+                                        lang = currentLang,
+                                        onResult = { soilType = it },
+                                        onError = { formNotice = it }
+                                    )
+                                }
                             )
                             OutlinedTextField(
                                 value = landType,
                                 onValueChange = { landType = it },
-                                label = { Text("Irrigation / Land Type") },
+                                label = { Text(stringResource(R.string.schemes_irrigation_land_type)) },
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                trailingIcon = {
+                                    FieldMicButton(
+                                        speechToText = viewModel.speechToText,
+                                        lang = currentLang,
+                                        onResult = { landType = it },
+                                        onError = { formNotice = it }
+                                    )
+                                }
+                            )
+
+                            VoiceFormFillButton(
+                                fields = listOf("state", "farmSize", "crop", "soilType", "landType"),
+                                lang = currentLang,
+                                speechToText = viewModel.speechToText,
+                                fieldExtractor = viewModel.fieldExtractor,
+                                onFill = { data ->
+                                    data["state"]?.let { stateField = it }
+                                    data["farmSize"]?.let { farmSize = it }
+                                    data["crop"]?.let { crop = it }
+                                    data["soilType"]?.let { soilType = it }
+                                    data["landType"]?.let { landType = it }
+                                },
+                                onMessage = { msg -> formNotice = msg },
                                 modifier = Modifier.fillMaxWidth()
                             )
 
@@ -504,7 +589,7 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         Icon(Icons.Default.AutoAwesome, null)
-                                        Text("अनुशंसित योजनाएं प्राप्त करें (Get Subsidies)", fontWeight = FontWeight.Bold)
+                                        Text(stringResource(R.string.schemes_get_subsidies_btn), fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }

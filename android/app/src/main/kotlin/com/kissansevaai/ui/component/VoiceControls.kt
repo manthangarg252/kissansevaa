@@ -119,6 +119,87 @@ fun MicButton(
     }
 }
 
+/**
+ * Compact field mic button designed for trailingIcon in OutlinedTextField,
+ * enabling farmers to speak directly into individual inputs (soil type, area, crop, etc.).
+ */
+@Composable
+fun FieldMicButton(
+    speechToText: SpeechToText,
+    lang: String,
+    onResult: (String) -> Unit,
+    onError: ((String) -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    var isListening by remember { mutableStateOf(false) }
+    var hasPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasPermission = isGranted
+        if (isGranted) {
+            startListeningInternal(speechToText, lang, onResult, { onError?.invoke(it) }, null) {
+                isListening = it
+            }
+        } else {
+            onError?.invoke("Microphone permission denied")
+        }
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "fieldMicPulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.25f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "fieldMicScale"
+    )
+
+    IconButton(
+        onClick = {
+            if (isListening) {
+                speechToText.stopListening()
+                isListening = false
+                return@IconButton
+            }
+            if (!speechToText.isLanguageSupported(lang)) {
+                onError?.invoke(speechToText.getUnsupportedReason(lang) ?: "Voice input not supported")
+                return@IconButton
+            }
+            if (!hasPermission) {
+                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            } else {
+                startListeningInternal(speechToText, lang, onResult, { onError?.invoke(it) }, null) {
+                    isListening = it
+                }
+            }
+        },
+        modifier = modifier
+            .size(36.dp)
+            .scale(if (isListening) pulseScale else 1f)
+            .clip(CircleShape)
+            .background(if (isListening) Emerald500 else Color.Transparent)
+    ) {
+        Icon(
+            imageVector = if (!speechToText.isLanguageSupported(lang)) Icons.Default.MicOff else Icons.Default.Mic,
+            contentDescription = if (isListening) "Listening... speak now" else "Tap to speak",
+            tint = if (isListening) Color.White else DeepEmerald,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
 private fun startListeningInternal(
     stt: SpeechToText,
     lang: String,
@@ -161,6 +242,7 @@ fun TTSButton(
     onFallbackExplanation: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     var isSpeaking by remember { mutableStateOf(false) }
 
     IconButton(
@@ -174,7 +256,8 @@ fun TTSButton(
                     text = textToSpeak,
                     langCode = lang,
                     onFallback = { orig, fallback ->
-                        onFallbackExplanation?.invoke("Sanskrit voice output is not supported on this device. Speaking in Hindi instead.")
+                        val msg = context.getString(com.kissansevaai.R.string.tts_fallback_hindi)
+                        onFallbackExplanation?.invoke(msg)
                     },
                     onStart = { isSpeaking = true },
                     onDone = { isSpeaking = false },

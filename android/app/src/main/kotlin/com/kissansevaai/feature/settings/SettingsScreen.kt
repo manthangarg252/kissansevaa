@@ -41,7 +41,8 @@ private val LANGUAGES = listOf(
     "hi" to "हिन्दी (Hindi)",
     "bho" to "भोजपुरी (Bhojpuri)",
     "mr" to "मराठी (Marathi)",
-    "pa" to "ਪੰਜਾਬੀ (Punjabi)"
+    "pa" to "ਪੰਜਾਬੀ (Punjabi)",
+    "sa" to "संस्कृतम् (Sanskrit)"
 )
 private val ENGINE_MODES = listOf("auto" to R.string.settings_engine_auto, "remote" to R.string.settings_engine_remote, "ondevice" to R.string.settings_engine_ondevice)
 
@@ -54,7 +55,7 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
 
     FeatureScaffold(
         title = stringResource(R.string.settings_title),
-        subtitle = "ऐप प्राथमिकताएं एवं सर्वर सेटिंग्स",
+        subtitle = stringResource(R.string.settings_subtitle),
         onBack = onBack
     ) { padding ->
         Column(
@@ -139,7 +140,7 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                     OutlinedTextField(
                         value = urlField,
                         onValueChange = { urlField = it },
-                        placeholder = { Text("http://10.0.2.2:5050") },
+                        placeholder = { Text("http://10.201.214.248:5050") },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth(),

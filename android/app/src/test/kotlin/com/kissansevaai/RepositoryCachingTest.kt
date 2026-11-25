@@ -38,7 +38,7 @@ class RepositoryCachingTest {
             updatedAt = null, lastUpdated = null
         )
         every { marketPriceDao.getAllMarketPrices() } returns flowOf(listOf(cached))
-        coEvery { api.getMarketPrices(any(), any()) } returns emptyList()
+        coEvery { api.getMarketPrices(any(), any(), any(), any()) } returns emptyList()
 
         val repo = PricesRepository(api, marketPriceDao)
         repo.getMarketPrices().test {
@@ -60,7 +60,7 @@ class RepositoryCachingTest {
             updatedAt = null, lastUpdated = null
         )
         every { marketPriceDao.getAllMarketPrices() } returns flowOf(listOf(cached))
-        coEvery { api.getMarketPrices(any(), any()) } throws IOException("Network down")
+        coEvery { api.getMarketPrices(any(), any(), any(), any()) } throws IOException("Network down")
 
         val repo = PricesRepository(api, marketPriceDao)
         repo.getMarketPrices().test {
@@ -87,7 +87,7 @@ class RepositoryCachingTest {
             market = "Nagpur APMC", state = "Maharashtra", trend = "up"
         )
         every { marketPriceDao.getAllMarketPrices() } returns flowOf(listOf(cached)) andThen flowOf(listOf(fresh.toEntity()))
-        coEvery { api.getMarketPrices(any(), any()) } returns listOf(fresh)
+        coEvery { api.getMarketPrices(any(), any(), any(), any()) } returns listOf(fresh)
 
         val repo = PricesRepository(api, marketPriceDao)
         repo.getMarketPrices().test {
@@ -107,7 +107,7 @@ class RepositoryCachingTest {
     @Test
     fun `prices repository surfaces timeout error when cache is empty`() = runTest {
         every { marketPriceDao.getAllMarketPrices() } returns flowOf(emptyList())
-        coEvery { api.getMarketPrices(any(), any()) } throws SocketTimeoutException("timeout")
+        coEvery { api.getMarketPrices(any(), any(), any(), any()) } throws SocketTimeoutException("timeout")
 
         val repo = PricesRepository(api, marketPriceDao)
         repo.getMarketPrices().test {
@@ -270,6 +270,23 @@ class RepositoryCachingTest {
             awaitComplete()
         }
         coVerify { cropDao.insertAll(any()) }
+    }
+
+    @Test
+    fun `crop analyze propagates network error instead of fabricating mock diagnosis`() = runTest {
+        coEvery { api.analyzeCrop(any(), any(), any(), any()) } throws IOException("Server unreachable")
+
+        val repo = CropRepository(api, cropDao)
+        val dummyPart = okhttp3.MultipartBody.Part.createFormData("image", "leaf.jpg", okhttp3.RequestBody.create(null, byteArrayOf(1, 2, 3)))
+        val emptyText = okhttp3.RequestBody.create(null, "")
+
+        repo.analyzeCrop(dummyPart, emptyText, emptyText, emptyText).test {
+            assertTrue(awaitItem() is Resource.Loading)
+            val errItem = awaitItem()
+            assertTrue("Expected Resource.Error rather than fabricated mock prediction", errItem is Resource.Error)
+            awaitComplete()
+        }
+        coVerify(exactly = 0) { cropDao.insert(any()) }
     }
 
     // =========================================================================

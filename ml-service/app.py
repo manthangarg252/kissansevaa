@@ -15,7 +15,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB limit
 MAX_PIXELS = 40_000_000               # 40 Megapixels cap to prevent decompression bombs
-MODEL_DIR = Path(os.environ.get('CROP_MODEL_DIR', 'model_assets'))
+MODEL_DIR = Path(os.environ.get('CROP_MODEL_DIR', str(Path(__file__).resolve().parent / 'model_assets')))
+SHADOW_LOG_PATH = Path(
+    os.environ.get('SHADOW_LOG_PATH', str(Path(__file__).resolve().parent / 'logs' / 'shadow_comparison.jsonl'))
+)
 
 REQUIRED_FILES = [
     'dinov2_vits14_cls_mean.onnx',
@@ -26,6 +29,39 @@ REQUIRED_FILES = [
 ]
 
 state: Dict[str, Any] = {}
+_v3_adapter_cache: Dict[str, Any] = {}
+_shadow_log_lock = __import__('threading').Lock()
+
+
+def _get_active_crop_model() -> str:
+    """Production stays on 'v1' until explicitly promoted; keeps instant rollback support."""
+    val = os.environ.get('ACTIVE_CROP_MODEL', 'v1').strip().lower()
+    return val if val in {'v1', 'v3_svm'} else 'v1'
+
+
+def _is_v3_shadow_enabled() -> bool:
+    return os.environ.get('ENABLE_V3_SHADOW', 'true').strip().lower() in {'1', 'true', 'yes'}
+
+
+def get_v3_adapter():
+    from v3_svm_adapter import V3SvmCandidateAdapter, resolve_candidate_assets_dir
+
+    target_dir = str(resolve_candidate_assets_dir().resolve())
+    cached = _v3_adapter_cache.get('adapter')
+    if cached is None or _v3_adapter_cache.get('dir') != target_dir:
+        cached = V3SvmCandidateAdapter()
+        _v3_adapter_cache['adapter'] = cached
+        _v3_adapter_cache['dir'] = target_dir
+    return cached
+
+
+def _append_shadow_record(record: Dict[str, Any]) -> None:
+    log_path = Path(os.environ.get('SHADOW_LOG_PATH', str(SHADOW_LOG_PATH)))
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    line = __import__('json').dumps(record, ensure_ascii=False)
+    with _shadow_log_lock:
+        with open(log_path, 'a', encoding='utf-8') as f:
+            f.write(line + '\n')
 
 app = FastAPI(
     title='KissanSevaAI Crop Diagnosis API',
@@ -180,9 +216,15 @@ def predict_from_vector(vector: np.ndarray, assets: Dict[str, Any]) -> Dict[str,
 
     neighbor_labels = labels[rows]
 
-    # Weighted exponential voting across retrieved neighbors
-    weights = np.exp(10.0 * (scores - scores.max()))
-    votes = np.bincount(neighbor_labels, weights=weights, minlength=len(classes))
+    vote_method = str(meta.get('vote_method', 'weighted')).lower()
+    if vote_method == 'majority':
+        weights = np.ones(len(scores), dtype=np.float32)
+    else:
+        weights = np.exp(10.0 * (scores - scores.max()))
+
+    # Consensus across retrieved neighbors (k_eval = search_k when configured_k=1)
+    k_vote = len(neighbor_labels) if configured_k == 1 else min(configured_k, len(neighbor_labels))
+    votes = np.bincount(neighbor_labels[:k_vote], weights=weights[:k_vote], minlength=len(classes))
     consensus_predicted = int(votes.argmax())
     consensus_agreement = float(votes[consensus_predicted] / max(votes.sum(), 1e-12))
 
@@ -197,7 +239,11 @@ def predict_from_vector(vector: np.ndarray, assets: Dict[str, Any]) -> Dict[str,
     low_thresh = float(meta.get('low_agreement_threshold', 0.60))
     # Flag needs_review if consensus among neighbors is split, or if top cosine similarity is low
     top_similarity = float(scores[0])
-    tentative = (configured_k > 1 and nominal_agreement < low_thresh) or (consensus_agreement < low_thresh) or (top_similarity < 0.50)
+    tentative = (
+        (configured_k > 1 and nominal_agreement < low_thresh)
+        or (consensus_agreement < low_thresh)
+        or (top_similarity < 0.50)
+    )
 
     predicted_label = classes[predicted]
     crop_part = predicted_label.split('/')[0] if '/' in predicted_label else predicted_label.split('___')[0]
@@ -213,20 +259,23 @@ def predict_from_vector(vector: np.ndarray, assets: Dict[str, Any]) -> Dict[str,
 
     warning_msg = (
         'Visual similarity is not a definitive disease diagnosis. '
-        'Neighbor agreement reflects k-NN reference voting, not a calibrated medical probability.'
+        'Cosine similarity and neighbor agreement reflect k-NN vector retrieval, not a calibrated disease probability.'
     )
     if configured_k == 1 and tentative:
-        warning_msg += ' (k=1 meta limitation: 1-NN agreement is trivially 1.0, but 5-neighbor consensus is low or similarity < 0.50).'
+        warning_msg += ' (k=1 meta limitation: 1-NN agreement is trivially 1.0, while multi-neighbor consensus is low or top similarity < 0.50).'
 
     return {
+        'source': 'dinov2',
         'label': predicted_label,
         'crop': crop_part,
         'condition': condition_part,
+        'confidence': None,
         'top_cosine_similarity': round(top_similarity, 5),
-        'neighbor_agreement': round(consensus_agreement if configured_k > 1 else round(consensus_agreement, 5), 5),
+        'neighbor_agreement': round(consensus_agreement, 5),
+        'k_retrieved': int(len(rows)),
         'k1_nominal_agreement': nominal_agreement,
-        'needs_review': tentative,
-        'confidence_type': 'similarity_and_neighbor_consensus_not_calibrated_probability',
+        'needs_review': bool(tentative),
+        'confidence_type': 'retrieval_similarity_and_neighbor_consensus_not_calibrated_probability',
         'matches': matches,
         'model': meta.get('model', 'dinov2_vits14'),
         'warning': warning_msg,
@@ -249,9 +298,18 @@ def health():
     try:
         if not state:
             state.update(load_assets())
+        v3_status = 'disabled'
+        if _is_v3_shadow_enabled():
+            try:
+                v3_status = get_v3_adapter().health_info().get('status', 'unknown')
+            except Exception:
+                v3_status = 'error'
         return {
             'ok': True,
             'status': 'healthy',
+            'active_model': _get_active_crop_model(),
+            'shadow_mode_enabled': _is_v3_shadow_enabled(),
+            'v3_candidate_status': v3_status,
             'model': state['meta'].get('model', 'dinov2_vits14'),
             'embedding_dim': state['meta'].get('embedding_dim', 768),
             'classes': len(state['classes']),
@@ -265,9 +323,8 @@ def health():
         }
 
 
-@app.post('/api/crop/predict')
-async def crop_predict(file: UploadFile = File(...)):
-    """Phase 1 Rebuild inference endpoint."""
+async def _prepare_image_and_embedding(file: UploadFile):
+    """Shared validation, image quality check, preprocessing, and DINOv2 ONNX feature extraction."""
     if file.content_type not in {'image/jpeg', 'image/png', 'image/webp'}:
         raise HTTPException(
             status_code=415,
@@ -293,11 +350,14 @@ async def crop_predict(file: UploadFile = File(...)):
             },
         )
 
+    from v3_svm_adapter import compute_image_quality
+
     try:
         with Image.open(io.BytesIO(data)) as img:
             img.load()
             if img.width * img.height > MAX_PIXELS:
                 raise ValueError(f'Image dimensions too large ({img.width}x{img.height}). Maximum is 40 megapixels.')
+            quality = compute_image_quality(img)
             if not state:
                 state.update(load_assets())
             tensor = preprocess(img, state['meta'])
@@ -308,9 +368,134 @@ async def crop_predict(file: UploadFile = File(...)):
 
     try:
         embedding = state['ort'].run(None, {'image': tensor})[0]
-        return predict_from_vector(embedding, state)
+        return embedding, quality
     except Exception as e:
         raise HTTPException(status_code=500, detail=f'Inference failure: {str(e)}')
+
+
+@app.post('/api/crop/predict')
+async def crop_predict(file: UploadFile = File(...)):
+    """Phase 1 production inference endpoint (v1 DINOv2+FAISS active; optional v3 shadow logging)."""
+    embedding, quality = await _prepare_image_and_embedding(file)
+    try:
+        v1_result = predict_from_vector(embedding, state)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f'Inference failure: {str(e)}')
+
+    if _is_v3_shadow_enabled():
+        try:
+            from v3_svm_adapter import make_shadow_comparison_record
+
+            v3_result = get_v3_adapter().predict_vector(
+                embedding,
+                blur_lap=quality['blur_lap'],
+                brightness=quality['brightness'],
+            )
+            record = make_shadow_comparison_record(v1_result, v3_result, filename=file.filename)
+            _append_shadow_record(record)
+            v1_result['shadow_model'] = {
+                'active_production_model': 'v1',
+                'candidate_version': v3_result['model_version'],
+                'loaded_head': v3_result['loaded_head'],
+                'predicted_class_id': v3_result['predicted_class_id'],
+                'calibrated_probability': v3_result['calibrated_probability'],
+                'needs_review': v3_result['needs_review'],
+                'models_agree_class_id': record['models_agree_class_id'],
+                'ood_validation_status': v3_result['ood_validation_status'],
+            }
+        except Exception as shadow_err:
+            v1_result['shadow_model'] = {
+                'active_production_model': 'v1',
+                'candidate_version': 'v3_svm',
+                'status': 'shadow_error',
+                'error': str(shadow_err),
+            }
+
+    return v1_result
+
+
+@app.get('/api/crop/v3/health')
+def v3_health():
+    """Diagnostic health endpoint for versioned V3 DINOv2+Calibrated-SVM candidate."""
+    info = get_v3_adapter().health_info()
+    info['active_production_model'] = _get_active_crop_model()
+    info['shadow_mode_enabled'] = _is_v3_shadow_enabled()
+    info['rollback_supported'] = True
+    return info
+
+
+@app.post('/api/crop/v3/predict')
+async def crop_predict_v3(file: UploadFile = File(...)):
+    """Versioned V3 SVM candidate inference endpoint (for isolated evaluation without switching production)."""
+    embedding, quality = await _prepare_image_and_embedding(file)
+    try:
+        adapter = get_v3_adapter()
+        v3_result = adapter.predict_vector(
+            embedding,
+            blur_lap=quality['blur_lap'],
+            brightness=quality['brightness'],
+        )
+        v1_result = predict_from_vector(embedding, state)
+        v3_result['v1_baseline_comparison'] = {
+            'predicted_class_id': v1_result.get('label'),
+            'top_cosine_similarity': v1_result.get('top_cosine_similarity'),
+            'neighbor_agreement': v1_result.get('neighbor_agreement'),
+            'needs_review': v1_result.get('needs_review'),
+            'agrees_with_v3': v1_result.get('label') == v3_result.get('predicted_class_id'),
+        }
+        return v3_result
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=503, detail=f'V3 candidate assets missing: {e}')
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f'V3 inference failure: {str(e)}')
+
+
+@app.get('/api/crop/shadow/stats')
+def shadow_stats():
+    """Aggregate shadow-mode telemetry comparing production v1 FAISS against candidate v3 SVM."""
+    log_path = Path(os.environ.get('SHADOW_LOG_PATH', str(SHADOW_LOG_PATH)))
+    records = []
+    if log_path.exists():
+        with open(log_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                raw = line.strip()
+                if raw:
+                    try:
+                        records.append(__import__('json').loads(raw))
+                    except Exception:
+                        continue
+
+    total = len(records)
+    if total == 0:
+        return {
+            'ok': True,
+            'active_production_model': _get_active_crop_model(),
+            'shadow_mode_enabled': _is_v3_shadow_enabled(),
+            'log_path': str(log_path.resolve()),
+            'total_comparisons': 0,
+            'recent': [],
+        }
+
+    agree_class = sum(1 for r in records if r.get('models_agree_class_id'))
+    agree_crop = sum(1 for r in records if r.get('models_agree_crop'))
+    v1_review = sum(1 for r in records if r.get('v1_needs_review'))
+    v3_review = sum(1 for r in records if r.get('v3_needs_review'))
+    latencies = [r['v3_latency_ms'] for r in records if isinstance(r.get('v3_latency_ms'), (int, float))]
+
+    return {
+        'ok': True,
+        'active_production_model': _get_active_crop_model(),
+        'shadow_mode_enabled': _is_v3_shadow_enabled(),
+        'rollback_supported': True,
+        'log_path': str(log_path.resolve()),
+        'total_comparisons': total,
+        'class_id_agreement_rate': round(agree_class / total, 4),
+        'crop_agreement_rate': round(agree_crop / total, 4),
+        'v1_needs_review_rate': round(v1_review / total, 4),
+        'v3_needs_review_rate': round(v3_review / total, 4),
+        'mean_v3_latency_ms': round(sum(latencies) / len(latencies), 3) if latencies else None,
+        'recent': records[-10:],
+    }
 
 
 @app.post('/predict-crop')
@@ -333,14 +518,17 @@ async def predict_crop_legacy(file: UploadFile = File(...)):
         # Map to legacy shape:
         return {
             'predicted_class': prediction['label'],
-            'confidence': prediction['neighbor_agreement'],
+            'confidence': None,
+            'top_cosine_similarity': prediction['top_cosine_similarity'],
+            'neighbor_agreement': prediction['neighbor_agreement'],
             'cosine_similarity': prediction['top_cosine_similarity'],
             'needs_review': prediction['needs_review'],
             'crop': prediction['crop'],
             'condition': prediction['condition'],
             'matches': prediction['matches'],
             'warning': prediction['warning'],
-            'is_unknown': prediction['needs_review'],
+            'confidence_type': prediction['confidence_type'],
+            'is_unknown': False,
             'source': 'dinov2',
         }
     except HTTPException as he:

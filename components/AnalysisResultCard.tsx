@@ -15,7 +15,14 @@ import TTSButton from "./TTSButton.tsx";
 export interface CropDiagnosisResult {
   cropName: string;
   diseaseName: string;
-  confidence: number;
+  confidence?: number | null;
+  top_cosine_similarity?: number | null;
+  neighbor_agreement?: number | null;
+  needs_review?: boolean;
+  treatmentWithheld?: boolean;
+  warning?: string;
+  predictionSource?: string;
+  advisorySource?: string;
   summary: string;
   severity: string;
   treatment: {
@@ -73,17 +80,18 @@ const AnalysisResultCard: React.FC<AnalysisResultCardProps> = ({
 
     const cropLabel = result.cropName;
     const statusLabel = result.diseaseName;
-    const matchLabel = `${t("common.match")}: ${Math.round(
-      result.confidence * 100
-    )} percent`;
+    const matchLabel = result.top_cosine_similarity != null
+      ? `Cosine similarity ${result.top_cosine_similarity.toFixed(3)}`
+      : (typeof result.confidence === "number" ? `Estimated score ${Math.round(result.confidence * 100)} percent` : "");
 
     let text = `${t("crop.health_report")}. ${t(
       "dashboard.cards.prices"
-    )}: ${cropLabel}. ${t("common.results")}: ${statusLabel}. ${matchLabel}. ${
+    )}: ${cropLabel}. ${t("common.results")}: ${statusLabel}. ${matchLabel ? matchLabel + ". " : ""}${
       result.summary
     }. `;
 
-    if (!isHealthy) {
+    const hideTreatments = Boolean(result.needs_review || result.treatmentWithheld);
+    if (!isHealthy && !hideTreatments) {
       if (result.treatment?.organic?.length > 0) {
         text += `${t("crop.organic")}: ${result.treatment.organic.join(
           ". "
@@ -98,6 +106,9 @@ const AnalysisResultCard: React.FC<AnalysisResultCardProps> = ({
         text += `${t("crop.prevention")}: ${result.prevention.join(". ")}. `;
       }
     } else {
+      if (hideTreatments) {
+        text += "Treatment prescriptions are withheld pending expert KVK confirmation. ";
+      }
       if (result.prevention?.length > 0) {
         text += `${t("crop.maintenance")}: ${result.prevention.join(". ")}. `;
       }
@@ -188,7 +199,7 @@ const AnalysisResultCard: React.FC<AnalysisResultCardProps> = ({
             </span>
 
             <span className="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-[10px] font-bold uppercase tracking-wider border border-slate-700">
-              {t("common.source")}: {result.source === "gemini" ? "EXPERT AI" : "ViT Model"}
+              {t("common.source")}: {(result.predictionSource || result.source) === "dinov2" ? "DINOv2-S/14" : ((result.predictionSource || result.source) === "gemini" ? "Gemini Vision" : "AI Model")}
             </span>
           </div>
         </div>
@@ -218,17 +229,28 @@ const AnalysisResultCard: React.FC<AnalysisResultCardProps> = ({
             </div>
           </div>
 
-          <div className="text-right">
-            <span className="text-slate-400 text-xs font-bold block">{t("common.match")}</span>
-            <span className="text-white font-bold text-xl">{Math.round(result.confidence * 100)}%</span>
+          <div className="text-right space-y-1">
+            {result.top_cosine_similarity != null ? (
+              <>
+                <span className="text-slate-400 text-xs font-bold block">Cosine Similarity</span>
+                <span className="text-white font-bold text-xl">{result.top_cosine_similarity.toFixed(3)}</span>
+                {result.neighbor_agreement != null && (
+                  <span className="text-slate-400 text-[11px] block">
+                    k-NN Consensus: {(result.neighbor_agreement * 100).toFixed(1)}%
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                <span className="text-slate-400 text-xs font-bold block">
+                  {result.needs_review ? "Needs Review" : "Advisory"}
+                </span>
+                {typeof result.confidence === "number" && (
+                  <span className="text-white font-bold text-sm">Est. {Math.round(result.confidence * 100)}%</span>
+                )}
+              </>
+            )}
           </div>
-        </div>
-
-        <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-          <div
-            className="h-full transition-all duration-1000 bg-emerald-500"
-            style={{ width: `${result.confidence * 100}%` }}
-          />
         </div>
 
         <p className="mt-4 text-slate-300 text-sm leading-relaxed italic border-l-2 border-emerald-500/30 pl-4">
@@ -237,7 +259,16 @@ const AnalysisResultCard: React.FC<AnalysisResultCardProps> = ({
       </div>
 
       <div className="space-y-4">
-        {!isHealthy && (
+        {!isHealthy && (result.needs_review || result.treatmentWithheld) ? (
+          <div className="p-5 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
+            <h5 className="text-amber-400 font-bold text-xs mb-2 flex items-center gap-2 uppercase tracking-widest">
+              <ShieldAlert className="w-4 h-4" /> Treatment Prescriptions Withheld
+            </h5>
+            <p className="text-slate-300 text-xs leading-relaxed">
+              {result.warning || "Because this diagnosis is uncertain, all organic and chemical treatment prescriptions are withheld pending verification by a KVK agronomist."}
+            </p>
+          </div>
+        ) : (!isHealthy && (result.treatment?.organic?.length > 0 || result.treatment?.chemical?.length > 0)) ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-5 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
               <h5 className="text-emerald-400 font-bold text-xs mb-3 flex items-center gap-2 uppercase tracking-widest">
@@ -265,7 +296,7 @@ const AnalysisResultCard: React.FC<AnalysisResultCardProps> = ({
               </ul>
             </div>
           </div>
-        )}
+        ) : null}
 
         <div
           className={`p-5 rounded-2xl border ${

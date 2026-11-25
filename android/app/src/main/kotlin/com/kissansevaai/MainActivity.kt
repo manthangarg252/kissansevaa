@@ -1,6 +1,9 @@
 package com.kissansevaai
 
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -21,6 +24,11 @@ import dagger.hilt.android.AndroidEntryPoint
 import java.util.Locale
 import javax.inject.Inject
 
+class LocalizedContextWrapper(base: Context, private val config: Configuration) : ContextWrapper(base) {
+    private val localized = base.createConfigurationContext(config)
+    override fun getResources(): Resources = localized.resources
+}
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
@@ -38,6 +46,7 @@ class MainActivity : ComponentActivity() {
                     "mr" -> Locale("mr", "IN")
                     "pa" -> Locale("pa", "IN")
                     "bho" -> Locale("bho", "IN")
+                    "sa" -> Locale("sa", "IN")
                     else -> Locale("en", "US")
                 }
             }
@@ -50,9 +59,13 @@ class MainActivity : ComponentActivity() {
                     setLayoutDirection(locale)
                 }
             }
+            val localizedContext = remember(context, localizedConfiguration) {
+                LocalizedContextWrapper(context, localizedConfiguration)
+            }
 
             CompositionLocalProvider(
-                LocalConfiguration provides localizedConfiguration
+                LocalConfiguration provides localizedConfiguration,
+                LocalContext provides localizedContext
             ) {
                 KissanSevaTheme {
                     Surface(modifier = Modifier.fillMaxSize()) {

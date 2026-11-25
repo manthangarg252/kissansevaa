@@ -23,6 +23,19 @@ object DatabaseModule {
         }
     }
 
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE crop_history ADD COLUMN topCosineSimilarity REAL")
+            db.execSQL("ALTER TABLE crop_history ADD COLUMN neighborAgreement REAL")
+            db.execSQL("ALTER TABLE crop_history ADD COLUMN needsReview INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE crop_history ADD COLUMN treatmentWithheld INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE crop_history ADD COLUMN warning TEXT")
+            db.execSQL("ALTER TABLE crop_history ADD COLUMN confidenceType TEXT")
+            db.execSQL("ALTER TABLE crop_history ADD COLUMN predictionSource TEXT")
+            db.execSQL("ALTER TABLE crop_history ADD COLUMN advisorySource TEXT")
+        }
+    }
+
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): KissanDatabase {
@@ -30,7 +43,7 @@ object DatabaseModule {
             context,
             KissanDatabase::class.java,
             "kissansevaai.db"
-        ).addMigrations(MIGRATION_1_2).build()
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
     }
 
     @Provides

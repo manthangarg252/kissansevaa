@@ -112,7 +112,7 @@ fun TradersScreen(onBack: () -> Unit, viewModel: TradersViewModel = hiltViewMode
                     search = it
                     viewModel.fetchTraders(it.ifBlank { null })
                 },
-                placeholder = { Text("Search by crop, commodity, or mandi location...") },
+                placeholder = { Text(stringResource(R.string.traders_search_placeholder)) },
                 leadingIcon = { Icon(Icons.Default.Search, null, tint = DeepEmerald) },
                 trailingIcon = {
                     if (search.isNotEmpty()) {
@@ -184,8 +184,8 @@ fun TradersScreen(onBack: () -> Unit, viewModel: TradersViewModel = hiltViewMode
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text("No verified traders found", fontWeight = FontWeight.Bold, color = TextCharcoal)
-                        Text("No buyers match '$search'. Tap below to view all registered traders.", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                        Text(stringResource(R.string.traders_no_traders_found), fontWeight = FontWeight.Bold, color = TextCharcoal)
+                        Text(stringResource(R.string.traders_no_traders_desc), style = MaterialTheme.typography.bodySmall, color = TextMuted)
                         Button(
                             onClick = {
                                 search = ""
@@ -195,7 +195,7 @@ fun TradersScreen(onBack: () -> Unit, viewModel: TradersViewModel = hiltViewMode
                             colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
                             shape = RoundedCornerShape(9999.dp)
                         ) {
-                            Text("View All Traders", fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.traders_view_all), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -383,7 +383,7 @@ fun TradersScreen(onBack: () -> Unit, viewModel: TradersViewModel = hiltViewMode
                                     ) {
                                         Icon(Icons.Default.Phone, null, modifier = Modifier.size(16.dp))
                                         Spacer(Modifier.width(6.dp))
-                                        Text("Call (कॉल करें)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        Text(stringResource(R.string.traders_call_btn), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                     }
 
                                     OutlinedButton(
@@ -397,7 +397,7 @@ fun TradersScreen(onBack: () -> Unit, viewModel: TradersViewModel = hiltViewMode
                                     ) {
                                         Icon(Icons.AutoMirrored.Filled.Message, null, tint = DeepEmerald, modifier = Modifier.size(16.dp))
                                         Spacer(Modifier.width(6.dp))
-                                        Text("Message", color = DeepEmerald, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        Text(stringResource(R.string.traders_action_message), color = DeepEmerald, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                     }
                                 }
                             }

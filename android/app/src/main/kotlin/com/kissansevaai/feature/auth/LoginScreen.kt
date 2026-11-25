@@ -40,6 +40,8 @@ fun LoginScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val currentBaseUrl by viewModel.baseUrl.collectAsState()
+    val currentLang by viewModel.language.collectAsState()
+    var showLangMenu by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("farmer@kissan.com") }
     var password by remember { mutableStateOf("Password123!") }
     var mobileNumber by remember { mutableStateOf("9876543210") }
@@ -60,11 +62,11 @@ fun LoginScreen(
     if (showServerDialog) {
         AlertDialog(
             onDismissRequest = { showServerDialog = false },
-            title = { Text("Server Configuration", fontWeight = FontWeight.Bold, color = TextCharcoal) },
+            title = { Text(stringResource(R.string.auth_server_config), fontWeight = FontWeight.Bold, color = TextCharcoal) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "Set backend server URL (e.g. http://10.0.2.2:5050 for emulator or http://192.168.1.4:5050 for phone):",
+                        "Set backend server URL (e.g. http://10.0.2.2:5050 for emulator or http://10.201.214.248:5050 for phone):",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted,
                     )
@@ -90,12 +92,12 @@ fun LoginScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
                     shape = RoundedCornerShape(9999.dp)
                 ) {
-                    Text("Save", color = Color.White)
+                    Text(stringResource(R.string.common_save), color = Color.White)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showServerDialog = false }) {
-                    Text("Cancel", color = TextMuted)
+                    Text(stringResource(R.string.common_cancel), color = TextMuted)
                 }
             },
             containerColor = CardWhite
@@ -132,7 +134,7 @@ fun LoginScreen(
                                 color = DeepEmerald
                             )
                             Text(
-                                text = "किसान सेवा मंच",
+                                text = stringResource(R.string.auth_tagline),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = TextMuted,
@@ -142,30 +144,67 @@ fun LoginScreen(
                     }
                 },
                 actions = {
-                    // Vernacular Chip
-                    Surface(
-                        shape = RoundedCornerShape(9999.dp),
-                        border = BorderStroke(1.dp, BorderMedium),
-                        color = CardWhite,
-                        modifier = Modifier.padding(end = 4.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    // Language Switcher Chip with Dropdown
+                    Box(modifier = Modifier.padding(end = 4.dp)) {
+                        Surface(
+                            shape = RoundedCornerShape(9999.dp),
+                            border = BorderStroke(1.dp, DeepEmerald),
+                            color = CardWhite,
+                            modifier = Modifier.clickable { showLangMenu = true }
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Translate,
-                                contentDescription = null,
-                                tint = DeepEmerald,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "हिन्दी",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = DeepEmerald
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Translate,
+                                    contentDescription = "Language",
+                                    tint = DeepEmerald,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = when (currentLang.lowercase().trim()) {
+                                        "hi" -> "हिन्दी"
+                                        "bho" -> "भोजपुरी"
+                                        "mr" -> "मराठी"
+                                        "pa" -> "ਪੰਜਾਬੀ"
+                                        "sa" -> "संस्कृतम्"
+                                        else -> "English"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = DeepEmerald
+                                )
+                            }
+                        }
+
+                        DropdownMenu(
+                            expanded = showLangMenu,
+                            onDismissRequest = { showLangMenu = false }
+                        ) {
+                            listOf(
+                                "en" to "English",
+                                "hi" to "हिन्दी (Hindi)",
+                                "bho" to "भोजपुरी (Bhojpuri)",
+                                "mr" to "मराठी (Marathi)",
+                                "pa" to "ਪੰਜਾਬੀ (Punjabi)",
+                                "sa" to "संस्कृतम् (Sanskrit)"
+                            ).forEach { (code, label) ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = label,
+                                            fontWeight = if (currentLang == code) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (currentLang == code) DeepEmerald else TextCharcoal
+                                        )
+                                    },
+                                    onClick = {
+                                        viewModel.setLanguage(code)
+                                        showLangMenu = false
+                                    }
+                                )
+                            }
                         }
                     }
 
@@ -476,7 +515,7 @@ fun LoginScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Text("ओटीपी प्राप्त करें / Get OTP", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                        Text(stringResource(R.string.auth_otp_btn), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                         Icon(Icons.Default.ArrowForward, contentDescription = null)
                                     }
                                 }
@@ -486,7 +525,7 @@ fun LoginScreen(
                         // FORM B: KISAN ID / PASSWORD LOGIN
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(
-                                text = "किसान कार्ड नंबर / ईमेल (Kisan ID or Email)",
+                                text = stringResource(R.string.auth_email),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = TextCharcoal
@@ -498,7 +537,7 @@ fun LoginScreen(
                                 leadingIcon = {
                                     Icon(Icons.Default.AccountCircle, contentDescription = null, tint = TextMuted)
                                 },
-                                placeholder = { Text("farmer@kissan.com या KSN-8823") },
+                                placeholder = { Text("farmer@kissan.com") },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                                 shape = RoundedCornerShape(12.dp),
@@ -510,7 +549,7 @@ fun LoginScreen(
                             )
 
                             Text(
-                                text = "4-अंकों का गुप्त पिन / पासवर्ड (PIN)",
+                                text = stringResource(R.string.auth_password),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = TextCharcoal
@@ -558,7 +597,7 @@ fun LoginScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Text("सुरक्षित लॉगिन करें / Sign In", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                        Text(stringResource(R.string.auth_sign_in_btn), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                         Icon(Icons.Default.Login, contentDescription = null)
                                     }
                                 }

@@ -1,0 +1,241 @@
+{
+  "in_dist_count": 354,
+  "unsupported_crop_leave_out_count": 48,
+  "stress_image_tests": [
+    {
+      "sample": "genuine_wheat_macro__orig",
+      "expected_ood_or_unusable": false,
+      "top1_sim": 0.8161,
+      "agree_5nn": 0.5666,
+      "margin_top2": 0.1025,
+      "laplacian_blur_var": 330.2,
+      "brightness": 99.05
+    },
+    {
+      "sample": "genuine_wheat_macro__blur_r5",
+      "expected_ood_or_unusable": true,
+      "top1_sim": 0.7398,
+      "agree_5nn": 0.5314,
+      "margin_top2": 0.0379,
+      "laplacian_blur_var": 8.26,
+      "brightness": 99.06
+    },
+    {
+      "sample": "genuine_wheat_macro__dark_0.2",
+      "expected_ood_or_unusable": true,
+      "top1_sim": 0.7696,
+      "agree_5nn": 0.5176,
+      "margin_top2": 0.0745,
+      "laplacian_blur_var": 14.51,
+      "brightness": 19.42
+    },
+    {
+      "sample": "genuine_apple_ruler__orig",
+      "expected_ood_or_unusable": false,
+      "top1_sim": 0.7667,
+      "agree_5nn": 0.6458,
+      "margin_top2": 0.0276,
+      "laplacian_blur_var": 309.23,
+      "brightness": 132.9
+    },
+    {
+      "sample": "genuine_apple_ruler__blur_r5",
+      "expected_ood_or_unusable": true,
+      "top1_sim": 0.7342,
+      "agree_5nn": 0.4232,
+      "margin_top2": 0.0083,
+      "laplacian_blur_var": 14.56,
+      "brightness": 132.9
+    },
+    {
+      "sample": "genuine_apple_ruler__dark_0.2",
+      "expected_ood_or_unusable": true,
+      "top1_sim": 0.7226,
+      "agree_5nn": 0.756,
+      "margin_top2": 0.0124,
+      "laplacian_blur_var": 14.61,
+      "brightness": 26.17
+    },
+    {
+      "sample": "genuine_apple_screen__orig",
+      "expected_ood_or_unusable": false,
+      "top1_sim": 0.6904,
+      "agree_5nn": 1.0,
+      "margin_top2": 0.0601,
+      "laplacian_blur_var": 175.19,
+      "brightness": 125.09
+    },
+    {
+      "sample": "genuine_apple_screen__blur_r5",
+      "expected_ood_or_unusable": true,
+      "top1_sim": 0.6725,
+      "agree_5nn": 0.6708,
+      "margin_top2": 0.0474,
+      "laplacian_blur_var": 30.65,
+      "brightness": 125.1
+    },
+    {
+      "sample": "genuine_apple_screen__dark_0.2",
+      "expected_ood_or_unusable": true,
+      "top1_sim": 0.6741,
+      "agree_5nn": 1.0,
+      "margin_top2": 0.069,
+      "laplacian_blur_var": 8.81,
+      "brightness": 24.59
+    },
+    {
+      "sample": "genuine_apple_rot_cam__orig",
+      "expected_ood_or_unusable": false,
+      "top1_sim": 0.6969,
+      "agree_5nn": 1.0,
+      "margin_top2": 0.0643,
+      "laplacian_blur_var": 173.51,
+      "brightness": 125.57
+    },
+    {
+      "sample": "genuine_apple_rot_cam__blur_r5",
+      "expected_ood_or_unusable": true,
+      "top1_sim": 0.6992,
+      "agree_5nn": 1.0,
+      "margin_top2": 0.063,
+      "laplacian_blur_var": 126.34,
+      "brightness": 125.58
+    },
+    {
+      "sample": "genuine_apple_rot_cam__dark_0.2",
+      "expected_ood_or_unusable": true,
+      "top1_sim": 0.6771,
+      "agree_5nn": 0.8482,
+      "margin_top2": 0.0615,
+      "laplacian_blur_var": 8.53,
+      "brightness": 24.69
+    },
+    {
+      "sample": "ood_food_roti_cam__orig",
+      "expected_ood_or_unusable": true,
+      "top1_sim": 0.4284,
+      "agree_5nn": 0.5157,
+      "margin_top2": 0.1307,
+      "laplacian_blur_var": 553.05,
+      "brightness": 84.98
+    },
+    {
+      "sample": "ood_ui_traders__orig",
+      "expected_ood_or_unusable": true,
+      "top1_sim": 0.1857,
+      "agree_5nn": 0.2834,
+      "margin_top2": 0.0351,
+      "laplacian_blur_var": 1324.98,
+      "brightness": 39.8
+    },
+    {
+      "sample": "ood_ui_login__orig",
+      "expected_ood_or_unusable": true,
+      "top1_sim": 0.1583,
+      "agree_5nn": 0.3908,
+      "margin_top2": 0.0036,
+      "laplacian_blur_var": 745.1,
+      "brightness": 33.05
+    },
+    {
+      "sample": "ood_synth_wheat__orig",
+      "expected_ood_or_unusable": true,
+      "top1_sim": 0.2362,
+      "agree_5nn": 0.8247,
+      "margin_top2": 0.0365,
+      "laplacian_blur_var": 184.64,
+      "brightness": 102.07
+    },
+    {
+      "sample": "ood_synth_cow__orig",
+      "expected_ood_or_unusable": true,
+      "top1_sim": 0.2233,
+      "agree_5nn": 0.4096,
+      "margin_top2": 0.0002,
+      "laplacian_blur_var": 125.36,
+      "brightness": 149.88
+    }
+  ],
+  "top_policies": [
+    {
+      "th_sim": 0.7,
+      "th_agree": 0.4,
+      "th_blur_lap": 40.0,
+      "FRR_known_crops": 0.1299,
+      "FAR_unsupported_crops": 0.2708,
+      "FAR_combined_ood_and_degraded": 0.2131
+    },
+    {
+      "th_sim": 0.7,
+      "th_agree": 0.4,
+      "th_blur_lap": 0.0,
+      "FRR_known_crops": 0.1299,
+      "FAR_unsupported_crops": 0.2708,
+      "FAR_combined_ood_and_degraded": 0.2459
+    },
+    {
+      "th_sim": 0.7,
+      "th_agree": 0.55,
+      "th_blur_lap": 0.0,
+      "FRR_known_crops": 0.2571,
+      "FAR_unsupported_crops": 0.2083,
+      "FAR_combined_ood_and_degraded": 0.1639
+    },
+    {
+      "th_sim": 0.7,
+      "th_agree": 0.55,
+      "th_blur_lap": 40.0,
+      "FRR_known_crops": 0.2571,
+      "FAR_unsupported_crops": 0.2083,
+      "FAR_combined_ood_and_degraded": 0.1639
+    },
+    {
+      "th_sim": 0.65,
+      "th_agree": 0.4,
+      "th_blur_lap": 40.0,
+      "FRR_known_crops": 0.1158,
+      "FAR_unsupported_crops": 0.3333,
+      "FAR_combined_ood_and_degraded": 0.2787
+    },
+    {
+      "th_sim": 0.65,
+      "th_agree": 0.55,
+      "th_blur_lap": 40.0,
+      "FRR_known_crops": 0.2429,
+      "FAR_unsupported_crops": 0.2292,
+      "FAR_combined_ood_and_degraded": 0.1967
+    },
+    {
+      "th_sim": 0.7,
+      "th_agree": 0.6,
+      "th_blur_lap": 0.0,
+      "FRR_known_crops": 0.3164,
+      "FAR_unsupported_crops": 0.1875,
+      "FAR_combined_ood_and_degraded": 0.1475
+    },
+    {
+      "th_sim": 0.7,
+      "th_agree": 0.6,
+      "th_blur_lap": 40.0,
+      "FRR_known_crops": 0.3164,
+      "FAR_unsupported_crops": 0.1875,
+      "FAR_combined_ood_and_degraded": 0.1475
+    },
+    {
+      "th_sim": 0.65,
+      "th_agree": 0.55,
+      "th_blur_lap": 0.0,
+      "FRR_known_crops": 0.2429,
+      "FAR_unsupported_crops": 0.2292,
+      "FAR_combined_ood_and_degraded": 0.2131
+    },
+    {
+      "th_sim": 0.65,
+      "th_agree": 0.4,
+      "th_blur_lap": 0.0,
+      "FRR_known_crops": 0.1158,
+      "FAR_unsupported_crops": 0.3333,
+      "FAR_combined_ood_and_degraded": 0.3279
+    }
+  ]
+}

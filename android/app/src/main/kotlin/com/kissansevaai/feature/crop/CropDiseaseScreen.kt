@@ -31,6 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.kissansevaai.R
 import com.kissansevaai.ui.component.FeatureScaffold
+import com.kissansevaai.ui.component.FieldMicButton
 import com.kissansevaai.ui.component.LoadingOverlay
 import com.kissansevaai.ui.theme.*
 
@@ -218,13 +219,13 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                 }
                             }
                             Text(
-                                text = "Upload Crop Photo",
+                                text = stringResource(R.string.crop_upload_photo),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = TextCharcoal
                             )
                             Text(
-                                text = "Take a photo or choose from gallery",
+                                text = stringResource(R.string.crop_take_photo_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextMuted
                             )
@@ -272,7 +273,7 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
             ) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "Or Test with Sample Crop (त्वरित नमूना):",
+                        text = stringResource(R.string.crop_sample_test_label),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = DeepEmerald
@@ -325,6 +326,8 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    val currentLang by viewModel.language.collectAsState()
+
                     OutlinedTextField(
                         value = location,
                         onValueChange = { location = it },
@@ -334,6 +337,14 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            FieldMicButton(
+                                speechToText = viewModel.speechToText,
+                                lang = currentLang,
+                                onResult = { location = it },
+                                onError = { permissionNotice = it }
+                            )
+                        },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = DeepEmerald,
                             unfocusedBorderColor = BorderMedium
@@ -349,13 +360,20 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            FieldMicButton(
+                                speechToText = viewModel.speechToText,
+                                lang = currentLang,
+                                onResult = { soilType = it },
+                                onError = { permissionNotice = it }
+                            )
+                        },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = DeepEmerald,
                             unfocusedBorderColor = BorderMedium
                         )
                     )
 
-                    val currentLang by viewModel.language.collectAsState()
                     com.kissansevaai.ui.component.VoiceFormFillButton(
                         fields = listOf("location", "soilType"),
                         lang = currentLang,
@@ -429,59 +447,153 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Header with confidence, source badge, and TTS
+                        // Header with verification status, separate source attribution pills, and TTS
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
                             ) {
+                                val effectivePredSource = r.predictionSource ?: r.source
                                 Surface(
                                     shape = RoundedCornerShape(9999.dp),
-                                    color = GreenTint
+                                    color = if (r.needs_review) AmberTint else GreenTint
                                 ) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                     ) {
-                                        Icon(Icons.Default.CheckCircle, null, tint = DeepEmerald, modifier = Modifier.size(14.dp))
+                                        Icon(
+                                            imageVector = if (r.needs_review) Icons.Default.Warning else Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = if (r.needs_review) SecondaryOrange else DeepEmerald,
+                                            modifier = Modifier.size(14.dp)
+                                        )
                                         Spacer(Modifier.width(4.dp))
                                         Text(
-                                            text = "${"%.0f".format((r.confidence ?: 0.9) * 100)}% Match",
+                                            text = if (r.needs_review) {
+                                                stringResource(R.string.crop_status_needs_review)
+                                            } else if (effectivePredSource == "dinov2") {
+                                                stringResource(R.string.crop_status_retrieval_match)
+                                            } else if (r.confidence != null) {
+                                                "Est. ${"%.0f".format(r.confidence * 100)}%"
+                                            } else {
+                                                stringResource(R.string.crop_analysis_result)
+                                            },
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
-                                            color = DeepEmerald
+                                            color = if (r.needs_review) SecondaryOrange else DeepEmerald
                                         )
                                     }
                                 }
 
-                                val sourceLabel = when (r.source) {
-                                    "dinov2" -> "DINOv2-S/14"
-                                    "gemini" -> "Gemini Vision"
-                                    else -> r.source?.uppercase() ?: "AI Model"
+                                val sourceLabel = when (effectivePredSource) {
+                                    "dinov2" -> "Model: DINOv2-S/14"
+                                    "gemini" -> "Vision: Gemini"
+                                    "mock" -> "Offline Template"
+                                    else -> effectivePredSource?.uppercase() ?: "AI"
                                 }
                                 Surface(
                                     shape = RoundedCornerShape(9999.dp),
-                                    color = if (r.source == "dinov2") GreenTintLight else SurfaceContainerLow,
-                                    border = BorderStroke(1.dp, if (r.source == "dinov2") DeepEmerald.copy(alpha = 0.5f) else BorderMedium)
+                                    color = if (effectivePredSource == "dinov2") GreenTintLight else SurfaceContainerLow,
+                                    border = BorderStroke(1.dp, if (effectivePredSource == "dinov2") DeepEmerald.copy(alpha = 0.5f) else BorderMedium)
                                 ) {
                                     Text(
                                         text = sourceLabel,
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = if (r.source == "dinov2") DeepEmerald else TextMuted,
+                                        color = if (effectivePredSource == "dinov2") DeepEmerald else TextMuted,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                     )
+                                }
+
+                                if (r.advisorySource != null && r.advisorySource != effectivePredSource) {
+                                    val advLabel = when (r.advisorySource) {
+                                        "gemini" -> "Notes: Gemini"
+                                        else -> "Notes: Local"
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(9999.dp),
+                                        color = SurfaceContainerLow,
+                                        border = BorderStroke(1.dp, BorderMedium)
+                                    ) {
+                                        Text(
+                                            text = advLabel,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = TextMuted,
+                                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
+                                            fontSize = 10.sp
+                                        )
+                                    }
                                 }
                             }
 
                             val currentLang by viewModel.language.collectAsState()
+                            val textToSpeak = remember(r, currentLang) {
+                                val cropPrefix = when (currentLang.lowercase().trim()) {
+                                    "hi" -> "फसल"
+                                    "mr" -> "पीक"
+                                    "pa" -> "ਫ਼ਸਲ"
+                                    "bho" -> "फसल"
+                                    "sa" -> "सस्यम्"
+                                    else -> "Crop"
+                                }
+                                val diseasePrefix = when (currentLang.lowercase().trim()) {
+                                    "hi" -> "रोग"
+                                    "mr" -> "रोग"
+                                    "pa" -> "ਬਿਮਾਰੀ"
+                                    "bho" -> "रोग"
+                                    "sa" -> "रोगः"
+                                    else -> "Disease"
+                                }
+                                val severityPrefix = when (currentLang.lowercase().trim()) {
+                                    "hi" -> "गंभीरता"
+                                    "mr" -> "तीव्रता"
+                                    "pa" -> "ਗੰਭੀਰਤਾ"
+                                    "bho" -> "गंभीरता"
+                                    "sa" -> "तीव्रता"
+                                    else -> "Severity"
+                                }
+                                val localizedSeverity = when (r.severity?.lowercase()?.trim()) {
+                                    "low" -> when (currentLang.lowercase().trim()) {
+                                        "hi" -> "कम"
+                                        "mr" -> "कमी"
+                                        "pa" -> "ਘੱਟ"
+                                        "bho" -> "कम"
+                                        "sa" -> "अल्पा"
+                                        else -> "Low"
+                                    }
+                                    "medium", "moderate" -> when (currentLang.lowercase().trim()) {
+                                        "hi" -> "मध्यम"
+                                        "mr" -> "मध्यम"
+                                        "pa" -> "ਦਰਮਿਆਨੀ"
+                                        "bho" -> "मध्यम"
+                                        "sa" -> "मध्यमा"
+                                        else -> "Medium"
+                                    }
+                                    "high", "severe" -> when (currentLang.lowercase().trim()) {
+                                        "hi" -> "गंभीर"
+                                        "mr" -> "जास्त"
+                                        "pa" -> "ਗੰਭੀਰ"
+                                        "bho" -> "गंभीर"
+                                        "sa" -> "तीव्रा"
+                                        else -> "High"
+                                    }
+                                    else -> r.severity ?: ""
+                                }
+                                val delimiter = if (currentLang.lowercase().trim() in listOf("hi", "pa", "bho", "sa")) "।" else "."
+                                val cropPart = if (!r.cropName.isNullOrBlank()) "$cropPrefix: ${r.cropName}$delimiter " else ""
+                                val severityPart = if (localizedSeverity.isNotBlank()) "$severityPrefix: $localizedSeverity$delimiter " else ""
+                                val summaryPart = r.summary ?: ""
+                                "$diseasePrefix: ${r.diseaseName}$delimiter $cropPart$severityPart$summaryPart".trim()
+                            }
                             com.kissansevaai.ui.component.TTSButton(
                                 ttsEngine = viewModel.ttsEngine,
-                                textToSpeak = "${r.diseaseName}. Crop: ${r.cropName ?: ""}. Severity: ${r.severity ?: ""}. ${r.summary ?: ""}",
+                                textToSpeak = textToSpeak,
                                 lang = currentLang,
                                 onFallbackExplanation = { fallbackMsg -> permissionNotice = fallbackMsg }
                             )
@@ -508,13 +620,13 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                     )
                                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                         Text(
-                                            text = "Uncertain Prediction / समीक्षा आवश्यक",
+                                            text = stringResource(R.string.crop_uncertain_warning_title),
                                             style = MaterialTheme.typography.labelMedium,
                                             fontWeight = FontWeight.Bold,
                                             color = SecondaryOrange
                                         )
                                         Text(
-                                            text = r.warning ?: "Cosine similarity or neighbor agreement is below safe confidence thresholds. Please verify with a local agricultural extension officer.",
+                                            text = r.warning ?: stringResource(R.string.crop_uncertain_warning_desc),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = TextCharcoal
                                         )
@@ -523,7 +635,7 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                             }
                         }
 
-                        // Similarity & Neighbor Agreement Metrics
+                        // Similarity & Neighbor Agreement Metrics (distinct retrieval metrics, never generic % confidence)
                         if (r.top_cosine_similarity != null || r.neighbor_agreement != null) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Row(
@@ -538,13 +650,14 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                             modifier = Modifier.weight(1f)
                                         ) {
                                             Column(modifier = Modifier.padding(10.dp)) {
-                                                Text("Cosine Similarity", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                                                Text(stringResource(R.string.crop_match_similarity), style = MaterialTheme.typography.labelSmall, color = TextMuted)
                                                 Text(
                                                     text = "%.3f".format(cosSim),
                                                     style = MaterialTheme.typography.titleMedium,
                                                     fontWeight = FontWeight.Bold,
                                                     color = DeepEmerald
                                                 )
+                                                Text("Embedding distance (0–1)", style = MaterialTheme.typography.labelSmall, color = TextMuted, fontSize = 9.sp)
                                             }
                                         }
                                     }
@@ -556,19 +669,20 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                             modifier = Modifier.weight(1f)
                                         ) {
                                             Column(modifier = Modifier.padding(10.dp)) {
-                                                Text("Neighbor Agreement", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                                                Text("k-NN Neighbor Agreement", style = MaterialTheme.typography.labelSmall, color = TextMuted)
                                                 Text(
-                                                    text = "${"%.1f".format(agreement * 100)}%",
+                                                    text = "${"%.1f".format(agreement * 100)}% consensus",
                                                     style = MaterialTheme.typography.titleMedium,
                                                     fontWeight = FontWeight.Bold,
                                                     color = DeepEmerald
                                                 )
+                                                Text("Ref neighbor vote share", style = MaterialTheme.typography.labelSmall, color = TextMuted, fontSize = 9.sp)
                                             }
                                         }
                                     }
                                 }
                                 Text(
-                                    text = "* Neighbor agreement reflects k-NN reference voting, not a calibrated medical probability.",
+                                    text = "* Cosine similarity and neighbor agreement describe vector retrieval consensus, NOT calibrated disease probability.",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = TextMuted,
                                     fontSize = 10.sp
@@ -586,7 +700,7 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                             ) {
                                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Text(
-                                        text = "Top Reference Matches (शीर्ष संदर्भ मिलान)",
+                                        text = stringResource(R.string.crop_top_matches),
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = TextCharcoal
@@ -629,7 +743,7 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 r.cropName?.let {
-                                    Text("Crop: $it", style = MaterialTheme.typography.bodyMedium, color = TextMuted)
+                                    Text("${stringResource(R.string.crop_label_prefix)} $it", style = MaterialTheme.typography.bodyMedium, color = TextMuted)
                                 }
                                 r.severity?.let {
                                     Surface(
@@ -657,73 +771,110 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                             )
                         }
 
-                        // Treatment Tabs (Organic vs Chemical)
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = SurfaceContainerLow,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(3.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        // Treatment section: withhold ALL treatment prescriptions (both organic and chemical) when uncertain
+                        val hideTreatments = r.needs_review || r.treatmentWithheld
+                        if (hideTreatments) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = ErrorContainer.copy(alpha = 0.35f),
+                                border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.45f)),
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = if (treatmentTab == 0) DeepEmerald else Color.Transparent,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clickable { treatmentTab = 0 }
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.Top,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Text(
-                                        text = "🌿 Organic (जैविक)",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (treatmentTab == 0) Color.White else TextMuted,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                        modifier = Modifier.padding(vertical = 8.dp)
+                                    Icon(
+                                        imageVector = Icons.Default.HealthAndSafety,
+                                        contentDescription = null,
+                                        tint = ErrorRed,
+                                        modifier = Modifier.size(20.dp)
                                     )
-                                }
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = if (treatmentTab == 1) DeepEmerald else Color.Transparent,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clickable { treatmentTab = 1 }
-                                ) {
-                                    Text(
-                                        text = "🧪 Chemical (रासायनिक)",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (treatmentTab == 1) Color.White else TextMuted,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                        modifier = Modifier.padding(vertical = 8.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        // Treatment Checklist
-                        if (treatmentTab == 0) {
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                r.treatment.organic.forEach { item ->
-                                    Row(
-                                        verticalAlignment = Alignment.Top,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Icon(Icons.Default.CheckCircle, null, tint = DeepEmerald, modifier = Modifier.size(18.dp))
-                                        Text(item, style = MaterialTheme.typography.bodyMedium, color = TextCharcoal)
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text(
+                                            text = stringResource(R.string.crop_treatments_withheld_title),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = ErrorRed
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.crop_treatments_withheld_desc),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = TextCharcoal
+                                        )
                                     }
                                 }
                             }
-                        } else {
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                r.treatment.chemical.forEach { item ->
-                                    Row(
-                                        verticalAlignment = Alignment.Top,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        } else if (r.treatment.organic.isNotEmpty() || r.treatment.chemical.isNotEmpty()) {
+                            // Treatment Tabs (Organic vs Chemical)
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = SurfaceContainerLow,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(3.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (treatmentTab == 0) DeepEmerald else Color.Transparent,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { treatmentTab = 0 }
                                     ) {
-                                        Icon(Icons.Default.Science, null, tint = HarvestAmber, modifier = Modifier.size(18.dp))
-                                        Text(item, style = MaterialTheme.typography.bodyMedium, color = TextCharcoal)
+                                        Text(
+                                            text = stringResource(R.string.crop_organic_treatment),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (treatmentTab == 0) Color.White else TextMuted,
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                            modifier = Modifier.padding(vertical = 8.dp)
+                                        )
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (treatmentTab == 1) DeepEmerald else Color.Transparent,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { treatmentTab = 1 }
+                                    ) {
+                                        Text(
+                                            text = stringResource(R.string.crop_chemical_treatment),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (treatmentTab == 1) Color.White else TextMuted,
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                            modifier = Modifier.padding(vertical = 8.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Treatment Checklist
+                            if (treatmentTab == 0) {
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    r.treatment.organic.forEach { item ->
+                                        Row(
+                                            verticalAlignment = Alignment.Top,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Icon(Icons.Default.CheckCircle, null, tint = DeepEmerald, modifier = Modifier.size(18.dp))
+                                            Text(item, style = MaterialTheme.typography.bodyMedium, color = TextCharcoal)
+                                        }
+                                    }
+                                }
+                            } else {
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    r.treatment.chemical.forEach { item ->
+                                        Row(
+                                            verticalAlignment = Alignment.Top,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Icon(Icons.Default.Science, null, tint = HarvestAmber, modifier = Modifier.size(18.dp))
+                                            Text(item, style = MaterialTheme.typography.bodyMedium, color = TextCharcoal)
+                                        }
                                     }
                                 }
                             }
@@ -733,7 +884,7 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                         if (r.prevention.isNotEmpty()) {
                             HorizontalDivider(color = BorderLight)
                             Text(
-                                text = "🛡️ Prevention Strategies (बचाव के उपाय)",
+                                text = stringResource(R.string.crop_prevention_strategies),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = TextCharcoal
@@ -788,20 +939,40 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(item.diseaseName, fontWeight = FontWeight.Bold, color = DeepEmerald)
-                                item.severity?.let {
-                                    Surface(shape = RoundedCornerShape(9999.dp), color = AmberTint) {
-                                        Text(
-                                            it,
-                                            color = SecondaryOrange,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                        )
+                                Text(item.diseaseName, fontWeight = FontWeight.Bold, color = DeepEmerald, modifier = Modifier.weight(1f))
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    if (item.needs_review) {
+                                        Surface(shape = RoundedCornerShape(9999.dp), color = AmberTint) {
+                                            Text(
+                                                text = stringResource(R.string.crop_status_needs_review),
+                                                color = SecondaryOrange,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                    } else {
+                                        item.severity?.let {
+                                            Surface(shape = RoundedCornerShape(9999.dp), color = AmberTint) {
+                                                Text(
+                                                    it,
+                                                    color = SecondaryOrange,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
-                            item.cropName?.let { Text("Crop: $it", color = TextMuted, style = MaterialTheme.typography.bodySmall) }
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                item.cropName?.let { Text("${stringResource(R.string.crop_label_prefix)} $it", color = TextMuted, style = MaterialTheme.typography.bodySmall) }
+                                item.top_cosine_similarity?.let { sim ->
+                                    Text("Sim: ${"%.3f".format(sim)}", color = DeepEmerald, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
                             item.summary?.let { Text(it, color = TextCharcoal, style = MaterialTheme.typography.bodySmall) }
                         }
                     }

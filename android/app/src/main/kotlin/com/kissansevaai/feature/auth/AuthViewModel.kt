@@ -35,6 +35,15 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    val language: StateFlow<String> = dataStore.language
+        .stateIn(viewModelScope, SharingStarted.Eagerly, "en")
+
+    fun setLanguage(lang: String) {
+        viewModelScope.launch {
+            dataStore.setLanguage(lang)
+        }
+    }
+
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState
 

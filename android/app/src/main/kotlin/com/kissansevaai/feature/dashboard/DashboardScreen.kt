@@ -19,18 +19,20 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.kissansevaai.R
 import com.kissansevaai.ui.navigation.Screen
 import com.kissansevaai.ui.theme.*
 
 private data class ToolkitModule(
-    val title: String,
-    val hindiSubtitle: String,
-    val tag: String,
+    val titleRes: Int,
+    val descRes: Int,
+    val tagRes: Int,
     val tagBg: Color,
     val tagColor: Color,
     val icon: ImageVector,
@@ -41,9 +43,9 @@ private data class ToolkitModule(
 
 private val modules = listOf(
     ToolkitModule(
-        title = "Crop Disease Detection",
-        hindiSubtitle = "फसल रोग पहचान व निदान",
-        tag = "AI Scan",
+        titleRes = R.string.toolkit_crop_title,
+        descRes = R.string.toolkit_crop_desc,
+        tagRes = R.string.toolkit_crop_tag,
         tagBg = GreenTint,
         tagColor = DeepEmerald,
         icon = Icons.Default.CenterFocusStrong,
@@ -52,9 +54,9 @@ private val modules = listOf(
         screen = Screen.CropDisease,
     ),
     ToolkitModule(
-        title = "Live Mandi Prices",
-        hindiSubtitle = "दैनिक मंडी भाव व रुझान",
-        tag = "Live ↑",
+        titleRes = R.string.toolkit_mandi_title,
+        descRes = R.string.toolkit_mandi_desc,
+        tagRes = R.string.toolkit_mandi_tag,
         tagBg = AmberTint,
         tagColor = HarvestAmber,
         icon = Icons.Default.TrendingUp,
@@ -63,9 +65,9 @@ private val modules = listOf(
         screen = Screen.LivePrices,
     ),
     ToolkitModule(
-        title = "Government Schemes",
-        hindiSubtitle = "सरकारी अनुदान एवं योजनाएं",
-        tag = "PM-KISAN",
+        titleRes = R.string.toolkit_schemes_title,
+        descRes = R.string.toolkit_schemes_desc,
+        tagRes = R.string.toolkit_schemes_tag,
         tagBg = SurfaceContainerHigh,
         tagColor = DeepEmerald,
         icon = Icons.Default.AccountBalance,
@@ -74,9 +76,9 @@ private val modules = listOf(
         screen = Screen.Schemes,
     ),
     ToolkitModule(
-        title = "Loans & Credit Hub",
-        hindiSubtitle = "किसान क्रेडिट कार्ड एवं ऋण",
-        tag = "KCC 4%",
+        titleRes = R.string.toolkit_loans_title,
+        descRes = R.string.toolkit_loans_desc,
+        tagRes = R.string.toolkit_loans_tag,
         tagBg = SecondaryFixed,
         tagColor = SecondaryOrange,
         icon = Icons.Default.CreditCard,
@@ -85,9 +87,9 @@ private val modules = listOf(
         screen = Screen.Loans,
     ),
     ToolkitModule(
-        title = "Traders & Buyers",
-        hindiSubtitle = "सीधे बड़े व्यापारियों से संपर्क",
-        tag = "Verified",
+        titleRes = R.string.toolkit_traders_title,
+        descRes = R.string.toolkit_traders_desc,
+        tagRes = R.string.toolkit_traders_tag,
         tagBg = GreenTint,
         tagColor = DeepEmerald,
         icon = Icons.Default.Handshake,
@@ -96,9 +98,9 @@ private val modules = listOf(
         screen = Screen.Traders,
     ),
     ToolkitModule(
-        title = "Livestock Care",
-        hindiSubtitle = "पशुपालन एवं स्वास्थ्य",
-        tag = "Care & Vet",
+        titleRes = R.string.toolkit_livestock_title,
+        descRes = R.string.toolkit_livestock_desc,
+        tagRes = R.string.toolkit_livestock_tag,
         tagBg = AmberTint,
         tagColor = HarvestAmber,
         icon = Icons.Default.Pets,
@@ -107,9 +109,9 @@ private val modules = listOf(
         screen = Screen.Livestock,
     ),
     ToolkitModule(
-        title = "Carbon Credits",
-        hindiSubtitle = "कार्बन क्रेडिट कमाई",
-        tag = "Green ₹",
+        titleRes = R.string.toolkit_carbon_title,
+        descRes = R.string.toolkit_carbon_desc,
+        tagRes = R.string.toolkit_carbon_tag,
         tagBg = GreenTint,
         tagColor = DeepEmerald,
         icon = Icons.Default.Eco,
@@ -118,9 +120,9 @@ private val modules = listOf(
         screen = Screen.Carbon,
     ),
     ToolkitModule(
-        title = "Market Insights",
-        hindiSubtitle = "बाजार विश्लेषण व रुझान",
-        tag = "Forecast",
+        titleRes = R.string.toolkit_market_title,
+        descRes = R.string.toolkit_market_desc,
+        tagRes = R.string.toolkit_market_tag,
         tagBg = PrimaryFixed.copy(alpha = 0.4f),
         tagColor = DeepEmerald,
         icon = Icons.Default.Insights,
@@ -204,6 +206,7 @@ fun DashboardScreen(
                                         "bho" -> "भोजपुरी"
                                         "mr" -> "मराठी"
                                         "pa" -> "ਪੰਜਾਬੀ"
+                                        "sa" -> "संस्कृतम्"
                                         else -> "English"
                                     },
                                     style = MaterialTheme.typography.labelSmall,
@@ -223,7 +226,8 @@ fun DashboardScreen(
                                 "hi" to "हिन्दी (Hindi)",
                                 "bho" to "भोजपुरी (Bhojpuri)",
                                 "mr" to "मराठी (Marathi)",
-                                "pa" to "ਪੰਜਾਬੀ (Punjabi)"
+                                "pa" to "ਪੰਜਾਬੀ (Punjabi)",
+                                "sa" to "संस्कृतम् (Sanskrit)"
                             ).forEach { (code, label) ->
                                 DropdownMenuItem(
                                     text = {
@@ -267,7 +271,7 @@ fun DashboardScreen(
                             onDismissRequest = { showMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Settings (सेटिंग्स)") },
+                                text = { Text(stringResource(R.string.dashboard_settings_menu)) },
                                 onClick = {
                                     showMenu = false
                                     onNavigate(Screen.Settings)
@@ -277,7 +281,7 @@ fun DashboardScreen(
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("Logout (लॉगआउट)", color = ErrorRed) },
+                                text = { Text(stringResource(R.string.dashboard_logout_menu), color = ErrorRed) },
                                 onClick = {
                                     showMenu = false
                                     onLogout()
@@ -380,7 +384,7 @@ fun DashboardScreen(
                                         .background(DeepEmerald)
                                 )
                                 Text(
-                                    text = "Live Agro Network",
+                                    text = stringResource(R.string.dashboard_live_network),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = TertiaryGreen
@@ -388,7 +392,7 @@ fun DashboardScreen(
                             }
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                text = "नमस्ते, किसान भाई!",
+                                text = stringResource(R.string.dashboard_greeting),
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = TextCharcoal
@@ -466,13 +470,13 @@ fun DashboardScreen(
                                 }
                                 Column {
                                     Text(
-                                        text = "31°C Sunny • मौसम",
+                                        text = stringResource(R.string.dashboard_weather_summary),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = TextCharcoal
                                     )
                                     Text(
-                                        text = "Wind 8 km/h • Humidity 64% • Rain 10%",
+                                        text = stringResource(R.string.dashboard_weather_details),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = TextMuted
                                     )
@@ -484,7 +488,7 @@ fun DashboardScreen(
                                 modifier = Modifier.padding(2.dp)
                             ) {
                                 Text(
-                                    text = "Clear Sky",
+                                    text = stringResource(R.string.dashboard_clear_sky),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = SecondaryOrange,
@@ -505,6 +509,7 @@ fun DashboardScreen(
                                 "bho" -> "छिड़काव सलाह • AI सलाह"
                                 "mr" -> "फवारणी सल्ला • AI Advisory"
                                 "pa" -> "ਛਿੜਕਾਅ ਸਲਾਹ • AI Advisory"
+                                "sa" -> "सेचनपरामर्शः • AI परामर्शः"
                                 else -> "Spraying Advisory • AI Alert"
                             }
                             val advisoryBody = when (lang.lowercase().trim()) {
@@ -512,6 +517,7 @@ fun DashboardScreen(
                                 "bho" -> "अगिला 48 घंटा में मौसम साफ रही। कीटनाशक अउर खाद छिड़के खातिर ई बहुत बढ़िया समय बा। हवा के गति धीमा बा।"
                                 "mr" -> "पुढील 48 तास हवामान कोरडे राहील. कीटकनाशक आणि खत फवारणीसाठी ही उत्तम वेळ आहे. वाऱ्याचा वेग मंद आहे."
                                 "pa" -> "ਅਗਲੇ 48 ਘੰਟਿਆਂ ਵਿੱਚ ਮੌਸਮ ਸਾਫ਼ ਰਹੇਗਾ। ਕੀਟਨਾਸ਼ਕ ਅਤੇ ਖਾਦ ਦੇ ਛਿੜਕਾਅ ਲਈ ਇਹ ਢੁਕਵਾਂ ਸਮਾਂ ਹੈ। ਹਵਾ ਦੀ ਗਤੀ ਘੱਟ ਹੈ।"
+                                "sa" -> "आगामिनि अष्टचत्वारिंशत् होरासु वातावरणं निर्मलं भविष्यति। कीटनाशकानां पोषकद्रव्याणां च सेचनाय अयमनुकूलः कालः वर्तते। मन्दवायुः।"
                                 else -> "Next 48 hrs provide an ideal dry window for foliar pesticide & micronutrient spray. Low wind drift."
                             }
                             val speakText = when (lang.lowercase().trim()) {
@@ -519,6 +525,7 @@ fun DashboardScreen(
                                 "bho" -> "छिड़काव सलाह: अगिला 48 घंटा में मौसम साफ रही। कीटनाशक अउर खाद छिड़के खातिर ई बहुत बढ़िया समय बा। हवा के गति धीमा बा।"
                                 "mr" -> "फवारणी सल्ला: पुढील 48 तास हवामान कोरडे राहील. कीटकनाशक आणि खत फवारणीसाठी ही उत्तम वेळ आहे."
                                 "pa" -> "ਛਿੜਕਾਅ ਸਲਾਹ: ਅਗਲੇ 48 ਘੰਟਿਆਂ ਵਿੱਚ ਮੌਸਮ ਸਾਫ਼ ਰਹੇਗਾ। ਕੀਟਨਾਸ਼ਕ ਅਤੇ ਖਾਦ ਦੇ ਛਿੜਕਾਅ ਲਈ ਇਹ ਢੁਕਵਾਂ ਸਮਾਂ ਹੈ।"
+                                "sa" -> "सेचनपरामर्शः: आगामिनि अष्टचत्वारिंशत् होरासु वातावरणं निर्मलं भविष्यति। कीटनाशकानां पोषकद्रव्याणां च सेचनाय अयमनुकूलः कालः वर्तते।"
                                 else -> "Spraying advisory: Next 48 hours provide an ideal dry window for foliar pesticide and micronutrient spray with low wind drift."
                             }
                             val speakBtnText = when (lang.lowercase().trim()) {
@@ -526,6 +533,7 @@ fun DashboardScreen(
                                 "bho" -> if (isSpeaking) "सुनल जाव..." else "बोलीं"
                                 "mr" -> if (isSpeaking) "ऐका..." else "बोला"
                                 "pa" -> if (isSpeaking) "ਸੁਣੋ..." else "ਬੋਲੋ"
+                                "sa" -> if (isSpeaking) "शृणोतु..." else "वदतु"
                                 else -> if (isSpeaking) "Playing..." else "Listen"
                             }
 
@@ -613,7 +621,7 @@ fun DashboardScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
-                                text = "IoT Farm Telemetry • लाइव सेंसर",
+                                text = stringResource(R.string.toolkit_iot_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = TextCharcoal
@@ -647,7 +655,7 @@ fun DashboardScreen(
                         TelemetryCard(
                             label = "Soil Moisture",
                             value = "${sensorData.soilMoisture ?: 45.0}%",
-                            status = "Optimal (संतुलित)",
+                            status = "Optimal",
                             statusColor = DeepEmerald,
                             icon = Icons.Default.WaterDrop,
                             iconTint = SproutMint,
@@ -713,13 +721,13 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Smart Farming Toolkit • उपकरण",
+                        text = stringResource(R.string.dashboard_toolkit_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = TextCharcoal
                     )
                     Text(
-                        text = "8 Modules",
+                        text = stringResource(R.string.dashboard_toolkit_subtitle),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = DeepEmerald
@@ -771,20 +779,20 @@ fun DashboardScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "Today's Mandi Rates • आज के भाव",
+                                    text = stringResource(R.string.dashboard_mandi_title),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = TextCharcoal
                                 )
                                 Text(
-                                    text = "Live updates from nearby APMC markets",
+                                    text = stringResource(R.string.dashboard_mandi_subtitle),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = TextMuted
                                 )
                             }
                             TextButton(onClick = { onNavigate(Screen.LivePrices) }) {
                                 Text(
-                                    text = "View All →",
+                                    text = stringResource(R.string.dashboard_mandi_view_all),
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = DeepEmerald
@@ -805,21 +813,21 @@ fun DashboardScreen(
                         } else {
                             // Fallback default snapshot rows
                             MandiPriceRow(
-                                cropName = "Cotton (कपास)",
+                                cropName = "Cotton",
                                 mandiLocation = "Rajkot, Gujarat",
                                 price = "₹7,100/q",
                                 trend = "+₹120",
                                 isUp = true
                             )
                             MandiPriceRow(
-                                cropName = "Wheat (गेहूं)",
+                                cropName = "Wheat",
                                 mandiLocation = "Gondal APMC",
                                 price = "₹2,450/q",
                                 trend = "+₹40",
                                 isUp = true
                             )
                             MandiPriceRow(
-                                cropName = "Groundnut (मूंगफली)",
+                                cropName = "Groundnut",
                                 mandiLocation = "Rajkot Mandi",
                                 price = "₹6,300/q",
                                 trend = "Steady",
@@ -853,7 +861,7 @@ fun DashboardScreen(
                                 color = Color.White.copy(alpha = 0.2f)
                             ) {
                                 Text(
-                                    text = "Voice Agro-AI",
+                                    text = stringResource(R.string.dashboard_voice_badge),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White,
@@ -862,13 +870,13 @@ fun DashboardScreen(
                             }
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                text = "बोलकर सवाल पूछें",
+                                text = stringResource(R.string.dashboard_voice_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
                             Text(
-                                text = "Ask in Hindi, Gujarati, or English",
+                                text = stringResource(R.string.dashboard_voice_subtitle),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = OnPrimaryContainer
                             )
@@ -998,7 +1006,7 @@ private fun ToolkitCard(
                     color = module.tagBg
                 ) {
                     Text(
-                        text = module.tag,
+                        text = stringResource(module.tagRes),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = module.tagColor,
@@ -1010,14 +1018,14 @@ private fun ToolkitCard(
 
             Column {
                 Text(
-                    text = module.title,
+                    text = stringResource(module.titleRes),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = TextCharcoal,
                     maxLines = 1
                 )
                 Text(
-                    text = module.hindiSubtitle,
+                    text = stringResource(module.descRes),
                     style = MaterialTheme.typography.bodySmall,
                     color = TextMuted,
                     fontSize = 11.sp,

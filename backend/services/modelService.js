@@ -23,14 +23,16 @@ export const checkModelHealth = async () => {
 
 /**
  * Invokes the Phase 1 DINOv2-S/14 + FAISS crop diagnosis endpoint.
- * Falls back to legacy /predict-crop if necessary.
+ * Falls back to legacy /predict-crop if /api/crop/predict returns 404.
+ *
+ * Never maps neighbor_agreement or cosine_similarity into `confidence`,
+ * and never marks a valid DINOv2 prediction as unavailable solely due to `needs_review`.
  */
 export const predictCropFromModel = async (imageBuffer, originalName) => {
   try {
     const form = new FormData();
     form.append('file', imageBuffer, { filename: originalName || 'leaf.jpg' });
 
-    // Try Phase 1 Rebuild endpoint first
     let response = await fetch(`${ML_SERVICE_URL}/api/crop/predict`, {
       method: 'POST',
       body: form,
@@ -38,7 +40,6 @@ export const predictCropFromModel = async (imageBuffer, originalName) => {
     });
 
     if (response.status === 404) {
-      // Fallback to legacy endpoint if rebuild endpoint is not yet mounted
       const legacyForm = new FormData();
       legacyForm.append('file', imageBuffer, { filename: originalName || 'leaf.jpg' });
       response = await fetch(`${ML_SERVICE_URL}/predict-crop`, {
@@ -53,7 +54,7 @@ export const predictCropFromModel = async (imageBuffer, originalName) => {
       console.warn('DINOv2 Model assets missing on ML service:', errorJson);
       return {
         error: 'Model assets missing on ML service',
-        is_unknown: true,
+        unavailable: true,
         source: 'model_assets_missing',
         missing_files: errorJson.detail?.missing_files || [],
       };
@@ -62,28 +63,37 @@ export const predictCropFromModel = async (imageBuffer, originalName) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`ML Service Error HTTP ${response.status}:`, errorText);
-      return { error: `ML Service Error: ${response.status}`, is_unknown: true };
+      return { error: `ML Service Error: ${response.status}`, unavailable: true, source: 'ml_http_error' };
     }
 
     const data = await response.json();
+    if (data.error || !(data.label || data.predicted_class)) {
+      return {
+        error: data.error || 'ML service returned no class label',
+        unavailable: true,
+        source: data.source || 'ml_invalid_response',
+      };
+    }
 
-    // Map Phase 1 response schema to unified structure
     return {
       predicted_class: data.label || data.predicted_class,
       crop: data.crop,
       condition: data.condition,
-      confidence: data.neighbor_agreement ?? data.confidence,
-      top_cosine_similarity: data.top_cosine_similarity ?? data.cosine_similarity,
-      neighbor_agreement: data.neighbor_agreement ?? data.confidence,
-      needs_review: data.needs_review ?? false,
+      // Explicitly null: retrieval similarity and neighbor agreement are NOT calibrated confidence probabilities
+      confidence: null,
+      top_cosine_similarity: data.top_cosine_similarity ?? data.cosine_similarity ?? null,
+      neighbor_agreement: data.neighbor_agreement ?? null,
+      needs_review: Boolean(data.needs_review ?? false),
       matches: data.matches || [],
       warning: data.warning || '',
-      confidence_type: data.confidence_type || 'neighbor_agreement_not_calibrated_probability',
+      confidence_type: data.confidence_type || 'retrieval_similarity_and_neighbor_consensus_not_calibrated_probability',
       source: 'dinov2',
-      is_unknown: Boolean(data.needs_review && (data.neighbor_agreement ?? 0) < 0.50),
+      predictionSource: 'dinov2',
+      model: data.model || 'dinov2_vits14',
+      unavailable: false,
     };
   } catch (error) {
     console.error('Error connecting to ML service:', error.message);
-    return { error: 'ML Service Unavailable', is_unknown: true, source: 'connection_error' };
+    return { error: 'ML Service Unavailable', unavailable: true, source: 'connection_error' };
   }
 };

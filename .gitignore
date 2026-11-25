@@ -48,12 +48,18 @@ __pycache__/
 *.pyc
 venv/
 ml-service/venv/
+ml-service/.venv_v3_train/
+ml-service/logs/
+ml-service/model_candidates/
 ml/data/
 ml/datasets/
 /models/
 "/models /"
 /models*/
 *.onnx
+*.faiss
+*.npy
+*.pkl
 *.bin
 *.ckpt
 

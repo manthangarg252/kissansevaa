@@ -36,10 +36,13 @@ def test_predict_real_image_inference():
     )
     assert response.status_code == 200
     data = response.json()
+    assert data['source'] == 'dinov2'
+    assert data['confidence'] is None
     assert 'label' in data
     assert 'crop' in data
     assert 'top_cosine_similarity' in data
     assert 'neighbor_agreement' in data
+    assert 'needs_review' in data
     assert 'matches' in data
     assert len(data['matches']) == 5
     assert 'confidence_type' in data
@@ -59,9 +62,13 @@ def test_legacy_predict_crop_with_real_model():
     assert response.status_code == 200
     data = response.json()
     assert data['source'] == 'dinov2'
+    assert data['confidence'] is None
+    assert data['is_unknown'] is False
     assert 'predicted_class' in data
-    assert 'confidence' in data
+    assert 'neighbor_agreement' in data
+    assert 'top_cosine_similarity' in data
     assert 'cosine_similarity' in data
+    assert 'needs_review' in data
     assert 'matches' in data
 
 

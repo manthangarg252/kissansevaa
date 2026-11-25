@@ -1,0 +1,563 @@
+{
+  "metadata": {
+    "model": "dinov2_vits14",
+    "embedding_dim": 768,
+    "index_vectors": 2144,
+    "classes": 67,
+    "production_k": 1,
+    "production_vote_method": "majority",
+    "colab_reported_val_macro_f1": 0.8032693674484719,
+    "colab_reported_test_accuracy": 0.75,
+    "colab_reported_test_macro_f1": 0.7414014675208703
+  },
+  "loo_cv_baseline": {
+    "protocol": "LOO-CV on 2,144 Reference Vectors (k=1 baseline)",
+    "n_queries": 2144,
+    "top1_accuracy": 0.77985,
+    "top3_accuracy": 0.92118,
+    "top5_accuracy": 0.95336,
+    "macro_f1": 0.7781,
+    "macro_precision": 0.78443,
+    "macro_recall": 0.77985,
+    "weighted_f1": 0.7781,
+    "total_errors": 472,
+    "same_crop_errors": 420,
+    "cross_crop_errors": 52,
+    "top1_similarity_stats": {
+      "mean": 0.84816,
+      "median": 0.87304,
+      "p10": 0.728,
+      "min": 0.3044,
+      "max": 0.99863
+    }
+  },
+  "holdout_80_20_within_index": {
+    "protocol": "Deterministic 80/20 Reference Split within 2,144 Index (k=1 baseline)",
+    "n_queries": 402,
+    "top1_accuracy": 0.77114,
+    "top3_accuracy": 0.91294,
+    "top5_accuracy": 0.9403,
+    "macro_f1": 0.76251,
+    "macro_precision": 0.78355,
+    "macro_recall": 0.77114,
+    "weighted_f1": 0.76251,
+    "total_errors": 92,
+    "same_crop_errors": 83,
+    "cross_crop_errors": 9,
+    "top1_similarity_stats": {
+      "mean": 0.84677,
+      "median": 0.87032,
+      "p10": 0.72969,
+      "min": 0.40967,
+      "max": 0.98996
+    }
+  },
+  "k_sweep_within_index": [
+    {
+      "k": 1,
+      "method": "majority",
+      "loo_accuracy": 0.77985,
+      "loo_macro_f1": 0.7781
+    },
+    {
+      "k": 3,
+      "method": "majority",
+      "loo_accuracy": 0.76539,
+      "loo_macro_f1": 0.76084
+    },
+    {
+      "k": 3,
+      "method": "weighted",
+      "loo_accuracy": 0.78312,
+      "loo_macro_f1": 0.78112
+    },
+    {
+      "k": 5,
+      "method": "majority",
+      "loo_accuracy": 0.76912,
+      "loo_macro_f1": 0.76455
+    },
+    {
+      "k": 5,
+      "method": "weighted",
+      "loo_accuracy": 0.78685,
+      "loo_macro_f1": 0.78404
+    },
+    {
+      "k": 7,
+      "method": "majority",
+      "loo_accuracy": 0.76353,
+      "loo_macro_f1": 0.75845
+    },
+    {
+      "k": 7,
+      "method": "weighted",
+      "loo_accuracy": 0.78358,
+      "loo_macro_f1": 0.7808
+    },
+    {
+      "k": 11,
+      "method": "majority",
+      "loo_accuracy": 0.75326,
+      "loo_macro_f1": 0.7453
+    },
+    {
+      "k": 11,
+      "method": "weighted",
+      "loo_accuracy": 0.77985,
+      "loo_macro_f1": 0.77407
+    },
+    {
+      "k": 21,
+      "method": "majority",
+      "loo_accuracy": 0.73228,
+      "loo_macro_f1": 0.72066
+    },
+    {
+      "k": 21,
+      "method": "weighted",
+      "loo_accuracy": 0.77239,
+      "loo_macro_f1": 0.76524
+    }
+  ],
+  "near_duplicate_audit": [
+    {
+      "threshold": 0.9999,
+      "same_class_pairs": 0,
+      "cross_class_pairs": 0,
+      "total_pairs": 0
+    },
+    {
+      "threshold": 0.99,
+      "same_class_pairs": 4,
+      "cross_class_pairs": 0,
+      "total_pairs": 4
+    },
+    {
+      "threshold": 0.98,
+      "same_class_pairs": 7,
+      "cross_class_pairs": 0,
+      "total_pairs": 7
+    },
+    {
+      "threshold": 0.95,
+      "same_class_pairs": 33,
+      "cross_class_pairs": 1,
+      "total_pairs": 34
+    },
+    {
+      "threshold": 0.9,
+      "same_class_pairs": 1270,
+      "cross_class_pairs": 389,
+      "total_pairs": 1659
+    }
+  ],
+  "cross_boundary_80_20_leakage": {
+    "ge_0_99": 0,
+    "ge_0_98": 1,
+    "ge_0_95": 8,
+    "total_queries": 402
+  },
+  "top_cross_class_pairs": [
+    {
+      "row_a": 1697,
+      "class_a": "Wheat/Wheat_Black_Rust",
+      "row_b": 1769,
+      "class_b": "Wheat/Wheat_Brown_Rust",
+      "cosine": 0.95084
+    },
+    {
+      "row_a": 581,
+      "class_a": "Grape/Grape_Black_Measles",
+      "row_b": 608,
+      "class_b": "Grape/Grape_Black_rot",
+      "cosine": 0.9498
+    },
+    {
+      "row_a": 580,
+      "class_a": "Grape/Grape_Black_Measles",
+      "row_b": 622,
+      "class_b": "Grape/Grape_Black_rot",
+      "cosine": 0.94962
+    },
+    {
+      "row_a": 583,
+      "class_a": "Grape/Grape_Black_Measles",
+      "row_b": 633,
+      "class_b": "Grape/Grape_Black_rot",
+      "cosine": 0.9481
+    },
+    {
+      "row_a": 590,
+      "class_a": "Grape/Grape_Black_Measles",
+      "row_b": 620,
+      "class_b": "Grape/Grape_Black_rot",
+      "cosine": 0.9471
+    },
+    {
+      "row_a": 589,
+      "class_a": "Grape/Grape_Black_Measles",
+      "row_b": 609,
+      "class_b": "Grape/Grape_Black_rot",
+      "cosine": 0.94691
+    },
+    {
+      "row_a": 602,
+      "class_a": "Grape/Grape_Black_Measles",
+      "row_b": 622,
+      "class_b": "Grape/Grape_Black_rot",
+      "cosine": 0.94612
+    },
+    {
+      "row_a": 594,
+      "class_a": "Grape/Grape_Black_Measles",
+      "row_b": 622,
+      "class_b": "Grape/Grape_Black_rot",
+      "cosine": 0.94233
+    },
+    {
+      "row_a": 590,
+      "class_a": "Grape/Grape_Black_Measles",
+      "row_b": 622,
+      "class_b": "Grape/Grape_Black_rot",
+      "cosine": 0.94086
+    },
+    {
+      "row_a": 603,
+      "class_a": "Grape/Grape_Black_Measles",
+      "row_b": 622,
+      "class_b": "Grape/Grape_Black_rot",
+      "cosine": 0.94068
+    }
+  ],
+  "local_upload_benchmark": [
+    {
+      "sha256_12": "9650f149d622",
+      "filename": "1791320979138-test_leaf.jpg",
+      "category": "corrupted_truncated_stub",
+      "description": "Corrupted 134B JPEG stub",
+      "valid_image": false,
+      "error": "image file is truncated (0 bytes not processed)"
+    },
+    {
+      "sha256_12": "33afe176c56e",
+      "filename": "1791359550594-leaf.jpg",
+      "category": "non_leaf_ui_screenshot",
+      "description": "App UI screenshot (Traders screen)",
+      "valid_image": true,
+      "top1_pred": "Wheat/Wheat_Aphid",
+      "top1_cosine_similarity": 0.18565,
+      "neighbor_agreement_5nn": 0.28335,
+      "needs_review_current": true,
+      "latency_ms": 44.42,
+      "top3_matches": [
+        {
+          "class": "Wheat/Wheat_Aphid",
+          "sim": 0.1857
+        },
+        {
+          "class": "Wheat/Wheat_Common_Root_Rot",
+          "sim": 0.1505
+        },
+        {
+          "class": "Wheat/Wheat_Leaf_Blight",
+          "sim": 0.1387
+        }
+      ]
+    },
+    {
+      "sha256_12": "f79897d1c7d4",
+      "filename": "1792007280462-leaf.jpg",
+      "category": "non_leaf_ui_screenshot",
+      "description": "App UI screenshot (Login screen)",
+      "valid_image": true,
+      "top1_pred": "Wheat/Wheat_Leaf_Blight",
+      "top1_cosine_similarity": 0.15828,
+      "neighbor_agreement_5nn": 0.39077,
+      "needs_review_current": true,
+      "latency_ms": 45.35,
+      "top3_matches": [
+        {
+          "class": "Wheat/Wheat_Leaf_Blight",
+          "sim": 0.1583
+        },
+        {
+          "class": "Wheat/Wheat_Mildew",
+          "sim": 0.1547
+        },
+        {
+          "class": "Wheat/Wheat_Common_Root_Rot",
+          "sim": 0.1479
+        }
+      ]
+    },
+    {
+      "sha256_12": "7fd69521123e",
+      "filename": "1792058847184-leaf.jpg",
+      "category": "genuine_leaf_macro",
+      "description": "Wheat leaf with yellow/stripe rust pustules",
+      "valid_image": true,
+      "top1_pred": "Wheat/Wheat_Black_Rust",
+      "top1_cosine_similarity": 0.81607,
+      "neighbor_agreement_5nn": 0.56662,
+      "needs_review_current": true,
+      "latency_ms": 44.38,
+      "top3_matches": [
+        {
+          "class": "Wheat/Wheat_Black_Rust",
+          "sim": 0.8161
+        },
+        {
+          "class": "Wheat/Wheat_Tan_spot",
+          "sim": 0.7136
+        },
+        {
+          "class": "Wheat/Wheat_Brown_Rust",
+          "sim": 0.7118
+        }
+      ]
+    },
+    {
+      "sha256_12": "c30e06e79898",
+      "filename": "1794728904307-leaf.jpg",
+      "category": "synthetic_canvas_leaf",
+      "description": "Synthetic green card: Tomato Early Blight",
+      "valid_image": true,
+      "top1_pred": "Wheat/Wheat_Mildew",
+      "top1_cosine_similarity": 0.2296,
+      "neighbor_agreement_5nn": 0.65348,
+      "needs_review_current": true,
+      "latency_ms": 35.35,
+      "top3_matches": [
+        {
+          "class": "Wheat/Wheat_Mildew",
+          "sim": 0.2296
+        },
+        {
+          "class": "Wheat/Wheat_Mildew",
+          "sim": 0.2139
+        },
+        {
+          "class": "Citrus/Citrus_canker",
+          "sim": 0.1971
+        }
+      ]
+    },
+    {
+      "sha256_12": "db321b7ec20b",
+      "filename": "1794735023878-animal.jpg",
+      "category": "synthetic_canvas_animal",
+      "description": "Synthetic tan card: Livestock Cow",
+      "valid_image": true,
+      "top1_pred": "Wheat/Wheat_Mildew",
+      "top1_cosine_similarity": 0.22332,
+      "neighbor_agreement_5nn": 0.40958,
+      "needs_review_current": true,
+      "latency_ms": 35.12,
+      "top3_matches": [
+        {
+          "class": "Wheat/Wheat_Mildew",
+          "sim": 0.2233
+        },
+        {
+          "class": "Rice/Rice_Bacterial_Leaf_Blight",
+          "sim": 0.2231
+        },
+        {
+          "class": "Sugarcane/Sugarcane_Yellow",
+          "sim": 0.1981
+        }
+      ]
+    },
+    {
+      "sha256_12": "c04bee9d6592",
+      "filename": "1795463885963-bad_image.jpg",
+      "category": "corrupted_invalid_bytes",
+      "description": "Invalid 13B file (bad_image.jpg)",
+      "valid_image": false,
+      "error": "cannot identify image file '/Users/manthangarg/Desktop/kissansevaai-main/backend/uploads/1795463885963-bad_image.jpg'"
+    },
+    {
+      "sha256_12": "68b662efc773",
+      "filename": "1795464974035-leaf.jpg",
+      "category": "synthetic_canvas_leaf",
+      "description": "Synthetic green card: Wheat Yellow Rust",
+      "valid_image": true,
+      "top1_pred": "Wheat/Wheat_Mildew",
+      "top1_cosine_similarity": 0.23082,
+      "neighbor_agreement_5nn": 0.81291,
+      "needs_review_current": true,
+      "latency_ms": 37.3,
+      "top3_matches": [
+        {
+          "class": "Wheat/Wheat_Mildew",
+          "sim": 0.2308
+        },
+        {
+          "class": "Wheat/Wheat_Mildew",
+          "sim": 0.2207
+        },
+        {
+          "class": "Citrus/Citrus_canker",
+          "sim": 0.1988
+        }
+      ]
+    },
+    {
+      "sha256_12": "fb1cd8f2e5cb",
+      "filename": "1795467122713-leaf.jpg",
+      "category": "genuine_leaf_lab",
+      "description": "Diseased broadleaf with brown spots next to ruler",
+      "valid_image": true,
+      "top1_pred": "Potato/Potato_Early_blight",
+      "top1_cosine_similarity": 0.76667,
+      "neighbor_agreement_5nn": 0.64576,
+      "needs_review_current": false,
+      "latency_ms": 39.54,
+      "top3_matches": [
+        {
+          "class": "Potato/Potato_Early_blight",
+          "sim": 0.7667
+        },
+        {
+          "class": "Potato/Potato_Early_blight",
+          "sim": 0.76
+        },
+        {
+          "class": "Potato/Potato_Early_blight",
+          "sim": 0.7411
+        }
+      ]
+    },
+    {
+      "sha256_12": "02253d2f3840",
+      "filename": "1795498233938-leaf.jpg",
+      "category": "synthetic_canvas_leaf",
+      "description": "Synthetic green card: Wheat Yellow Rust v2",
+      "valid_image": true,
+      "top1_pred": "Wheat/Wheat_Mildew",
+      "top1_cosine_similarity": 0.23616,
+      "neighbor_agreement_5nn": 0.82472,
+      "needs_review_current": true,
+      "latency_ms": 34.63,
+      "top3_matches": [
+        {
+          "class": "Wheat/Wheat_Mildew",
+          "sim": 0.2362
+        },
+        {
+          "class": "Wheat/Wheat_Mildew",
+          "sim": 0.2347
+        },
+        {
+          "class": "Citrus/Citrus_canker",
+          "sim": 0.1997
+        }
+      ]
+    },
+    {
+      "sha256_12": "214f39816c34",
+      "filename": "1795499287987-leaf.jpg",
+      "category": "genuine_leaf_display",
+      "description": "Apple spotted leaf display capture",
+      "valid_image": true,
+      "top1_pred": "Apple/Apple_scab",
+      "top1_cosine_similarity": 0.69041,
+      "neighbor_agreement_5nn": 1.0,
+      "needs_review_current": false,
+      "latency_ms": 44.85,
+      "top3_matches": [
+        {
+          "class": "Apple/Apple_scab",
+          "sim": 0.6904
+        },
+        {
+          "class": "Apple/Apple_scab",
+          "sim": 0.6771
+        },
+        {
+          "class": "Apple/Apple_scab",
+          "sim": 0.6448
+        }
+      ]
+    },
+    {
+      "sha256_12": "fff756f4eccb",
+      "filename": "1795499696604-samsung_hardware_cam.jpg",
+      "category": "genuine_leaf_camera_rot",
+      "description": "Samsung camera capture (rotated Apple leaf display)",
+      "valid_image": true,
+      "top1_pred": "Apple/Apple_scab",
+      "top1_cosine_similarity": 0.69691,
+      "neighbor_agreement_5nn": 1.0,
+      "needs_review_current": false,
+      "latency_ms": 154.14,
+      "top3_matches": [
+        {
+          "class": "Apple/Apple_scab",
+          "sim": 0.6969
+        },
+        {
+          "class": "Apple/Apple_scab",
+          "sim": 0.6838
+        },
+        {
+          "class": "Apple/Apple_scab",
+          "sim": 0.6489
+        }
+      ]
+    },
+    {
+      "sha256_12": "d391e629a4aa",
+      "filename": "1795604214882-animal.jpg",
+      "category": "synthetic_canvas_animal",
+      "description": "Synthetic tan card: Livestock Buffalo",
+      "valid_image": true,
+      "top1_pred": "Wheat/Wheat_Mildew",
+      "top1_cosine_similarity": 0.24354,
+      "neighbor_agreement_5nn": 0.47043,
+      "needs_review_current": true,
+      "latency_ms": 37.12,
+      "top3_matches": [
+        {
+          "class": "Wheat/Wheat_Mildew",
+          "sim": 0.2435
+        },
+        {
+          "class": "Rice/Rice_Bacterial_Leaf_Blight",
+          "sim": 0.2047
+        },
+        {
+          "class": "Wheat/Wheat_Mildew",
+          "sim": 0.2023
+        }
+      ]
+    },
+    {
+      "sha256_12": "d1e2ade673a4",
+      "filename": "1795604463804-leaf.jpg",
+      "category": "non_leaf_food_camera",
+      "description": "Samsung camera photo of roti/flatbread on pan",
+      "valid_image": true,
+      "top1_pred": "Citrus/Citrus_Black_spot",
+      "top1_cosine_similarity": 0.42839,
+      "neighbor_agreement_5nn": 0.51569,
+      "needs_review_current": true,
+      "latency_ms": 40.4,
+      "top3_matches": [
+        {
+          "class": "Citrus/Citrus_Black_spot",
+          "sim": 0.4284
+        },
+        {
+          "class": "Citrus/Citrus_canker",
+          "sim": 0.2976
+        },
+        {
+          "class": "Citrus/Citrus_canker",
+          "sim": 0.2953
+        }
+      ]
+    }
+  ]
+}

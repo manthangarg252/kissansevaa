@@ -295,7 +295,7 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
                                     )
                                 }
                             }
-                            Text("Upload Animal Photo", fontWeight = FontWeight.Bold, color = TextCharcoal)
+                            Text(stringResource(R.string.livestock_upload_photo), fontWeight = FontWeight.Bold, color = TextCharcoal)
                             Text("Take photo of symptoms or injury", color = TextMuted, style = MaterialTheme.typography.bodySmall)
                         }
                     }
@@ -343,7 +343,7 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
             ) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "Or Test with Sample Animal (त्वरित पशु नमूना):",
+                        text = stringResource(R.string.livestock_sample_test_label),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = HarvestAmber
@@ -388,7 +388,7 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Animal Category (पशु का प्रकार)", fontWeight = FontWeight.Bold, color = TextCharcoal)
+                    Text(stringResource(R.string.livestock_category_label), fontWeight = FontWeight.Bold, color = TextCharcoal)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -426,7 +426,7 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
                     )
 
                     // Symptoms checklist
-                    Text("Observed Symptoms (देखे गए लक्षण):", fontWeight = FontWeight.Bold, color = TextCharcoal, style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.livestock_symptoms_label), fontWeight = FontWeight.Bold, color = TextCharcoal, style = MaterialTheme.typography.labelMedium)
                     val symptomOptions = listOf(
                         "Fever (तेज बुखार)",
                         "Mouth/Hoof Blisters (छाले)",
@@ -528,7 +528,7 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
                         ) {
                             Surface(shape = RoundedCornerShape(9999.dp), color = GreenTint) {
                                 Text(
-                                    text = "Diagnosed Result",
+                                    text = stringResource(R.string.livestock_diagnosed_result),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = DeepEmerald,
@@ -536,9 +536,48 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
                                 )
                             }
                             val currentLang by viewModel.language.collectAsState()
+                            val textToSpeak = remember(r, currentLang) {
+                                val condPrefix = when (currentLang.lowercase().trim()) {
+                                    "hi" -> "पशु रोग स्थिति"
+                                    "mr" -> "पशु आरोग्य स्थिती"
+                                    "pa" -> "ਪਸ਼ੂ ਸਥਿਤੀ"
+                                    "bho" -> "पशु के स्थिति"
+                                    "sa" -> "पशुस्थितिः"
+                                    else -> "Condition"
+                                }
+                                val sympPrefix = when (currentLang.lowercase().trim()) {
+                                    "hi" -> "लक्षण"
+                                    "mr" -> "लक्षणे"
+                                    "pa" -> "ਲੱਛਣ"
+                                    "bho" -> "लक्षण"
+                                    "sa" -> "लक्षणम्"
+                                    else -> "Symptoms"
+                                }
+                                val actPrefix = when (currentLang.lowercase().trim()) {
+                                    "hi" -> "तत्काल उपाय"
+                                    "mr" -> "त्वरित उपाय"
+                                    "pa" -> "ਤੁਰੰਤ ਕਾਰਵਾਈ"
+                                    "bho" -> "तुरंत उपाय"
+                                    "sa" -> "तत्क्षणोपायः"
+                                    else -> "Immediate action"
+                                }
+                                val carePrefix = when (currentLang.lowercase().trim()) {
+                                    "hi" -> "दीर्घकालिक देखभाल"
+                                    "mr" -> "दीर्घकालीन काळजी"
+                                    "pa" -> "ਲੰਬੇ ਸਮੇਂ ਦੀ ਦੇਖਭਾਲ"
+                                    "bho" -> "लम्बा समय के देखभाल"
+                                    "sa" -> "दीर्घकालरक्षणम्"
+                                    else -> "Long term care"
+                                }
+                                val delimiter = if (currentLang.lowercase().trim() in listOf("hi", "pa", "bho", "sa")) "।" else "."
+                                val sympPart = if (r.symptoms.isNotEmpty()) "$sympPrefix: ${r.symptoms.joinToString(", ")}$delimiter " else ""
+                                val actPart = if (!r.immediateAction.isNullOrBlank()) "$actPrefix: ${r.immediateAction}$delimiter " else ""
+                                val carePart = if (!r.longTermCare.isNullOrBlank()) "$carePrefix: ${r.longTermCare}$delimiter " else ""
+                                "$condPrefix: ${r.conditionName ?: ""}$delimiter $sympPart$actPart$carePart".trim()
+                            }
                             com.kissansevaai.ui.component.TTSButton(
                                 ttsEngine = viewModel.ttsEngine,
-                                textToSpeak = "${r.conditionName ?: ""}. Symptoms: ${r.symptoms.joinToString(", ")}. Immediate action: ${r.immediateAction ?: ""}. Long term care: ${r.longTermCare ?: ""}",
+                                textToSpeak = textToSpeak,
                                 lang = currentLang,
                                 onFallbackExplanation = { fallbackMsg -> permissionNotice = fallbackMsg }
                             )
@@ -549,7 +588,7 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
                         }
 
                         if (r.symptoms.isNotEmpty()) {
-                            Text("Observed Symptoms (लक्षण):", fontWeight = FontWeight.Bold, color = TextCharcoal)
+                            Text(stringResource(R.string.livestock_symptoms_label), fontWeight = FontWeight.Bold, color = TextCharcoal)
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 r.symptoms.forEach { symptom ->
                                     Row(
@@ -640,7 +679,7 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Government Veterinary Helpline", fontWeight = FontWeight.Bold, color = TextCharcoal, style = MaterialTheme.typography.titleSmall)
-                        Text("Toll-free Kisan Call Centre • 24x7 Assistance", color = TextMuted, style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.livestock_call_centre), color = TextMuted, style = MaterialTheme.typography.bodySmall)
                     }
                     Button(
                         onClick = {

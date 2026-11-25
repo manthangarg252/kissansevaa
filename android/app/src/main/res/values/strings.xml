@@ -147,4 +147,133 @@
     <!-- Prices -->
     <string name="prices_title">Live Market Prices</string>
     <string name="prices_subtitle">Real-time commodity prices from major Indian markets.</string>
+    <string name="settings_subtitle">App preferences and server configuration</string>
+    <string name="dashboard_greeting">Hello, Farmer Friend!</string>
+    <string name="dashboard_weather_summary">31°C Sunny • Weather</string>
+    <string name="dashboard_weather_details">Wind 8 km/h • Humidity 64% • Rain 10%</string>
+    <string name="dashboard_clear_sky">Clear Sky</string>
+    <string name="dashboard_toolkit_title">Smart Farming Toolkit</string>
+    <string name="dashboard_toolkit_subtitle">8 Modules</string>
+    <string name="dashboard_mandi_title">Today\'s Mandi Rates</string>
+    <string name="dashboard_mandi_subtitle">Live updates from nearby APMC markets</string>
+    <string name="dashboard_mandi_view_all">View All →</string>
+    <string name="dashboard_voice_title">Ask by Speaking</string>
+    <string name="dashboard_voice_subtitle">Ask in your preferred language</string>
+    <string name="dashboard_voice_badge">Voice Agro-AI</string>
+    <string name="dashboard_live_network">Live Agro Network</string>
+    <string name="dashboard_settings_menu">Settings</string>
+    <string name="dashboard_logout_menu">Logout</string>
+    <string name="toolkit_crop_title">Crop Disease Detection</string>
+    <string name="toolkit_crop_desc">AI disease scanning &amp; cure</string>
+    <string name="toolkit_crop_tag">AI Scan</string>
+    <string name="toolkit_mandi_title">Live Mandi Prices</string>
+    <string name="toolkit_mandi_desc">Daily APMC rates &amp; trends</string>
+    <string name="toolkit_mandi_tag">Live ↑</string>
+    <string name="toolkit_schemes_title">Government Schemes</string>
+    <string name="toolkit_schemes_desc">Subsidies &amp; farmer welfare</string>
+    <string name="toolkit_schemes_tag">PM-KISAN</string>
+    <string name="toolkit_loans_title">Loans &amp; Credit Hub</string>
+    <string name="toolkit_loans_desc">KCC loans &amp; smart guidance</string>
+    <string name="toolkit_loans_tag">KCC 4%</string>
+    <string name="toolkit_traders_title">Traders &amp; Buyers</string>
+    <string name="toolkit_traders_desc">Direct network with buyers</string>
+    <string name="toolkit_traders_tag">Verified</string>
+    <string name="toolkit_livestock_title">Livestock Care</string>
+    <string name="toolkit_livestock_desc">Animal health diagnostics</string>
+    <string name="toolkit_livestock_tag">Care &amp; Vet</string>
+    <string name="toolkit_carbon_title">Carbon Credits</string>
+    <string name="toolkit_carbon_desc">Eco-farming carbon earnings</string>
+    <string name="toolkit_carbon_tag">Green ₹</string>
+    <string name="toolkit_iot_title">IoT Farm Telemetry</string>
+    <string name="toolkit_iot_desc">Live soil, moisture &amp; weather</string>
+    <string name="toolkit_iot_tag">Sensors</string>
+    <string name="crop_upload_photo">Upload Crop Photo</string>
+    <string name="crop_take_photo_desc">Take a photo or choose from gallery</string>
+    <string name="crop_sample_test_label">Or Test with Sample Crop:</string>
+    <string name="crop_select_photo">Select Crop Photo</string>
+    <string name="crop_uncertain_warning_title">Uncertain Prediction / Review Recommended</string>
+    <string name="crop_uncertain_warning_desc">Visual similarity or neighbor consensus is below verification thresholds. All treatment prescriptions (both organic and chemical) are withheld. Please consult your local KVK expert before applying any treatment.</string>
+    <string name="crop_status_needs_review">Needs Review</string>
+    <string name="crop_status_retrieval_match">Vector Match</string>
+    <string name="crop_treatments_withheld_title">Treatment Prescriptions Withheld</string>
+    <string name="crop_treatments_withheld_desc">Because this diagnosis is uncertain, all organic and chemical treatment prescriptions are withheld. Please capture a sharper close-up leaf photo or consult your local Krishi Vigyan Kendra (KVK) before taking action.</string>
+    <string name="crop_top_matches">Top Reference Matches</string>
+    <string name="crop_match_similarity">Cosine Similarity</string>
+    <string name="crop_organic_treatment">🌿 Organic Treatment</string>
+    <string name="crop_chemical_treatment">🧪 Chemical Treatment</string>
+    <string name="crop_prevention_strategies">🛡️ Prevention Strategies</string>
+    <string name="crop_label_prefix">Crop:</string>
+    <string name="crop_severity_prefix">Severity:</string>
+    <string name="crop_source_label">Source</string>
+    <string name="livestock_upload_photo">Upload Animal Photo</string>
+    <string name="livestock_sample_test_label">Or Test with Sample Animal:</string>
+    <string name="livestock_category_label">Animal Category</string>
+    <string name="livestock_symptoms_label">Observed Symptoms:</string>
+    <string name="livestock_diagnosed_result">Diagnosed Result</string>
+    <string name="livestock_call_centre">Toll-free Kisan Call Centre • 24x7 Assistance</string>
+    <string name="carbon_method_label">Farming Method:</string>
+    <string name="carbon_irrigation_label">Irrigation Type:</string>
+    <string name="schemes_apply_btn">Apply on Official Portal</string>
+    <string name="schemes_state_label">State</string>
+    <string name="schemes_farm_size_label">Farm Size (acres)</string>
+    <string name="schemes_primary_crop_label">Primary Crop</string>
+    <string name="schemes_soil_type_label">Soil Type</string>
+    <string name="schemes_get_subsidies_btn">Get Recommended Schemes</string>
+    <string name="traders_call_btn">Call Now</string>
+    <string name="auth_otp_btn">Get OTP</string>
+    <string name="auth_sign_in_btn">Sign In</string>
+    <string name="auth_register_btn">Create Account</string>
+    <string name="auth_already_have">Already have an account?</string>
+    <string name="auth_tagline">Smart Farmer Platform</string>
+    <string name="chat_greeting_title">Hello, Farmer Friend!</string>
+    <string name="chat_greeting_body">I am your KissanAI smart agronomist. Ask me anything about crop diseases, pest remedies, market rates, or government subsidies!</string>
+    <string name="chat_thinking">KissanAI is thinking…</string>
+    <string name="toolkit_market_title">Market Insights</string>
+    <string name="toolkit_market_desc">Market forecast &amp; price trends</string>
+    <string name="toolkit_market_tag">Forecast</string>
+
+    <!-- Loans Screen -->
+    <string name="loans_interest_rate">Interest Rate</string>
+    <string name="loans_max_amount">Max Amount</string>
+    <string name="loans_key_benefits">Key Benefits:</string>
+    <string name="loans_apply_details">Apply / Details</string>
+    <string name="loans_emi_calculator">Smart Farm Loan EMI Calculator</string>
+    <string name="loans_loan_amount">Loan Amount</string>
+    <string name="loans_financial_profile">Farm Financial Profile</string>
+    <string name="loans_interest_rate_percent">Interest Rate (%)</string>
+    <string name="loans_tenure_months">Tenure (Months)</string>
+    <string name="loans_field_name">Name</string>
+    <string name="loans_field_age">Age</string>
+    <string name="loans_field_farm_size">Farm Size (acres)</string>
+    <string name="loans_field_annual_income">Annual Income (₹)</string>
+    <string name="loans_field_existing_loans">Existing Loans (₹)</string>
+    <string name="loans_field_credit_score">Credit Score</string>
+    <string name="loans_field_crop_type">Crop Type</string>
+    <string name="loans_field_state">State</string>
+    <string name="loans_provider_prefix">Provider:</string>
+
+    <!-- Live Prices Screen -->
+    <string name="prices_search_placeholder">Search by crop name (e.g. Wheat, Cotton)…</string>
+    <string name="prices_no_rates_found">No market rates found</string>
+    <string name="prices_no_rates_desc">No price listings match your search. Tap below to view all APMC rates.</string>
+    <string name="prices_view_all">View All Rates</string>
+
+    <!-- Schemes Screen -->
+    <string name="schemes_search_placeholder">Search schemes by name or benefit…</string>
+    <string name="schemes_no_schemes_found">No schemes found</string>
+    <string name="schemes_no_schemes_desc">Try changing your search or filter criteria</string>
+    <string name="schemes_reset_filters">Reset Filters</string>
+    <string name="schemes_irrigation_land_type">Irrigation / Land Type</string>
+
+    <!-- Traders Screen -->
+    <string name="traders_search_placeholder">Search by crop, commodity, or mandi location…</string>
+    <string name="traders_no_traders_found">No verified traders found</string>
+    <string name="traders_no_traders_desc">No buyers match your search. Tap below to view all registered traders.</string>
+    <string name="traders_view_all">View All Traders</string>
+    <string name="traders_action_message">Message</string>
+
+    <!-- Auth & Settings Screen -->
+    <string name="auth_server_config">Server Configuration</string>
+    <string name="auth_server_config_save">Save &amp; Connect</string>
+    <string name="tts_fallback_hindi">Sanskrit voice output is not supported on this device. Speaking in Hindi instead.</string>
 </resources>

@@ -48,6 +48,8 @@ interface KissanApi {
     suspend fun getMarketPrices(
         @Query("crop") crop: String? = null,
         @Query("state") state: String? = null,
+        @Query("category") category: String? = null,
+        @Query("refresh") refresh: Boolean? = null,
     ): List<MarketPrice>
 
     @POST("api/market/recommendations")

@@ -183,9 +183,9 @@ fun ChatbotScreen(onBack: () -> Unit, viewModel: ChatViewModel = hiltViewModel()
                                     }
                                 }
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text("नमस्ते किसान भाई!", fontWeight = FontWeight.Bold, color = TextCharcoal)
+                                    Text(stringResource(R.string.chat_greeting_title), fontWeight = FontWeight.Bold, color = TextCharcoal)
                                     Text(
-                                        "I am your KissanAI smart agronomist. Ask me anything about crop diseases, pest remedies, market rates, or government subsidies!",
+                                        stringResource(R.string.chat_greeting_body),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = TextCharcoal,
                                         lineHeight = 22.sp
@@ -262,7 +262,7 @@ fun ChatbotScreen(onBack: () -> Unit, viewModel: ChatViewModel = hiltViewModel()
                             modifier = Modifier.padding(start = 40.dp)
                         ) {
                             CircularProgressIndicator(Modifier.size(18.dp), color = DeepEmerald, strokeWidth = 2.dp)
-                            Text("KissanAI विचार कर रहा है...", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                            Text(stringResource(R.string.chat_thinking), style = MaterialTheme.typography.bodySmall, color = TextMuted)
                         }
                     }
                 }

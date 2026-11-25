@@ -10,10 +10,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Agriculture
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,6 +39,8 @@ fun SignupScreen(
     viewModel: AuthViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val currentLang by viewModel.language.collectAsState()
+    var showLangMenu by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -70,6 +74,84 @@ fun SignupScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                // Top Action Bar with Back & Language Switcher
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onNavigateToLogin) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = DeepEmerald
+                        )
+                    }
+
+                    Box {
+                        Surface(
+                            shape = RoundedCornerShape(9999.dp),
+                            border = BorderStroke(1.dp, DeepEmerald),
+                            color = CardWhite,
+                            modifier = Modifier.clickable { showLangMenu = true }
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Translate,
+                                    contentDescription = "Language",
+                                    tint = DeepEmerald,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = when (currentLang.lowercase().trim()) {
+                                        "hi" -> "हिन्दी"
+                                        "bho" -> "भोजपुरी"
+                                        "mr" -> "मराठी"
+                                        "pa" -> "ਪੰਜਾਬੀ"
+                                        "sa" -> "संस्कृतम्"
+                                        else -> "English"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = DeepEmerald
+                                )
+                            }
+                        }
+
+                        DropdownMenu(
+                            expanded = showLangMenu,
+                            onDismissRequest = { showLangMenu = false }
+                        ) {
+                            listOf(
+                                "en" to "English",
+                                "hi" to "हिन्दी (Hindi)",
+                                "bho" to "भोजपुरी (Bhojpuri)",
+                                "mr" to "मराठी (Marathi)",
+                                "pa" to "ਪੰਜਾਬੀ (Punjabi)",
+                                "sa" to "संस्कृतम् (Sanskrit)"
+                            ).forEach { (code, label) ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = label,
+                                            fontWeight = if (currentLang == code) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (currentLang == code) DeepEmerald else TextCharcoal
+                                        )
+                                    },
+                                    onClick = {
+                                        viewModel.setLanguage(code)
+                                        showLangMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
                 Surface(
                     shape = CircleShape,
                     color = GreenTint,
@@ -93,7 +175,7 @@ fun SignupScreen(
                         color = TextCharcoal
                     )
                     Text(
-                        text = "किसान सेवा मंच से जुड़ें",
+                        text = stringResource(R.string.auth_tagline),
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextMuted
                     )
@@ -167,7 +249,7 @@ fun SignupScreen(
                     if (state.isLoading) {
                         CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                     } else {
-                        Text("खाता बनाएं / Register", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(stringResource(R.string.auth_register_btn), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                 }
 
@@ -176,9 +258,10 @@ fun SignupScreen(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("पहले से खाता है? ", style = MaterialTheme.typography.bodyMedium, color = TextMuted)
+                    Text(stringResource(R.string.auth_already_have), style = MaterialTheme.typography.bodyMedium, color = TextMuted)
+                    Spacer(Modifier.width(4.dp))
                     Text(
-                        text = "लॉगिन करें (Sign In)",
+                        text = stringResource(R.string.auth_sign_in_btn),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = DeepEmerald,

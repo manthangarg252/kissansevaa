@@ -65,15 +65,15 @@ fun CarbonCreditsScreen(onBack: () -> Unit, viewModel: CarbonViewModel = hiltVie
     val state by viewModel.uiState.collectAsState()
     var farmSize by remember { mutableStateOf("5") }
     var cropType by remember { mutableStateOf("Cotton & Wheat") }
-    var method by remember { mutableStateOf("Organic (जैविक)") }
-    var irrigation by remember { mutableStateOf("Drip (ड्रिप)") }
+    var method by remember { mutableStateOf("Organic") }
+    var irrigation by remember { mutableStateOf("Drip") }
 
-    val methods = listOf("Organic (जैविक)", "Zero-Till", "Agroforestry", "Conventional")
-    val irrigations = listOf("Drip (ड्रिप)", "Sprinkler", "Canal/Flood", "Rainfed")
+    val methods = listOf("Organic", "Zero-Till", "Agroforestry", "Conventional")
+    val irrigations = listOf("Drip", "Sprinkler", "Canal/Flood", "Rainfed")
 
     FeatureScaffold(
         title = stringResource(R.string.carbon_title),
-        subtitle = "कार्बन क्रेडिट अनुमान एवं हरित कमाई",
+        subtitle = stringResource(R.string.carbon_subtitle),
         onBack = onBack
     ) { padding ->
         Column(
@@ -174,7 +174,7 @@ fun CarbonCreditsScreen(onBack: () -> Unit, viewModel: CarbonViewModel = hiltVie
                     )
 
                     // Method Chips
-                    Text("Farming Method (खेती का तरीका):", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = TextCharcoal)
+                    Text(stringResource(R.string.carbon_method_label), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = TextCharcoal)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -199,7 +199,7 @@ fun CarbonCreditsScreen(onBack: () -> Unit, viewModel: CarbonViewModel = hiltVie
                     }
 
                     // Irrigation Chips
-                    Text("Irrigation Type (सिंचाई प्रणाली):", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = TextCharcoal)
+                    Text(stringResource(R.string.carbon_irrigation_label), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = TextCharcoal)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)

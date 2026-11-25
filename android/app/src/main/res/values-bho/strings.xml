@@ -147,5 +147,134 @@
     <!-- Prices -->
     <string name="prices_title">लाइव मंडी भाव</string>
     <string name="prices_subtitle">देश के प्रमुख मंडी से आज के ताजा भाव।</string>
+    <string name="settings_subtitle">ऐप प्राथमिकता आ सर्वर सेटिंग्स</string>
+    <string name="dashboard_greeting">प्रणाम, किसान भाई!</string>
+    <string name="dashboard_weather_summary">31°C घाम • मौसम</string>
+    <string name="dashboard_weather_details">हवा 8 किमी/घंटा • नमी 64% • बरखा 10%</string>
+    <string name="dashboard_clear_sky">साफ असमान</string>
+    <string name="dashboard_toolkit_title">स्मार्ट खेती टूलकिट</string>
+    <string name="dashboard_toolkit_subtitle">8 गो मॉड्यूल</string>
+    <string name="dashboard_mandi_title">आज के मंडी भाव</string>
+    <string name="dashboard_mandi_subtitle">लगही के मंडी से ताजा भाव</string>
+    <string name="dashboard_mandi_view_all">सब देखीं →</string>
+    <string name="dashboard_voice_title">बोल के सवाल पूछीं</string>
+    <string name="dashboard_voice_subtitle">अपन भाषा में पूछीं</string>
+    <string name="dashboard_voice_badge">आवाज एग्रो-एआई</string>
+    <string name="dashboard_live_network">लाइव खेती नेटवर्क</string>
+    <string name="dashboard_settings_menu">सेटिंग्स</string>
+    <string name="dashboard_logout_menu">लॉगआउट</string>
+    <string name="toolkit_crop_title">फसल रोग पहचान</string>
+    <string name="toolkit_crop_desc">एआई से रोग पहचान आ इलाज</string>
+    <string name="toolkit_crop_tag">एआई जांच</string>
+    <string name="toolkit_mandi_title">मंडी के भाव</string>
+    <string name="toolkit_mandi_desc">रोज के मंडी भाव आ रुझान</string>
+    <string name="toolkit_mandi_tag">लाइव ↑</string>
+    <string name="toolkit_schemes_title">सरकारी योजना</string>
+    <string name="toolkit_schemes_desc">सब्सिडी आ किसान कल्याण</string>
+    <string name="toolkit_schemes_tag">पीएम-किसान</string>
+    <string name="toolkit_loans_title">कर्ज आ क्रेडिट हब</string>
+    <string name="toolkit_loans_desc">केसीसी कर्ज आ लोन सलाह</string>
+    <string name="toolkit_loans_tag">केसीसी 4%</string>
+    <string name="toolkit_traders_title">व्यापारी आ खरीदार</string>
+    <string name="toolkit_traders_desc">सीधे खरीदारन से सम्पर्क</string>
+    <string name="toolkit_traders_tag">सत्यापित</string>
+    <string name="toolkit_livestock_title">पशुपालन आ देखरेख</string>
+    <string name="toolkit_livestock_desc">पशु स्वास्थ्य जांच आ इलाज</string>
+    <string name="toolkit_livestock_tag">पशु चिकित्सा</string>
+    <string name="toolkit_carbon_title">कार्बन क्रेडिट</string>
+    <string name="toolkit_carbon_desc">पर्यावरण खेती से अतिरिक्त कमाई</string>
+    <string name="toolkit_carbon_tag">हरियर ₹</string>
+    <string name="toolkit_iot_title">आईओटी फार्म सेंसर</string>
+    <string name="toolkit_iot_desc">माटी, नमी आ तापमान स्थिति</string>
+    <string name="toolkit_iot_tag">सेंसर</string>
+    <string name="crop_upload_photo">फसल के फोटो अपलोड करीं</string>
+    <string name="crop_take_photo_desc">फोटो खींचीं चाहे गैलरी से चुनीं</string>
+    <string name="crop_sample_test_label">चाहे त्वरित नमूना से जांच करीं:</string>
+    <string name="crop_select_photo">फसल के फोटो चुनीं</string>
+    <string name="crop_uncertain_warning_title">अनिश्चित परिणाम / समीक्षा जरूरी</string>
+    <string name="crop_uncertain_warning_desc">समानता भा पड़ोसी सहमति तय सीमा से कम बा। जैविक अउर रासायनिक दूनो उपचार रोकल गइल बा। कवनो दवाई डाले से पहिले कृषि विज्ञान केंद्र (KVK) के सलाह लीं।</string>
+    <string name="crop_status_needs_review">समीक्षा जरूरी</string>
+    <string name="crop_status_retrieval_match">वेक्टर मिलान</string>
+    <string name="crop_treatments_withheld_title">उपचार सलाह रोकल बा</string>
+    <string name="crop_treatments_withheld_desc">अनिश्चित जांच के कारण जैविक अउर रासायनिक दूनो उपचार रोकल गइल बा। कृपया साफ नजदीकी फोटो खींचीं भा अपने नजदीकी केवीके (KVK) विशेषज्ञ से सलाह लीं।</string>
+    <string name="crop_top_matches">प्रमुख संदर्भ मिलान</string>
+    <string name="crop_match_similarity">कोसाइन समानता</string>
+    <string name="crop_organic_treatment">🌿 जैविक उपाय</string>
+    <string name="crop_chemical_treatment">🧪 रासायनिक उपाय</string>
+    <string name="crop_prevention_strategies">🛡️ बचाव के तरीका</string>
+    <string name="crop_label_prefix">फसल:</string>
+    <string name="crop_severity_prefix">गंभीरता:</string>
+    <string name="crop_source_label">स्रोत</string>
+    <string name="livestock_upload_photo">पशु के फोटो अपलोड करीं</string>
+    <string name="livestock_sample_test_label">चाहे नमूना से जांच करीं:</string>
+    <string name="livestock_category_label">पशु के प्रकार</string>
+    <string name="livestock_symptoms_label">लक्षण:</string>
+    <string name="livestock_diagnosed_result">जांच परिणाम</string>
+    <string name="livestock_call_centre">टोल-फ्री किसान कॉल सेंटर • 24x7 मदद</string>
+    <string name="carbon_method_label">खेती के तरीका:</string>
+    <string name="carbon_irrigation_label">सिंचाई प्रणाली:</string>
+    <string name="schemes_apply_btn">सरकारी पोर्टल पर आवेदन करीं</string>
+    <string name="schemes_state_label">राज्य</string>
+    <string name="schemes_farm_size_label">खेत के आकार (एकड़)</string>
+    <string name="schemes_primary_crop_label">मुख्य फसल</string>
+    <string name="schemes_soil_type_label">माटी के प्रकार</string>
+    <string name="schemes_get_subsidies_btn">अनुशंसित योजना देखीं</string>
+    <string name="traders_call_btn">फोन करीं</string>
+    <string name="auth_otp_btn">ओटीपी मंगावीं</string>
+    <string name="auth_sign_in_btn">लॉगिन करीं</string>
+    <string name="auth_register_btn">खाता बनाईं</string>
+    <string name="auth_already_have">पहिले से खाता बा?</string>
+    <string name="auth_tagline">किसान सेवा मंच</string>
+    <string name="chat_greeting_title">प्रणाम किसान भाई!</string>
+    <string name="chat_greeting_body">हम रउआ किसानएआई सहायक बानी। फसल रोग, कीड़ा, मंडी भाव चाहे सरकारी योजना के बारे में कुछ भी पूछीं!</string>
+    <string name="chat_thinking">किसानएआई विचार करत बा...</string>
+    <string name="toolkit_market_title">बाजार विश्लेषण</string>
+    <string name="toolkit_market_desc">बाजार रुझान आ भाव अनुमान</string>
+    <string name="toolkit_market_tag">अनुमान</string>
+
+    <!-- Loans Screen -->
+    <string name="loans_interest_rate">ब्याज दर</string>
+    <string name="loans_max_amount">ढेर से ढेर रकम</string>
+    <string name="loans_key_benefits">मुख्य फायदा:</string>
+    <string name="loans_apply_details">आवेदन / ब्योरा</string>
+    <string name="loans_emi_calculator">स्मार्ट खेती लोन ईएमआई कैलकुलेटर</string>
+    <string name="loans_loan_amount">लोन के रकम</string>
+    <string name="loans_financial_profile">खेती के आर्थिक ब्योरा</string>
+    <string name="loans_interest_rate_percent">ब्याज दर (%)</string>
+    <string name="loans_tenure_months">समय (महीना)</string>
+    <string name="loans_field_name">नाम</string>
+    <string name="loans_field_age">उमर</string>
+    <string name="loans_field_farm_size">खेत के रकबा (एकड़)</string>
+    <string name="loans_field_annual_income">सालाना आमदनी (₹)</string>
+    <string name="loans_field_existing_loans">पहिले से बाकी लोन (₹)</string>
+    <string name="loans_field_credit_score">क्रेडिट स्कोर</string>
+    <string name="loans_field_crop_type">फसल के प्रकार</string>
+    <string name="loans_field_state">राज्य</string>
+    <string name="loans_provider_prefix">देवे वाला:</string>
+
+    <!-- Live Prices Screen -->
+    <string name="prices_search_placeholder">फसल के नाम से खोजीं (जइसे गेहूं, कपास)…</string>
+    <string name="prices_no_rates_found">कवनो मंडी भाव ना मिलल</string>
+    <string name="prices_no_rates_desc">राउर खोज से मेल खाए वाला कवनो भाव नइखे। कुल भाव देखे खातिर नीचे दबाईं।</string>
+    <string name="prices_view_all">कुल भाव देखीं</string>
+
+    <!-- Schemes Screen -->
+    <string name="schemes_search_placeholder">योजना के नाम भा फायदा से खोजीं…</string>
+    <string name="schemes_no_schemes_found">कवनो योजना ना मिलल</string>
+    <string name="schemes_no_schemes_desc">खोज भा फिल्टर बदल के दोबारा कोशिश करीं</string>
+    <string name="schemes_reset_filters">फिल्टर हटाईं</string>
+    <string name="schemes_irrigation_land_type">सिंचाई / जमीन के प्रकार</string>
+
+    <!-- Traders Screen -->
+    <string name="traders_search_placeholder">फसल, जिनिस भा मंडी के जगह से खोजीं…</string>
+    <string name="traders_no_traders_found">कवनो व्यापारी ना मिलल</string>
+    <string name="traders_no_traders_desc">कवनो खरीदार ना मिलल। कुल व्यापारी देखे खातिर नीचे दबाईं।</string>
+    <string name="traders_view_all">कुल व्यापारी देखीं</string>
+    <string name="traders_action_message">संदेश</string>
+
+    <!-- Auth & Settings Screen -->
+    <string name="auth_server_config">सर्वर कॉन्फ़िगरेशन</string>
+    <string name="auth_server_config_save">सहेजीं अउर जोड़ीं</string>
+    <string name="tts_fallback_hindi">एह मोबाइल पर संस्कृत आवाज नइखे। हिन्दी में सुनावल जा रहल बा।</string>
 </resources>
 
