@@ -13,8 +13,15 @@ import androidx.room.TypeConverters
         CropAnalysisEntity::class,
         ChatMessageEntity::class,
         IoTReadingEntity::class,
+        LivestockAnalysisEntity::class,
+        WeatherCacheEntity::class,
+        CropPlanEntity::class,
+        PlannerTaskEntity::class,
+        SavedSchemeEntity::class,
+        MarketFavoriteEntity::class,
+        SyncOperationEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -26,4 +33,11 @@ abstract class KissanDatabase : RoomDatabase() {
     abstract fun cropAnalysisDao(): CropAnalysisDao
     abstract fun chatDao(): ChatDao
     abstract fun ioTDao(): IoTDao
+    abstract fun livestockDao(): LivestockDao
+    abstract fun weatherDao(): WeatherDao
+    abstract fun cropPlanDao(): CropPlanDao
+    abstract fun plannerTaskDao(): PlannerTaskDao
+    abstract fun savedSchemeDao(): SavedSchemeDao
+    abstract fun marketFavoriteDao(): MarketFavoriteDao
+    abstract fun syncOperationDao(): SyncOperationDao
 }

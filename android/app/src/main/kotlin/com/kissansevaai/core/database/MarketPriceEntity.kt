@@ -23,6 +23,8 @@ data class MarketPriceEntity(
     val trend: String,
     val updatedAt: String?,
     val lastUpdated: String?,
+    val category: String? = null,
+    val sourceBadge: String? = null,
 ) {
     fun toDomain(): MarketPrice = MarketPrice(
         id = id,
@@ -35,8 +37,10 @@ data class MarketPriceEntity(
         market = market,
         state = state,
         trend = trend,
+        category = category,
         updatedAt = updatedAt,
         lastUpdated = lastUpdated,
+        sourceBadge = sourceBadge,
     )
 }
 
@@ -53,6 +57,8 @@ fun MarketPrice.toEntity(): MarketPriceEntity = MarketPriceEntity(
     trend = trend,
     updatedAt = updatedAt,
     lastUpdated = lastUpdated,
+    category = effectiveCategory,
+    sourceBadge = sourceBadge,
 )
 
 @Dao

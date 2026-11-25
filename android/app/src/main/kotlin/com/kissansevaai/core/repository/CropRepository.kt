@@ -2,9 +2,11 @@ package com.kissansevaai.core.repository
 
 import com.kissansevaai.core.common.Resource
 import com.kissansevaai.core.common.toUserFriendlyMessage
+import com.kissansevaai.core.data.DataStoreManager
 import com.kissansevaai.core.database.CropAnalysisDao
 import com.kissansevaai.core.database.toEntity
 import com.kissansevaai.core.model.CropAnalysisResult
+import com.kissansevaai.core.model.SecondOpinionResponse
 import com.kissansevaai.core.network.KissanApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -20,14 +22,20 @@ import javax.inject.Singleton
 class CropRepository @Inject constructor(
     private val api: KissanApi,
     private val cropDao: CropAnalysisDao,
+    private val dataStore: DataStoreManager? = null,
 ) {
-    /**
-     * Emits cached history from Room immediately, then refreshes from backend and updates Room.
-     */
+    private suspend fun activeUserId(): String = dataStore?.userId?.first().orEmpty()
+
     fun getHistory(): Flow<Resource<List<CropAnalysisResult>>> = flow {
         emit(Resource.Loading)
+        val userId = activeUserId()
 
-        var cachedEntities = cropDao.getAllHistory().first()
+        var cachedEntities = if (userId.isNotBlank()) {
+            cropDao.getHistoryForUser(userId).first()
+        } else {
+            cropDao.getAllHistory().first()
+        }
+
         if (cachedEntities.isEmpty()) {
             val initialResults = listOf(
                 CropAnalysisResult(
@@ -61,8 +69,12 @@ class CropRepository @Inject constructor(
                     prevention = listOf("Remove infected lower leaves", "Crop rotation with non-solanaceous crops", "Mulch base of plants")
                 )
             )
-            cropDao.insertAll(initialResults.map { it.toEntity() })
-            cachedEntities = cropDao.getAllHistory().first()
+            cropDao.insertAll(initialResults.map { it.toEntity(userId = "") })
+            cachedEntities = if (userId.isNotBlank()) {
+                cropDao.getHistoryForUser(userId).first()
+            } else {
+                cropDao.getAllHistory().first()
+            }
         }
         val cached = cachedEntities.map { it.toDomain() }
         if (cached.isNotEmpty()) {
@@ -72,8 +84,9 @@ class CropRepository @Inject constructor(
         try {
             val networkHistory = api.getCropHistory()
             if (networkHistory.isNotEmpty()) {
-                cropDao.insertAll(networkHistory.map { it.toEntity() })
-                val updated = cropDao.getAllHistory().first().map { it.toDomain() }
+                cropDao.insertAll(networkHistory.map { it.toEntity(userId = userId) })
+                val updated = (if (userId.isNotBlank()) cropDao.getHistoryForUser(userId).first() else cropDao.getAllHistory().first())
+                    .map { it.toDomain() }
                 emit(Resource.Success(updated))
             } else if (cached.isEmpty()) {
                 emit(Resource.Success(emptyList()))
@@ -85,9 +98,6 @@ class CropRepository @Inject constructor(
         }
     }.flowOn(Dispatchers.IO)
 
-    /**
-     * Uploads crop image for disease analysis, caches the resulting diagnosis in Room.
-     */
     fun analyzeCrop(
         image: MultipartBody.Part,
         location: RequestBody,
@@ -95,6 +105,7 @@ class CropRepository @Inject constructor(
         language: RequestBody,
     ): Flow<Resource<CropAnalysisResult>> = flow {
         emit(Resource.Loading)
+        val userId = activeUserId()
         try {
             val result = api.analyzeCrop(
                 image = image,
@@ -102,10 +113,37 @@ class CropRepository @Inject constructor(
                 soilType = soilType,
                 language = language,
             )
-            cropDao.insert(result.toEntity())
+            cropDao.insert(result.toEntity(userId = userId))
             emit(Resource.Success(result))
         } catch (e: Exception) {
-            // Never fabricate a fake diagnosis when the backend/ML service fails or device is offline.
+            emit(Resource.Error(e.toUserFriendlyMessage(), e))
+        }
+    }.flowOn(Dispatchers.IO)
+
+    fun requestSecondOpinion(
+        image: MultipartBody.Part?,
+        analysisId: RequestBody?,
+        farmerConsented: RequestBody,
+        location: RequestBody,
+        soilType: RequestBody,
+        language: RequestBody,
+        primaryCrop: RequestBody,
+        primaryDisease: RequestBody,
+    ): Flow<Resource<SecondOpinionResponse>> = flow {
+        emit(Resource.Loading)
+        try {
+            val res = api.requestCropSecondOpinion(
+                image = image,
+                analysisId = analysisId,
+                farmerConsented = farmerConsented,
+                location = location,
+                soilType = soilType,
+                language = language,
+                primaryCrop = primaryCrop,
+                primaryDisease = primaryDisease,
+            )
+            emit(Resource.Success(res))
+        } catch (e: Exception) {
             emit(Resource.Error(e.toUserFriendlyMessage(), e))
         }
     }.flowOn(Dispatchers.IO)

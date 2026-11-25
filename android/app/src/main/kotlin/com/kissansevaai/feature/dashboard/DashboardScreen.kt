@@ -130,6 +130,28 @@ private val modules = listOf(
         iconTint = DeepEmerald,
         screen = Screen.MarketInsights,
     ),
+    ToolkitModule(
+        titleRes = R.string.toolkit_weather_title,
+        descRes = R.string.toolkit_weather_desc,
+        tagRes = R.string.toolkit_weather_tag,
+        tagBg = AmberTint,
+        tagColor = SecondaryOrange,
+        icon = Icons.Default.WbSunny,
+        iconBg = AmberBg,
+        iconTint = HarvestAmber,
+        screen = Screen.Weather,
+    ),
+    ToolkitModule(
+        titleRes = R.string.toolkit_planner_title,
+        descRes = R.string.toolkit_planner_desc,
+        tagRes = R.string.toolkit_planner_tag,
+        tagBg = GreenTint,
+        tagColor = DeepEmerald,
+        icon = Icons.Default.EventNote,
+        iconBg = GreenTintLight,
+        iconTint = DeepEmerald,
+        screen = Screen.CropPlanner,
+    ),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -142,6 +164,9 @@ fun DashboardScreen(
     val lang by viewModel.language.collectAsState()
     val sensorData by viewModel.sensorData.collectAsState()
     val mandiPrices by viewModel.mandiPrices.collectAsState()
+    val weather by viewModel.weather.collectAsState()
+    val upcomingTasks by viewModel.upcomingTasks.collectAsState()
+    val pendingSyncCount by viewModel.pendingSyncCount.collectAsState()
     val isSpeaking by viewModel.isSpeaking.collectAsState()
     var showMenu by remember { mutableStateOf(false) }
     var showLangMenu by remember { mutableStateOf(false) }
@@ -432,19 +457,47 @@ fun DashboardScreen(
                 }
             }
 
-            // 2. Weather & Spraying Advisory Banner (Bento Hero)
+            // 2. Weather & Spraying Advisory Banner (Bento Hero -> taps open Screen.Weather)
             item {
+                if (pendingSyncCount > 0) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = AmberTint,
+                        border = BorderStroke(1.dp, SecondaryOrange),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                            .clickable { viewModel.flushOfflineQueue() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "$pendingSyncCount offline change(s) pending sync — tap to sync",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = SecondaryOrange
+                            )
+                            Icon(Icons.Default.Sync, null, tint = SecondaryOrange, modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
                 Card(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = CardWhite),
                     border = BorderStroke(1.dp, BorderLight),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigate(Screen.Weather) }
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        val liveW = weather
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -470,13 +523,21 @@ fun DashboardScreen(
                                 }
                                 Column {
                                     Text(
-                                        text = stringResource(R.string.dashboard_weather_summary),
+                                        text = if (liveW != null) {
+                                            "${liveW.current.temperatureC.toInt()}°C • ${liveW.locationName}"
+                                        } else {
+                                            stringResource(R.string.dashboard_weather_summary)
+                                        },
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = TextCharcoal
                                     )
                                     Text(
-                                        text = stringResource(R.string.dashboard_weather_details),
+                                        text = if (liveW != null) {
+                                            "Humidity ${liveW.current.humidityPct.toInt()}% • Wind ${liveW.current.windSpeedKmh} km/h"
+                                        } else {
+                                            stringResource(R.string.dashboard_weather_details)
+                                        },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = TextMuted
                                     )
@@ -484,11 +545,15 @@ fun DashboardScreen(
                             }
                             Surface(
                                 shape = RoundedCornerShape(9999.dp),
-                                color = SecondaryFixed,
+                                color = if (liveW?.isStale == true) AmberTint else SecondaryFixed,
                                 modifier = Modifier.padding(2.dp)
                             ) {
                                 Text(
-                                    text = stringResource(R.string.dashboard_clear_sky),
+                                    text = if (liveW != null) {
+                                        if (liveW.isStale) "Cached" else liveW.current.conditionLabel.ifBlank { "Live" }
+                                    } else {
+                                        stringResource(R.string.dashboard_clear_sky)
+                                    },
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = SecondaryOrange,
@@ -496,6 +561,8 @@ fun DashboardScreen(
                                 )
                             }
                         }
+
+                        val liveTopAdv = liveW?.advisories?.firstOrNull()
 
                         // Actionable Spraying Alert
                         Surface(
@@ -563,7 +630,7 @@ fun DashboardScreen(
                                     }
                                     Spacer(Modifier.height(4.dp))
                                     Text(
-                                        text = advisoryBody,
+                                        text = liveTopAdv?.message ?: advisoryBody,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = TextCharcoal
                                     )
@@ -574,7 +641,7 @@ fun DashboardScreen(
                                     color = if (isSpeaking) GreenTint else CardWhite,
                                     border = BorderStroke(1.dp, if (isSpeaking) DeepEmerald else BorderMedium),
                                     modifier = Modifier.clickable {
-                                        viewModel.speakWeatherAdvisory(speakText)
+                                        viewModel.speakWeatherAdvisory(liveTopAdv?.message ?: speakText)
                                     }
                                 ) {
                                     Row(
@@ -833,6 +900,70 @@ fun DashboardScreen(
                                 trend = "Steady",
                                 isUp = null
                             )
+                        }
+                    }
+                }
+            }
+
+            // 6b. Upcoming Crop Tasks Snapshot (Room + Planner)
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardWhite),
+                    border = BorderStroke(1.dp, BorderLight),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigate(Screen.CropPlanner) }
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(R.string.toolkit_planner_title),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = TextCharcoal
+                            )
+                            Text(
+                                text = stringResource(R.string.dashboard_mandi_view_all),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = DeepEmerald
+                            )
+                        }
+                        if (upcomingTasks.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.toolkit_planner_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextMuted
+                            )
+                        } else {
+                            upcomingTasks.forEach { t ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "• ${t.title}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = TextCharcoal,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text(
+                                        text = t.scheduledDate,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = DeepEmerald
+                                    )
+                                }
+                            }
                         }
                     }
                 }

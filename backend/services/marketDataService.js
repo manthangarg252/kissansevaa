@@ -275,24 +275,49 @@ const INITIAL_MARKET_DATA = [
 
 class MarketDataService {
   constructor() {
-    this.marketPrices = [...INITIAL_MARKET_DATA];
+    this.marketPrices = INITIAL_MARKET_DATA.map((item) => ({
+      ...item,
+      district: item.district || (item.market ? item.market.split(' ')[0] : ''),
+      sourceBadge: 'reference_baseline',
+    }));
     this.lastUpdated = new Date();
+    this.lastLiveSuccessAt = null;
+    this.lastFetchError = null;
+    this.sourceStatus = 'seeded_reference';
+    this.cooldownUntil = 0;
     this.updateIntervalMinutes = 15;
     this.refreshTimer = null;
-    this.activeApiKey = process.env.DATA_GOV_IN_API_KEY || process.env.AGMARKNET_API_KEY || process.env.MARKET_API_KEY || null;
+    this.activeApiKey =
+      process.env.DATA_GOV_IN_API_KEY ||
+      process.env.AGMARKNET_API_KEY ||
+      process.env.MARKET_API_KEY ||
+      null;
 
-    // Start background auto-updater for regular updates
-    this.startAutoUpdater();
+    if (process.env.NODE_ENV !== 'test') {
+      this.startAutoUpdater();
+    }
   }
 
   getApiKey() {
-    return process.env.DATA_GOV_IN_API_KEY || process.env.AGMARKNET_API_KEY || process.env.MARKET_API_KEY || this.activeApiKey;
+    return (
+      process.env.DATA_GOV_IN_API_KEY ||
+      process.env.AGMARKNET_API_KEY ||
+      process.env.MARKET_API_KEY ||
+      this.activeApiKey
+    );
   }
 
   classifyCommodity(commodity) {
     const text = (commodity || '').toLowerCase();
-    const vegetables = ['onion', 'potato', 'tomato', 'chilli', 'cauliflower', 'cabbage', 'okra', 'bhindi', 'brinjal', 'carrot', 'garlic', 'ginger', 'spinach', 'peas', 'gourd', 'capsicum', 'coriander'];
-    const fruits = ['apple', 'banana', 'mango', 'pomegranate', 'orange', 'grapes', 'papaya', 'guava', 'watermelon', 'lemon', 'pineapple', 'lime', 'strawberry'];
+    const vegetables = [
+      'onion', 'potato', 'tomato', 'chilli', 'cauliflower', 'cabbage', 'okra',
+      'bhindi', 'brinjal', 'carrot', 'garlic', 'ginger', 'spinach', 'peas',
+      'gourd', 'capsicum', 'coriander', 'radish', 'pumpkin',
+    ];
+    const fruits = [
+      'apple', 'banana', 'mango', 'pomegranate', 'orange', 'grapes', 'papaya',
+      'guava', 'watermelon', 'lemon', 'pineapple', 'lime', 'strawberry', 'sapota',
+    ];
 
     for (const v of vegetables) {
       if (text.includes(v)) return 'vegetable';
@@ -304,122 +329,173 @@ class MarketDataService {
   }
 
   async fetchFromAgmarknetApi(apiKey) {
-    if (!apiKey) return null;
+    if (!apiKey) {
+      this.sourceStatus = this.lastLiveSuccessAt ? 'cached_agmarknet' : 'seeded_reference_no_api_key';
+      return { ok: false, records: null, error: 'DATA_GOV_IN_API_KEY not configured' };
+    }
+    if (Date.now() < this.cooldownUntil) {
+      return { ok: false, records: null, error: this.lastFetchError || 'Rate-limit cooldown active' };
+    }
+
     try {
-      // Government of India Open Data APMC Daily Mandi Price API
       const url = `https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=${encodeURIComponent(apiKey)}&format=json&limit=100`;
       const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-      const json = await res.json();
 
-      if (json && json.records && Array.isArray(json.records) && json.records.length > 0) {
+      if (res.status === 429) {
+        this.cooldownUntil = Date.now() + 5 * 60_000;
+        const msg = 'Data.gov.in API HTTP 429 (rate-limited). Serving last verified data without fabricating updates.';
+        this.lastFetchError = msg;
+        this.sourceStatus = this.lastLiveSuccessAt ? 'cached_agmarknet_rate_limited' : 'seeded_reference_rate_limited';
+        return { ok: false, records: null, error: msg };
+      }
+
+      if (!res.ok) {
+        const msg = `Data.gov.in API HTTP ${res.status}`;
+        this.lastFetchError = msg;
+        this.sourceStatus = this.lastLiveSuccessAt ? 'cached_agmarknet_stale' : 'seeded_reference_api_error';
+        return { ok: false, records: null, error: msg };
+      }
+
+      const json = await res.json();
+      if (json && Array.isArray(json.records) && json.records.length > 0) {
+        const fetchedIso = new Date().toISOString();
         const records = json.records.map((r, idx) => {
           const commodity = r.commodity || r.Commodity || 'Crop';
           const modalPrice = parseFloat(r.modal_price || r.Modal_Price) || 2000;
-          const minPrice = parseFloat(r.min_price || r.Min_Price) || modalPrice * 0.9;
-          const maxPrice = parseFloat(r.max_price || r.Max_Price) || modalPrice * 1.1;
+          const minPrice = parseFloat(r.min_price || r.Min_Price) || Math.round(modalPrice * 0.92);
+          const maxPrice = parseFloat(r.max_price || r.Max_Price) || Math.round(modalPrice * 1.08);
           const state = r.state || r.State || 'India';
+          const district = r.district || r.District || '';
           const market = r.market || r.Market || 'APMC Mandi';
           const category = this.classifyCommodity(commodity);
 
           return {
-            _id: `api_${idx}_${Date.now()}`,
-            id: `api_${idx}_${Date.now()}`,
+            _id: `agm_${commodity.toLowerCase().replace(/\W+/g, '_')}_${market.toLowerCase().replace(/\W+/g, '_')}_${idx}`,
+            id: `agm_${commodity.toLowerCase().replace(/\W+/g, '_')}_${market.toLowerCase().replace(/\W+/g, '_')}_${idx}`,
             crop: commodity,
             category,
             market,
+            district,
             state,
             price: modalPrice,
             modalPrice,
             minPrice,
             maxPrice,
             unit: 'quintal',
-            trend: modalPrice >= 3000 ? 'up' : (modalPrice <= 1500 ? 'down' : 'stable'),
-            updatedAt: new Date().toISOString(),
-            lastUpdated: new Date().toISOString()
+            trend: modalPrice >= maxPrice * 0.96 ? 'up' : modalPrice <= minPrice * 1.04 ? 'down' : 'stable',
+            sourceBadge: 'agmarknet_live',
+            arrivalDate: r.arrival_date || r.Arrival_Date || null,
+            updatedAt: fetchedIso,
+            lastUpdated: fetchedIso,
           };
         });
 
-        console.log(`[MarketDataService] Successfully fetched ${records.length} live records from Data.gov.in`);
-        return records;
+        this.lastLiveSuccessAt = new Date();
+        this.lastFetchError = null;
+        this.sourceStatus = 'live_agmarknet';
+        console.log(`[MarketDataService] Fetched ${records.length} live records from Data.gov.in`);
+        return { ok: true, records, error: null };
       }
+
+      this.lastFetchError = 'Data.gov.in returned 0 records';
+      this.sourceStatus = this.lastLiveSuccessAt ? 'cached_agmarknet_stale' : 'seeded_reference_empty_upstream';
+      return { ok: false, records: null, error: this.lastFetchError };
     } catch (err) {
-      console.warn(`[MarketDataService] Data.gov.in live fetch notice: ${err.message}. Maintaining cached/dynamic data.`);
+      this.lastFetchError = err.message;
+      this.sourceStatus = this.lastLiveSuccessAt ? 'cached_agmarknet_stale' : 'seeded_reference_network_error';
+      console.warn(`[MarketDataService] Data.gov.in fetch notice: ${err.message}. Preserving last verified prices.`);
+      return { ok: false, records: null, error: err.message };
     }
-    return null;
-  }
-
-  simulateMarketUpdate() {
-    const now = new Date().toISOString();
-    this.marketPrices = this.marketPrices.map(item => {
-      // Subtle dynamic market fluctuation between -2.5% and +2.5%
-      const deltaPercent = (Math.random() * 5 - 2.4) / 100;
-      const newPrice = Math.round(item.modalPrice * (1 + deltaPercent));
-      const trend = newPrice > item.modalPrice ? 'up' : (newPrice < item.modalPrice ? 'down' : 'stable');
-      const minPrice = Math.round(newPrice * 0.92);
-      const maxPrice = Math.round(newPrice * 1.08);
-
-      return {
-        ...item,
-        price: newPrice,
-        modalPrice: newPrice,
-        minPrice,
-        maxPrice,
-        trend,
-        updatedAt: now,
-        lastUpdated: now
-      };
-    });
-    this.lastUpdated = new Date();
   }
 
   async updatePrices() {
     const apiKey = this.getApiKey();
-    if (apiKey) {
-      const liveData = await this.fetchFromAgmarknetApi(apiKey);
-      if (liveData && liveData.length > 0) {
-        // Merge with initial data to guarantee good coverage of vegetables, fruits, and crops
-        const mergedMap = new Map();
-        for (const item of liveData) {
-          mergedMap.set(`${item.crop}_${item.market}`, item);
-        }
-        for (const item of this.marketPrices) {
-          if (!mergedMap.has(`${item.crop}_${item.market}`)) {
-            mergedMap.set(`${item.crop}_${item.market}`, item);
-          }
-        }
-        this.marketPrices = Array.from(mergedMap.values());
-        this.lastUpdated = new Date();
-        return;
+    const { ok, records, error } = await this.fetchFromAgmarknetApi(apiKey);
+    if (ok && records && records.length > 0) {
+      const mergedMap = new Map();
+      for (const item of records) {
+        mergedMap.set(`${item.crop.toLowerCase()}_${item.market.toLowerCase()}`, item);
       }
+      for (const item of this.marketPrices) {
+        const key = `${item.crop.toLowerCase()}_${item.market.toLowerCase()}`;
+        if (!mergedMap.has(key)) {
+          mergedMap.set(key, item);
+        }
+      }
+      this.marketPrices = Array.from(mergedMap.values());
+      this.lastUpdated = new Date();
+      return { updatedFromLiveApi: true, liveCount: records.length, sourceStatus: this.sourceStatus };
     }
 
-    // Dynamic market refresh
-    this.simulateMarketUpdate();
+    // Never simulate fake random market swings; return honest cache/reference metadata
+    return { updatedFromLiveApi: false, liveCount: 0, sourceStatus: this.sourceStatus, error };
   }
 
   startAutoUpdater() {
     if (this.refreshTimer) clearInterval(this.refreshTimer);
-    // Periodically update rates every 15 minutes
     this.refreshTimer = setInterval(() => {
-      this.updatePrices().catch(e => console.error('[MarketDataService] Auto update error:', e));
+      this.updatePrices().catch((e) => console.error('[MarketDataService] Auto update error:', e));
     }, this.updateIntervalMinutes * 60 * 1000);
+    if (typeof this.refreshTimer.unref === 'function') {
+      this.refreshTimer.unref();
+    }
   }
 
-  getPrices({ crop, state, category }) {
-    return this.marketPrices.filter(p => {
+  getPrices({ crop, state, district, market, category, sort } = {}) {
+    const filtered = this.marketPrices.filter((p) => {
       const matchCrop = crop ? p.crop.toLowerCase().includes(crop.toLowerCase()) : true;
       const matchState = state ? p.state.toLowerCase().includes(state.toLowerCase()) : true;
-      const matchCategory = category && category.toLowerCase() !== 'all' 
-        ? (p.category || '').toLowerCase() === category.toLowerCase() 
+      const matchDistrict = district
+        ? (p.district || p.market || '').toLowerCase().includes(district.toLowerCase())
         : true;
-      return matchCrop && matchState && matchCategory;
+      const matchMarket = market ? p.market.toLowerCase().includes(market.toLowerCase()) : true;
+      const matchCategory =
+        category && category.toLowerCase() !== 'all'
+          ? (p.category || '').toLowerCase() === category.toLowerCase()
+          : true;
+      return matchCrop && matchState && matchDistrict && matchMarket && matchCategory;
     });
+
+    if (sort === 'price_desc') {
+      return [...filtered].sort((a, b) => (b.modalPrice || b.price) - (a.modalPrice || a.price));
+    }
+    if (sort === 'price_asc') {
+      return [...filtered].sort((a, b) => (a.modalPrice || a.price) - (b.modalPrice || b.price));
+    }
+    return filtered;
+  }
+
+  compareMarkets({ crop, category } = {}) {
+    const items = this.getPrices({ crop, category });
+    const byCrop = new Map();
+    for (const item of items) {
+      const key = item.crop.split('(')[0].trim().toLowerCase();
+      if (!byCrop.has(key)) byCrop.set(key, []);
+      byCrop.get(key).push(item);
+    }
+
+    const comparisons = [];
+    for (const [, entries] of byCrop.entries()) {
+      const sorted = [...entries].sort((a, b) => (b.modalPrice || b.price) - (a.modalPrice || a.price));
+      const best = sorted[0];
+      const lowest = sorted[sorted.length - 1];
+      comparisons.push({
+        crop: best.crop,
+        category: best.category,
+        mandisCount: sorted.length,
+        highestMandi: { market: best.market, state: best.state, price: best.modalPrice || best.price },
+        lowestMandi: { market: lowest.market, state: lowest.state, price: lowest.modalPrice || lowest.price },
+        spreadPerQuintal: (best.modalPrice || best.price) - (lowest.modalPrice || lowest.price),
+        listings: sorted.slice(0, 5),
+      });
+    }
+    return comparisons.sort((a, b) => b.spreadPerQuintal - a.spreadPerQuintal);
   }
 
   getStats() {
-    const cropsCount = this.marketPrices.filter(p => p.category === 'crop').length;
-    const vegetablesCount = this.marketPrices.filter(p => p.category === 'vegetable').length;
-    const fruitsCount = this.marketPrices.filter(p => p.category === 'fruit').length;
+    const cropsCount = this.marketPrices.filter((p) => p.category === 'crop').length;
+    const vegetablesCount = this.marketPrices.filter((p) => p.category === 'vegetable').length;
+    const fruitsCount = this.marketPrices.filter((p) => p.category === 'fruit').length;
 
     return {
       total: this.marketPrices.length,
@@ -427,8 +503,11 @@ class MarketDataService {
       vegetablesCount,
       fruitsCount,
       lastUpdated: this.lastUpdated.toISOString(),
-      apiKeyConfigured: !!this.getApiKey(),
-      updateIntervalMinutes: this.updateIntervalMinutes
+      lastLiveSuccessAt: this.lastLiveSuccessAt ? this.lastLiveSuccessAt.toISOString() : null,
+      sourceStatus: this.sourceStatus,
+      lastFetchError: this.lastFetchError,
+      apiKeyConfigured: Boolean(this.getApiKey()),
+      updateIntervalMinutes: this.updateIntervalMinutes,
     };
   }
 }

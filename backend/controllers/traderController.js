@@ -1,20 +1,18 @@
-
 import Trader from '../models/Trader.js';
-import { generateText } from '../services/geminiService.js';
+import { callGeminiText, sendAiErrorResponse } from '../services/geminiService.js';
 
 export const getTraders = async (req, res) => {
   try {
     const { location, search } = req.query;
-    let filter = {};
-
+    const filter = {};
     if (location) filter.location = location;
 
     let traders = await Trader.find(filter).sort({ rating: -1 });
-
     if (search) {
-      traders = traders.filter(t => 
-        t.name.toLowerCase().includes(search.toLowerCase()) || 
-        t.dealsIn.some(crop => crop.toLowerCase().includes(search.toLowerCase()))
+      traders = traders.filter(
+        (t) =>
+          t.name.toLowerCase().includes(search.toLowerCase()) ||
+          t.dealsIn.some((crop) => crop.toLowerCase().includes(search.toLowerCase())),
       );
     }
 
@@ -30,7 +28,7 @@ export const addTrader = async (req, res) => {
     const trader = await Trader.create({
       ...data,
       rating: 0,
-      reviewCount: 0
+      reviewCount: 0,
     });
     res.json({ _id: trader._id, id: trader._id, message: 'Trader added successfully' });
   } catch (error) {
@@ -40,22 +38,30 @@ export const addTrader = async (req, res) => {
 
 export const getTraderAdvisory = async (req, res) => {
   try {
-    const { query, language } = req.body;
+    const { query, language = 'en' } = req.body || {};
 
     if (!query) {
       return res.status(400).json({ error: 'query is required' });
     }
 
     const systemInstruction = `You are an expert Trading Advisor for Indian Farmers.
-      Focus on market trends, reliable buyer practices, negotiation strategies,
-      and how to identify trustworthy buyers.
-      Reply strictly in ${language || 'English'}.
-      Use plain text only. No Markdown. Use simple numbering for lists.`;
+Focus on market trends, reliable buyer verification, weighing transparency, and e-NAM / APMC safeguards.
+Reply strictly in ${language || 'English'}.
+Use plain text only with simple numbering.`;
 
-    const response = await generateText(query, systemInstruction);
-    res.json({ response });
+    const aiRes = await callGeminiText({
+      prompt: query,
+      systemInstruction,
+      userId: req.user?._id,
+      feature: 'trader_advisory',
+    });
+
+    res.json({
+      response: aiRes.text,
+      aiAvailable: true,
+      requestId: aiRes.requestId,
+    });
   } catch (error) {
-    console.error('Trader Advisory Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return sendAiErrorResponse(res, error);
   }
 };

@@ -246,4 +246,25 @@
     <string name="auth_server_config">सर्वर कॉन्फ़िगरेशन</string>
     <string name="auth_server_config_save">सहेजें और कनेक्ट करें</string>
     <string name="tts_fallback_hindi">इस डिवाइस पर संस्कृत आवाज़ समर्थित नहीं है। हिन्दी में बोला जा रहा है।</string>
+
+    <!-- Stage 1 Weather, Planner & Second Opinion -->
+    <string name="weather_title">मौसम और छिड़काव सलाह</string>
+    <string name="weather_location_label">जिला या शहर</string>
+    <string name="weather_check_alerts_btn">खेत मौसम चेतावनी देखें</string>
+    <string name="weather_spray_suitable">छिड़काव समय: उपयुक्त</string>
+    <string name="weather_spray_hold">छिड़काव रोकें — मौसम जोखिम</string>
+    <string name="weather_advisories_heading">कृषि मौसम सलाह</string>
+    <string name="weather_7day_heading">7-दिन का पूर्वानुमान</string>
+    <string name="planner_title">स्मार्ट फसल कैलेंडर</string>
+    <string name="planner_new_plan">नया 7-दिन प्लान</string>
+    <string name="toolkit_weather_title">मौसम अलर्ट</string>
+    <string name="toolkit_weather_desc">लाइव Open-Meteo वर्षा और छिड़काव सलाह</string>
+    <string name="toolkit_weather_tag">लाइव</string>
+    <string name="toolkit_planner_title">फसल प्लानर</string>
+    <string name="toolkit_planner_desc">मौसम आधारित 7-दिन के कृषि कार्य</string>
+    <string name="toolkit_planner_tag">7-दिन</string>
+    <string name="crop_second_opinion_title">अनिश्चित जांच — जेमिनी से दूसरी राय लें?</string>
+    <string name="crop_second_opinion_desc">आपकी सहमति से यह फोटो स्वतंत्र जांच के लिए Gemini Vision को भेजा जाएगा; प्राथमिक DINOv2 परिणाम सुरक्षित रहेगा।</string>
+    <string name="crop_second_opinion_consent">मैं Gemini Vision समीक्षा के लिए पत्ती की फोटो भेजने की सहमति देता हूँ</string>
+    <string name="crop_second_opinion_btn">जेमिनी दूसरी राय प्राप्त करें</string>
 </resources>

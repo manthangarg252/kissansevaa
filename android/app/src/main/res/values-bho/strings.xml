@@ -276,5 +276,26 @@
     <string name="auth_server_config">सर्वर कॉन्फ़िगरेशन</string>
     <string name="auth_server_config_save">सहेजीं अउर जोड़ीं</string>
     <string name="tts_fallback_hindi">एह मोबाइल पर संस्कृत आवाज नइखे। हिन्दी में सुनावल जा रहल बा।</string>
+
+    <!-- Stage 1 Weather, Planner & Second Opinion -->
+    <string name="weather_title">मौसम अउर छिड़काव सलाह</string>
+    <string name="weather_location_label">जिला या शहर</string>
+    <string name="weather_check_alerts_btn">खेत मौसम चेतावनी देखीं</string>
+    <string name="weather_spray_suitable">छिड़काव समय: बढ़िया बा</string>
+    <string name="weather_spray_hold">छिड़काव रोकीं — मौसम खतरा</string>
+    <string name="weather_advisories_heading">खेती मौसम सलाह</string>
+    <string name="weather_7day_heading">7 दिन के मौसम</string>
+    <string name="planner_title">फसल प्लानर कैलेंडर</string>
+    <string name="planner_new_plan">नया 7 दिन के प्लान</string>
+    <string name="toolkit_weather_title">मौसम अलर्ट</string>
+    <string name="toolkit_weather_desc">लाइव Open-Meteo बरखा अउर छिड़काव सलाह</string>
+    <string name="toolkit_weather_tag">लाइव</string>
+    <string name="toolkit_planner_title">फसल प्लानर</string>
+    <string name="toolkit_planner_desc">मौसम अनुसार 7 दिन के खेती काम</string>
+    <string name="toolkit_planner_tag">7-दिन</string>
+    <string name="crop_second_opinion_title">जांच पक्का नइखे — जेमिनी से दुसर राय लीं?</string>
+    <string name="crop_second_opinion_desc">राउर सहमति से ई फोटो Gemini Vision से जांचल जाई, मूल DINOv2 नतीजा सुरक्षित रही।</string>
+    <string name="crop_second_opinion_consent">हम Gemini Vision से जांच खातिर फोटो भेजे के सहमति देत बानी</string>
+    <string name="crop_second_opinion_btn">जेमिनी दुसर राय लीं</string>
 </resources>
 

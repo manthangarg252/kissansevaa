@@ -32,28 +32,32 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil3.compose.AsyncImage
 import com.kissansevaai.R
-import com.kissansevaai.core.data.DataStoreManager
-import com.kissansevaai.core.model.LivestockResult
+import com.kissansevaai.core.ai.FieldExtractor
+import com.kissansevaai.core.ai.SpeechToText
+import com.kissansevaai.core.ai.TextToSpeechEngine
 import com.kissansevaai.core.common.Resource
+import com.kissansevaai.core.data.DataStoreManager
+import com.kissansevaai.core.model.LivestockIntakeFields
+import com.kissansevaai.core.model.LivestockResult
 import com.kissansevaai.core.repository.LivestockRepository
+import com.kissansevaai.ui.component.CameraCaptureDialog
 import com.kissansevaai.ui.component.FeatureScaffold
 import com.kissansevaai.ui.component.LoadingOverlay
+import com.kissansevaai.ui.component.MicButton
+import com.kissansevaai.ui.component.TTSButton
 import com.kissansevaai.ui.theme.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
-import com.kissansevaai.core.ai.FieldExtractor
-import com.kissansevaai.core.ai.SpeechToText
-import com.kissansevaai.core.ai.TextToSpeechEngine
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.stateIn
 
 @HiltViewModel
 class LivestockViewModel @Inject constructor(
@@ -70,43 +74,55 @@ class LivestockViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(LivestockUiState())
     val uiState: StateFlow<LivestockUiState> = _uiState
 
-    fun createSampleAnimalUri(animal: String): Uri {
-        val fileName = "sample_animal_${animal.lowercase().replace(" ", "_")}.jpg"
-        val file = java.io.File(context.cacheDir, fileName)
-        if (!file.exists()) {
-            val bitmap = android.graphics.Bitmap.createBitmap(500, 500, android.graphics.Bitmap.Config.RGB_565)
-            val canvas = android.graphics.Canvas(bitmap)
-            val bgPaint = android.graphics.Paint().apply { color = android.graphics.Color.rgb(180, 140, 100) }
-            canvas.drawRect(0f, 0f, 500f, 500f, bgPaint)
-            val textPaint = android.graphics.Paint().apply {
-                color = android.graphics.Color.WHITE
-                textSize = 32f
-                isAntiAlias = true
-                textAlign = android.graphics.Paint.Align.CENTER
-            }
-            canvas.drawText("Livestock: $animal", 250f, 250f, textPaint)
-            java.io.FileOutputStream(file).use { out ->
-                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
-            }
-        }
-        return Uri.fromFile(file)
+    private val _history = MutableStateFlow<List<LivestockResult>>(emptyList())
+    val history: StateFlow<List<LivestockResult>> = _history
+
+    init {
+        loadHistory()
     }
 
-    fun analyze(imageUri: Uri, animalType: String) {
+    fun loadHistory() {
+        viewModelScope.launch {
+            repository.getHistory().collect { res ->
+                if (res is Resource.Success) {
+                    _history.value = res.data
+                }
+            }
+        }
+    }
+
+    fun analyzeDetailed(imageUri: Uri?, intake: LivestockIntakeFields) {
         viewModelScope.launch {
             _uiState.value = LivestockUiState(isLoading = true)
             try {
                 val lang = dataStore.language.first()
-                val bytes = com.kissansevaai.core.util.ImageCompressor.compressImage(context, imageUri)
-                val part = MultipartBody.Part.createFormData("image", "animal.jpg", bytes.toRequestBody("image/jpeg".toMediaTypeOrNull()))
-                repository.analyzeLivestock(
-                    image = part,
-                    animalType = animalType.toRequestBody("text/plain".toMediaTypeOrNull()),
-                    language = lang.toRequestBody("text/plain".toMediaTypeOrNull())
+                val imagePart = imageUri?.let { uri ->
+                    val bytes = com.kissansevaai.core.util.ImageCompressor.compressImage(context, uri)
+                    MultipartBody.Part.createFormData(
+                        "image", "animal.jpg", bytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+                    )
+                }
+                val textMime = "text/plain".toMediaTypeOrNull()
+
+                repository.analyzeLivestockDetailed(
+                    image = imagePart,
+                    animalType = intake.animalType.toRequestBody(textMime),
+                    animalAge = intake.animalAge.toRequestBody(textMime),
+                    symptomDuration = intake.symptomDuration.toRequestBody(textMime),
+                    feverStatus = intake.feverStatus.toRequestBody(textMime),
+                    appetiteStatus = intake.appetiteStatus.toRequestBody(textMime),
+                    milkYieldChange = intake.milkYieldChange.toRequestBody(textMime),
+                    lesionsOrUlcers = intake.lesionsOrUlcers.toString().toRequestBody(textMime),
+                    isolatedFromHerd = intake.isolatedFromHerd.toString().toRequestBody(textMime),
+                    symptomsNotes = intake.symptomsNotes.toRequestBody(textMime),
+                    language = lang.toRequestBody(textMime),
                 ).collect { res ->
                     when (res) {
                         is Resource.Loading -> _uiState.value = LivestockUiState(isLoading = true)
-                        is Resource.Success -> _uiState.value = LivestockUiState(result = res.data)
+                        is Resource.Success -> {
+                            _uiState.value = LivestockUiState(result = res.data)
+                            loadHistory()
+                        }
                         is Resource.Error -> _uiState.value = LivestockUiState(error = res.message)
                     }
                 }
@@ -116,19 +132,40 @@ class LivestockViewModel @Inject constructor(
         }
     }
 }
-data class LivestockUiState(val isLoading: Boolean = false, val result: LivestockResult? = null, val error: String? = null)
+
+data class LivestockUiState(
+    val isLoading: Boolean = false,
+    val result: LivestockResult? = null,
+    val error: String? = null,
+)
 
 @Composable
 fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
+    val history by viewModel.history.collectAsState()
+    val currentLang by viewModel.language.collectAsState()
+
     var selectedUri by remember { mutableStateOf<Uri?>(null) }
-    var animalType by remember { mutableStateOf("Cow (गाय)") }
+    var animalType by remember { mutableStateOf("Cattle") }
+    var animalAge by remember { mutableStateOf("Adult") }
+    var symptomDuration by remember { mutableStateOf("1-3 days") }
+    var feverStatus by remember { mutableStateOf("unknown") }
+    var appetiteStatus by remember { mutableStateOf("normal") }
+    var milkYieldChange by remember { mutableStateOf("normal") }
+    var lesionsOrUlcers by remember { mutableStateOf(false) }
+    var isolatedFromHerd by remember { mutableStateOf(false) }
+    var symptomsNotes by remember { mutableStateOf("") }
+
     var showSourceChooser by remember { mutableStateOf(false) }
     var showCameraDialog by remember { mutableStateOf(false) }
     var permissionNotice by remember { mutableStateOf<String?>(null) }
 
-    val commonAnimals = listOf("Cow (गाय)", "Buffalo (भैंस)", "Goat (बकरी)", "Sheep (भेड़)", "Poultry (मुर्गी)")
+    val commonAnimals = listOf("Cattle", "Buffalo", "Goat", "Sheep", "Poultry")
+    val durations = listOf("< 24h", "1-3 days", "3+ days")
+    val yesNoOpts = listOf("yes" to "Yes", "no" to "No", "unknown" to "Unsure")
+    val appetiteOpts = listOf("normal" to "Normal", "reduced" to "Reduced", "none" to "None")
+    val milkOpts = listOf("normal" to "Normal", "dropped" to "Dropped", "stopped" to "Stopped", "na" to "N/A")
 
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
@@ -154,7 +191,6 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
             context,
             android.Manifest.permission.CAMERA
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
         if (granted) {
             permissionNotice = null
             showCameraDialog = true
@@ -164,7 +200,7 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
     }
 
     if (showCameraDialog) {
-        com.kissansevaai.ui.component.CameraCaptureDialog(
+        CameraCaptureDialog(
             onDismissRequest = { showCameraDialog = false },
             onImageCaptured = { uri ->
                 showCameraDialog = false
@@ -186,21 +222,14 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
             text = { Text("Take an animal health photo with Camera or choose from gallery.", color = TextMuted) },
             confirmButton = {
                 Button(
-                    onClick = {
-                        showSourceChooser = false
-                        onChooseCamera()
-                    },
+                    onClick = { showSourceChooser = false; onChooseCamera() },
                     colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
                     shape = RoundedCornerShape(9999.dp)
                 ) { Text("Camera", color = Color.White) }
             },
             dismissButton = {
                 OutlinedButton(
-                    onClick = {
-                        showSourceChooser = false
-                        permissionNotice = null
-                        galleryLauncher.launch("image/*")
-                    },
+                    onClick = { showSourceChooser = false; permissionNotice = null; galleryLauncher.launch("image/*") },
                     shape = RoundedCornerShape(9999.dp)
                 ) { Text("Gallery", color = DeepEmerald) }
             },
@@ -210,7 +239,7 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
 
     FeatureScaffold(
         title = stringResource(R.string.livestock_title),
-        subtitle = "पशुपालन एवं पशु स्वास्थ्य परामर्श",
+        subtitle = "पशुपालन एवं पशु स्वास्थ्य सुरक्षा जांच",
         onBack = onBack
     ) { padding ->
         Column(
@@ -219,7 +248,7 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             permissionNotice?.let { notice ->
                 Card(
@@ -227,25 +256,18 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
                     colors = CardDefaults.cardColors(containerColor = AmberTint),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = notice,
-                        color = SecondaryOrange,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(12.dp)
-                    )
+                    Text(notice, color = SecondaryOrange, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(12.dp))
                 }
             }
 
-            // Image Upload Zone
+            // Optional Photo Upload Zone (never auto-substitutes synthetic fake photos!)
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = CardWhite),
                 border = BorderStroke(1.5.dp, if (selectedUri != null) DeepEmerald else BorderMedium),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(210.dp)
+                    .height(170.dp)
                     .clickable { showSourceChooser = true },
             ) {
                 if (selectedUri != null) {
@@ -262,240 +284,165 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
                             shape = CircleShape,
                             color = CardWhite,
                             shadowElevation = 4.dp,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(12.dp)
-                                .clickable { selectedUri = null }
+                            modifier = Modifier.align(Alignment.TopEnd).padding(10.dp).clickable { selectedUri = null }
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Clear",
-                                tint = ErrorRed,
-                                modifier = Modifier.padding(6.dp).size(18.dp)
-                            )
+                            Icon(Icons.Default.Close, "Clear", tint = ErrorRed, modifier = Modifier.padding(6.dp).size(18.dp))
                         }
                     }
                 } else {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = AmberTint,
-                                modifier = Modifier.size(56.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Default.Pets,
-                                        contentDescription = null,
-                                        tint = HarvestAmber,
-                                        modifier = Modifier.size(28.dp)
-                                    )
-                                }
-                            }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.Pets, null, tint = HarvestAmber, modifier = Modifier.size(34.dp))
                             Text(stringResource(R.string.livestock_upload_photo), fontWeight = FontWeight.Bold, color = TextCharcoal)
-                            Text("Take photo of symptoms or injury", color = TextMuted, style = MaterialTheme.typography.bodySmall)
+                            Text("Optional — attach lesion/animal photo OR submit symptom intake", color = TextMuted, style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
             }
 
-            // Quick source action buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(
                     onClick = onChooseCamera,
-                    modifier = Modifier.weight(1f).height(46.dp),
+                    modifier = Modifier.weight(1f).height(44.dp),
                     shape = RoundedCornerShape(9999.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald)
                 ) {
                     Icon(Icons.Default.PhotoCamera, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(6.dp))
                     Text("Camera", fontWeight = FontWeight.Bold)
                 }
                 OutlinedButton(
-                    onClick = {
-                        permissionNotice = null
-                        galleryLauncher.launch("image/*")
-                    },
-                    modifier = Modifier.weight(1f).height(46.dp),
+                    onClick = { galleryLauncher.launch("image/*") },
+                    modifier = Modifier.weight(1f).height(44.dp),
                     shape = RoundedCornerShape(9999.dp),
                     border = BorderStroke(1.5.dp, DeepEmerald)
                 ) {
                     Icon(Icons.Default.PhotoLibrary, null, tint = DeepEmerald, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(6.dp))
                     Text("Gallery", color = DeepEmerald, fontWeight = FontWeight.Bold)
                 }
             }
 
-            var selectedSymptoms by remember { mutableStateOf(setOf<String>()) }
-
-            // Quick Test Sample Animals
-            Card(
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = AmberTint.copy(alpha = 0.4f)),
-                border = BorderStroke(1.dp, HarvestAmber.copy(alpha = 0.3f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = stringResource(R.string.livestock_sample_test_label),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = HarvestAmber
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        val samples = listOf("Cow (FMD)", "Buffalo (Mastitis)", "Goat (Skin)")
-                        samples.forEach { sample ->
-                            Surface(
-                                shape = RoundedCornerShape(9999.dp),
-                                color = CardWhite,
-                                border = BorderStroke(1.dp, BorderMedium),
-                                modifier = Modifier.weight(1f).clickable {
-                                    val cleanName = sample.substringBefore(" ")
-                                    animalType = cleanName
-                                    selectedUri = viewModel.createSampleAnimalUri(sample)
-                                    permissionNotice = null
-                                }
-                            ) {
-                                Text(
-                                    text = sample,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextCharcoal,
-                                    maxLines = 1,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
-                                    fontSize = 10.sp
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Animal category chip group
+            // Structured Clinical Intake Card
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = CardWhite),
                 border = BorderStroke(1.dp, BorderLight),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(stringResource(R.string.livestock_category_label), fontWeight = FontWeight.Bold, color = TextCharcoal)
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        commonAnimals.take(3).forEach { animal ->
-                            Surface(
-                                shape = RoundedCornerShape(9999.dp),
-                                color = if (animalType == animal) GreenTint else SurfaceContainerLow,
-                                border = BorderStroke(1.dp, if (animalType == animal) DeepEmerald else BorderMedium),
-                                modifier = Modifier.clickable { animalType = animal }
-                            ) {
-                                Text(
-                                    text = animal,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (animalType == animal) DeepEmerald else TextCharcoal,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                )
-                            }
+                        commonAnimals.forEach { sp ->
+                            FilterChip(selected = animalType == sp, onClick = { animalType = sp }, label = { Text(sp) })
                         }
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = animalAge,
+                            onValueChange = { animalAge = it },
+                            label = { Text("Age / Group") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                        OutlinedTextField(
+                            value = symptomDuration,
+                            onValueChange = { symptomDuration = it },
+                            label = { Text("Duration") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                    }
+
+                    Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        durations.forEach { d ->
+                            FilterChip(selected = symptomDuration == d, onClick = { symptomDuration = d }, label = { Text(d) })
+                        }
+                    }
+
+                    Text("Fever?", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = TextCharcoal)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        yesNoOpts.forEach { (k, lbl) ->
+                            FilterChip(selected = feverStatus == k, onClick = { feverStatus = k }, label = { Text(lbl) })
+                        }
+                    }
+
+                    Text("Appetite & Feed Intake", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = TextCharcoal)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        appetiteOpts.forEach { (k, lbl) ->
+                            FilterChip(selected = appetiteStatus == k, onClick = { appetiteStatus = k }, label = { Text(lbl) })
+                        }
+                    }
+
+                    Text("Milk Yield Change", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = TextCharcoal)
+                    Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        milkOpts.forEach { (k, lbl) ->
+                            FilterChip(selected = milkYieldChange == k, onClick = { milkYieldChange = k }, label = { Text(lbl) })
+                        }
+                    }
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Visible lesions / blisters / ulcers", style = MaterialTheme.typography.bodySmall, color = TextCharcoal)
+                        Switch(checked = lesionsOrUlcers, onCheckedChange = { lesionsOrUlcers = it })
+                    }
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Already isolated from healthy herd", style = MaterialTheme.typography.bodySmall, color = TextCharcoal)
+                        Switch(checked = isolatedFromHerd, onCheckedChange = { isolatedFromHerd = it })
                     }
 
                     OutlinedTextField(
-                        value = animalType,
-                        onValueChange = { animalType = it },
-                        label = { Text(stringResource(R.string.livestock_category)) },
-                        leadingIcon = { Icon(Icons.Default.Pets, null, tint = DeepEmerald) },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
+                        value = symptomsNotes,
+                        onValueChange = { symptomsNotes = it },
+                        label = { Text("Symptom notes (cough, lameness, swelling...)") },
+                        trailingIcon = {
+                            MicButton(
+                                speechToText = viewModel.speechToText,
+                                lang = currentLang,
+                                onResult = { symptomsNotes = if (symptomsNotes.isBlank()) it else "$symptomsNotes, $it" },
+                                onExplanation = { permissionNotice = it },
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = DeepEmerald,
-                            unfocusedBorderColor = BorderMedium
-                        )
+                        shape = RoundedCornerShape(12.dp),
                     )
-
-                    // Symptoms checklist
-                    Text(stringResource(R.string.livestock_symptoms_label), fontWeight = FontWeight.Bold, color = TextCharcoal, style = MaterialTheme.typography.labelMedium)
-                    val symptomOptions = listOf(
-                        "Fever (तेज बुखार)",
-                        "Mouth/Hoof Blisters (छाले)",
-                        "Loss of Appetite (भूख न लगना)",
-                        "Reduced Milk (दूध में कमी)",
-                        "Lameness (लंगड़ाना)"
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        symptomOptions.forEach { symptom ->
-                            val isChecked = selectedSymptoms.contains(symptom)
-                            Surface(
-                                shape = RoundedCornerShape(9999.dp),
-                                color = if (isChecked) AmberTint else SurfaceContainerLow,
-                                border = BorderStroke(1.dp, if (isChecked) HarvestAmber else BorderMedium),
-                                modifier = Modifier.clickable {
-                                    val updated = selectedSymptoms.toMutableSet()
-                                    if (isChecked) updated.remove(symptom) else updated.add(symptom)
-                                    selectedSymptoms = updated
-                                }
-                            ) {
-                                Text(
-                                    text = symptom,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isChecked) SecondaryOrange else TextCharcoal,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                )
-                            }
-                        }
-                    }
                 }
             }
 
-            // Analyze button
+            // Submit Button
+            val canAnalyze = selectedUri != null || symptomsNotes.isNotBlank() || lesionsOrUlcers || feverStatus == "yes"
             Button(
                 onClick = {
-                    val uri = selectedUri ?: viewModel.createSampleAnimalUri(animalType)
-                    val fullType = if (selectedSymptoms.isNotEmpty()) {
-                        "$animalType showing symptoms: ${selectedSymptoms.joinToString(", ")}"
-                    } else {
-                        animalType
-                    }
-                    viewModel.analyze(uri, fullType)
+                    viewModel.analyzeDetailed(
+                        selectedUri,
+                        LivestockIntakeFields(
+                            animalType = animalType,
+                            animalAge = animalAge,
+                            symptomDuration = symptomDuration,
+                            feverStatus = feverStatus,
+                            appetiteStatus = appetiteStatus,
+                            milkYieldChange = milkYieldChange,
+                            lesionsOrUlcers = lesionsOrUlcers,
+                            isolatedFromHerd = isolatedFromHerd,
+                            symptomsNotes = symptomsNotes,
+                        )
+                    )
                 },
-                enabled = !state.isLoading && animalType.isNotBlank(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
+                enabled = !state.isLoading && canAnalyze,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(9999.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
             ) {
                 if (state.isLoading) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(22.dp))
                 } else {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(Icons.Default.MedicalServices, contentDescription = null)
-                        Text(
-                            text = "🐾 " + stringResource(R.string.livestock_run_diagnostics),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                    }
+                    Text("🐾 " + stringResource(R.string.livestock_run_diagnostics), fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -507,159 +454,97 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
                     colors = CardDefaults.cardColors(containerColor = ErrorContainer),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(text = it, color = OnErrorContainer, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(12.dp))
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("AI Veterinary Triage Unavailable", fontWeight = FontWeight.Bold, color = ErrorRed)
+                        Text(text = it, color = OnErrorContainer, style = MaterialTheme.typography.bodySmall)
+                        Text("For urgent symptoms (fever + ulcers, bleeding, collapse), call 1962 immediately.", style = MaterialTheme.typography.labelSmall, color = OnErrorContainer)
+                    }
                 }
             }
 
-            // Livestock Result Card
+            // Result Card
             state.result?.let { r ->
+                if (r.urgentVetEscalation) {
+                    Card(
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = ErrorContainer),
+                        border = BorderStroke(1.5.dp, ErrorRed),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("URGENT VETERINARY ESCALATION RECOMMENDED", fontWeight = FontWeight.ExtraBold, color = ErrorRed)
+                            r.escalationReason?.takeIf { it.isNotBlank() }?.let {
+                                Text(it, style = MaterialTheme.typography.bodySmall, color = OnErrorContainer)
+                            }
+                        }
+                    }
+                }
+
                 Card(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = CardWhite),
                     border = BorderStroke(1.5.dp, GreenTint),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Surface(shape = RoundedCornerShape(9999.dp), color = GreenTint) {
                                 Text(
-                                    text = stringResource(R.string.livestock_diagnosed_result),
+                                    text = "${stringResource(R.string.livestock_diagnosed_result)} • ${r.severity ?: "Screened"}",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = DeepEmerald,
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                 )
                             }
-                            val currentLang by viewModel.language.collectAsState()
-                            val textToSpeak = remember(r, currentLang) {
-                                val condPrefix = when (currentLang.lowercase().trim()) {
-                                    "hi" -> "पशु रोग स्थिति"
-                                    "mr" -> "पशु आरोग्य स्थिती"
-                                    "pa" -> "ਪਸ਼ੂ ਸਥਿਤੀ"
-                                    "bho" -> "पशु के स्थिति"
-                                    "sa" -> "पशुस्थितिः"
-                                    else -> "Condition"
-                                }
-                                val sympPrefix = when (currentLang.lowercase().trim()) {
-                                    "hi" -> "लक्षण"
-                                    "mr" -> "लक्षणे"
-                                    "pa" -> "ਲੱਛਣ"
-                                    "bho" -> "लक्षण"
-                                    "sa" -> "लक्षणम्"
-                                    else -> "Symptoms"
-                                }
-                                val actPrefix = when (currentLang.lowercase().trim()) {
-                                    "hi" -> "तत्काल उपाय"
-                                    "mr" -> "त्वरित उपाय"
-                                    "pa" -> "ਤੁਰੰਤ ਕਾਰਵਾਈ"
-                                    "bho" -> "तुरंत उपाय"
-                                    "sa" -> "तत्क्षणोपायः"
-                                    else -> "Immediate action"
-                                }
-                                val carePrefix = when (currentLang.lowercase().trim()) {
-                                    "hi" -> "दीर्घकालिक देखभाल"
-                                    "mr" -> "दीर्घकालीन काळजी"
-                                    "pa" -> "ਲੰਬੇ ਸਮੇਂ ਦੀ ਦੇਖਭਾਲ"
-                                    "bho" -> "लम्बा समय के देखभाल"
-                                    "sa" -> "दीर्घकालरक्षणम्"
-                                    else -> "Long term care"
-                                }
-                                val delimiter = if (currentLang.lowercase().trim() in listOf("hi", "pa", "bho", "sa")) "।" else "."
-                                val sympPart = if (r.symptoms.isNotEmpty()) "$sympPrefix: ${r.symptoms.joinToString(", ")}$delimiter " else ""
-                                val actPart = if (!r.immediateAction.isNullOrBlank()) "$actPrefix: ${r.immediateAction}$delimiter " else ""
-                                val carePart = if (!r.longTermCare.isNullOrBlank()) "$carePrefix: ${r.longTermCare}$delimiter " else ""
-                                "$condPrefix: ${r.conditionName ?: ""}$delimiter $sympPart$actPart$carePart".trim()
-                            }
-                            com.kissansevaai.ui.component.TTSButton(
+                            TTSButton(
                                 ttsEngine = viewModel.ttsEngine,
-                                textToSpeak = textToSpeak,
+                                textToSpeak = listOfNotNull(r.conditionName, r.immediateAction, r.vetConsultationAdvice).joinToString(". "),
                                 lang = currentLang,
-                                onFallbackExplanation = { fallbackMsg -> permissionNotice = fallbackMsg }
+                                onFallbackExplanation = { permissionNotice = it },
                             )
                         }
 
                         r.conditionName?.let {
-                            Text(it, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = TextCharcoal)
+                            Text(it, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = TextCharcoal)
                         }
 
-                        if (r.symptoms.isNotEmpty()) {
-                            Text(stringResource(R.string.livestock_symptoms_label), fontWeight = FontWeight.Bold, color = TextCharcoal)
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                r.symptoms.forEach { symptom ->
-                                    Row(
-                                        verticalAlignment = Alignment.Top,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Icon(Icons.Default.FiberManualRecord, null, tint = HarvestAmber, modifier = Modifier.size(10.dp).padding(top = 4.dp))
-                                        Text(symptom, color = TextCharcoal, style = MaterialTheme.typography.bodyMedium)
-                                    }
-                                }
+                        r.safetyNotice?.let { safety ->
+                            Surface(shape = RoundedCornerShape(10.dp), color = AmberTint, border = BorderStroke(1.dp, SecondaryOrange)) {
+                                Text(safety, style = MaterialTheme.typography.labelSmall, color = SecondaryOrange, modifier = Modifier.padding(10.dp))
                             }
                         }
 
-                        // Immediate Action
                         r.immediateAction?.let {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = AmberTint.copy(alpha = 0.5f),
-                                border = BorderStroke(1.dp, HarvestAmber.copy(alpha = 0.4f)),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text(
-                                        text = "🚨 " + stringResource(R.string.livestock_immediate_action),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = SecondaryOrange
-                                    )
-                                    Text(it, color = TextCharcoal, style = MaterialTheme.typography.bodyMedium)
-                                }
-                            }
+                            Text("Immediate Care: $it", style = MaterialTheme.typography.bodyMedium, color = TextCharcoal)
                         }
-
-                        // Long term care
                         r.longTermCare?.let {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = GreenBg,
-                                border = BorderStroke(1.dp, GreenTint),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text(
-                                        text = "🌿 " + stringResource(R.string.livestock_long_term),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = DeepEmerald
-                                    )
-                                    Text(it, color = TextCharcoal, style = MaterialTheme.typography.bodyMedium)
-                                }
-                            }
+                            Text("Supportive Care: $it", style = MaterialTheme.typography.bodySmall, color = TextMuted)
                         }
-
-                        // Vet advice
                         r.vetConsultationAdvice?.let {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = SurfaceContainerLow,
-                                border = BorderStroke(1.dp, BorderMedium),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text(
-                                        text = "👨‍⚕️ " + stringResource(R.string.livestock_vet_advice),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = TextCharcoal
-                                    )
-                                    Text(it, color = TextCharcoal, style = MaterialTheme.typography.bodyMedium)
+                            Text("Vet Advice: $it", style = MaterialTheme.typography.bodySmall, color = DeepEmerald, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            }
+
+            if (history.isNotEmpty()) {
+                Text("Recent Livestock Triage (${history.size})", fontWeight = FontWeight.Bold, color = TextCharcoal)
+                history.take(5).forEach { h ->
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardWhite),
+                        border = BorderStroke(1.dp, BorderLight),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("${h.animalType ?: "Livestock"}: ${h.conditionName ?: "Screened"}", fontWeight = FontWeight.Bold, color = DeepEmerald)
+                                if (h.urgentVetEscalation) {
+                                    Text("URGENT", style = MaterialTheme.typography.labelSmall, color = ErrorRed, fontWeight = FontWeight.Bold)
                                 }
                             }
+                            h.immediateAction?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = TextMuted) }
                         }
                     }
                 }

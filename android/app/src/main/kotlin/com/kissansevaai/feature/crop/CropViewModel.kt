@@ -4,24 +4,25 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kissansevaai.core.ai.FieldExtractor
+import com.kissansevaai.core.ai.SpeechToText
+import com.kissansevaai.core.ai.TextToSpeechEngine
 import com.kissansevaai.core.common.Resource
 import com.kissansevaai.core.data.DataStoreManager
 import com.kissansevaai.core.model.CropAnalysisResult
+import com.kissansevaai.core.model.SecondOpinionResponse
 import com.kissansevaai.core.repository.CropRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import com.kissansevaai.core.ai.FieldExtractor
-import com.kissansevaai.core.ai.SpeechToText
-import com.kissansevaai.core.ai.TextToSpeechEngine
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 @HiltViewModel
@@ -42,6 +43,10 @@ class CropViewModel @Inject constructor(
 
     private val _history = MutableStateFlow<List<CropAnalysisResult>>(emptyList())
     val history: StateFlow<List<CropAnalysisResult>> = _history
+
+    private var lastImageUri: Uri? = null
+    private var lastLocation: String = "India"
+    private var lastSoilType: String = "Loamy"
 
     init {
         loadHistory()
@@ -84,6 +89,9 @@ class CropViewModel @Inject constructor(
     }
 
     fun analyze(imageUri: Uri, location: String, soilType: String) {
+        lastImageUri = imageUri
+        lastLocation = location
+        lastSoilType = soilType
         viewModelScope.launch {
             _uiState.value = CropUiState(isLoading = true)
             try {
@@ -110,10 +118,74 @@ class CropViewModel @Inject constructor(
             }
         }
     }
+
+    fun requestSecondOpinion(imageUri: Uri? = null, location: String? = null, soilType: String? = null) {
+        val currentResult = _uiState.value.result ?: return
+        val targetUri = imageUri ?: lastImageUri
+        val targetLoc = location ?: lastLocation
+        val targetSoil = soilType ?: lastSoilType
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSecondOpinionLoading = true, secondOpinionError = null)
+            try {
+                val lang = dataStore.language.first()
+                val imagePart = targetUri?.let { uri ->
+                    val bytes = com.kissansevaai.core.util.ImageCompressor.compressImage(context, uri)
+                    MultipartBody.Part.createFormData(
+                        "image", "leaf_second_opinion.jpg", bytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+                    )
+                }
+
+                repository.requestSecondOpinion(
+                    image = imagePart,
+                    analysisId = currentResult.id?.takeIf { !it.startsWith("temp_") }?.toRequestBody("text/plain".toMediaTypeOrNull()),
+                    farmerConsented = "true".toRequestBody("text/plain".toMediaTypeOrNull()),
+                    location = targetLoc.toRequestBody("text/plain".toMediaTypeOrNull()),
+                    soilType = targetSoil.toRequestBody("text/plain".toMediaTypeOrNull()),
+                    language = lang.toRequestBody("text/plain".toMediaTypeOrNull()),
+                    primaryCrop = (currentResult.cropName ?: "").toRequestBody("text/plain".toMediaTypeOrNull()),
+                    primaryDisease = currentResult.diseaseName.toRequestBody("text/plain".toMediaTypeOrNull()),
+                ).collect { res ->
+                    when (res) {
+                        is Resource.Loading -> _uiState.value = _uiState.value.copy(isSecondOpinionLoading = true)
+                        is Resource.Success -> {
+                            val sec = res.data
+                            val updatedPrimary = currentResult.copy(
+                                secondOpinion = sec.secondOpinion,
+                                reconciliationStatus = sec.reconciliationStatus,
+                                reconciliationNote = sec.reconciliationNote,
+                                treatmentWithheld = currentResult.treatmentWithheld || sec.treatmentWithheld,
+                            )
+                            _uiState.value = _uiState.value.copy(
+                                isSecondOpinionLoading = false,
+                                result = updatedPrimary,
+                                secondOpinionResponse = sec,
+                                secondOpinionError = if (!sec.ok) sec.error else null,
+                            )
+                        }
+                        is Resource.Error -> {
+                            _uiState.value = _uiState.value.copy(
+                                isSecondOpinionLoading = false,
+                                secondOpinionError = res.message,
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isSecondOpinionLoading = false,
+                    secondOpinionError = e.localizedMessage ?: "Second opinion request failed",
+                )
+            }
+        }
+    }
 }
 
 data class CropUiState(
     val isLoading: Boolean = false,
     val result: CropAnalysisResult? = null,
     val error: String? = null,
+    val isSecondOpinionLoading: Boolean = false,
+    val secondOpinionResponse: SecondOpinionResponse? = null,
+    val secondOpinionError: String? = null,
 )

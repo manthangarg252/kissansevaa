@@ -276,4 +276,25 @@
     <string name="auth_server_config">Server Configuration</string>
     <string name="auth_server_config_save">Save &amp; Connect</string>
     <string name="tts_fallback_hindi">Sanskrit voice output is not supported on this device. Speaking in Hindi instead.</string>
+
+    <!-- Stage 1 Weather, Planner & Second Opinion -->
+    <string name="weather_title">Weather &amp; Spray Window</string>
+    <string name="weather_location_label">District or City</string>
+    <string name="weather_check_alerts_btn">Check Farm Weather Alerts</string>
+    <string name="weather_spray_suitable">Spraying Window: Suitable</string>
+    <string name="weather_spray_hold">Hold Spraying — Risk Detected</string>
+    <string name="weather_advisories_heading">Agronomic Weather Advisories</string>
+    <string name="weather_7day_heading">7-Day Forecast</string>
+    <string name="planner_title">Smart Crop Planner</string>
+    <string name="planner_new_plan">New 7-Day Plan</string>
+    <string name="toolkit_weather_title">Weather Alerts</string>
+    <string name="toolkit_weather_desc">Live Open-Meteo spray &amp; rain advisories</string>
+    <string name="toolkit_weather_tag">LIVE</string>
+    <string name="toolkit_planner_title">Crop Planner</string>
+    <string name="toolkit_planner_desc">Weather-aware 7-day crop task schedule</string>
+    <string name="toolkit_planner_tag">7-DAY</string>
+    <string name="crop_second_opinion_title">Uncertain Result — Request Gemini Second Opinion?</string>
+    <string name="crop_second_opinion_desc">With your permission, send this photo to Gemini Vision for an independent check while keeping the primary DINOv2 scan intact.</string>
+    <string name="crop_second_opinion_consent">I consent to upload this leaf image for cloud Gemini Vision review</string>
+    <string name="crop_second_opinion_btn">Get Gemini Second Opinion</string>
 </resources>

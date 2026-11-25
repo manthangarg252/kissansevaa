@@ -246,4 +246,25 @@
     <string name="auth_server_config">सर्व्हर कॉन्फिगरेशन</string>
     <string name="auth_server_config_save">जतन करा आणि कनेक्ट करा</string>
     <string name="tts_fallback_hindi">या डिव्हाइसवर संस्कृत आवाज उपलब्ध नाही. हिंदीमध्ये ऐकवले जात आहे.</string>
+
+    <!-- Stage 1 Weather, Planner & Second Opinion -->
+    <string name="weather_title">हवामान व फवारणी सल्ला</string>
+    <string name="weather_location_label">जिल्हा किंवा शहर</string>
+    <string name="weather_check_alerts_btn">शेती हवामान इशारे पहा</string>
+    <string name="weather_spray_suitable">फवारणीची वेळ: योग्य</string>
+    <string name="weather_spray_hold">फवारणी थांबवा — हवामान धोका</string>
+    <string name="weather_advisories_heading">कृषी हवामान सल्ला</string>
+    <string name="weather_7day_heading">७ दिवसांचा अंदाज</string>
+    <string name="planner_title">स्मार्ट पीक नियोजक</string>
+    <string name="planner_new_plan">नवीन ७-दिवसांचा प्लॅन</string>
+    <string name="toolkit_weather_title">हवामान इशारे</string>
+    <string name="toolkit_weather_desc">लाइव्ह Open-Meteo पाऊस व फवारणी सल्ला</string>
+    <string name="toolkit_weather_tag">लाइव्ह</string>
+    <string name="toolkit_planner_title">पीक नियोजक</string>
+    <string name="toolkit_planner_desc">हवामानानुसार ७-दिवसांची शेती कामे</string>
+    <string name="toolkit_planner_tag">७-दिवस</string>
+    <string name="crop_second_opinion_title">अनिश्चित निकाल — Gemini दुसरे मत घ्यायचे?</string>
+    <string name="crop_second_opinion_desc">तुमच्या परवानगीने हा फोटो स्वतंत्र तपासणीसाठी Gemini Vision कडे पाठवला जाईल; मूळ DINOv2 निकाल कायम राहील.</string>
+    <string name="crop_second_opinion_consent">Gemini Vision तपासणीसाठी पानाचा फोटो पाठवण्यास माझी संमती आहे</string>
+    <string name="crop_second_opinion_btn">Gemini दुसरे मत मिळवा</string>
 </resources>

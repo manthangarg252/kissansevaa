@@ -1,8 +1,7 @@
-
 import IoTData from '../models/IoTData.js';
-import { generateText } from '../services/geminiService.js';
+import { callGeminiText, sendAiErrorResponse } from '../services/geminiService.js';
 
-export const getLiveStats = async (req, res) => {
+export const getLiveStats = async (_req, res) => {
   try {
     const latest = await IoTData.findOne().sort({ createdAt: -1 });
     if (!latest) {
@@ -11,15 +10,15 @@ export const getLiveStats = async (req, res) => {
         humidity: 65,
         soilMoisture: 42,
         phLevel: 6.8,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
     res.json({
-        temperature: latest.temperature,
-        humidity: latest.humidity,
-        soilMoisture: latest.soilMoisture,
-        phLevel: latest.phLevel,
-        timestamp: latest.timestamp
+      temperature: latest.temperature,
+      humidity: latest.humidity,
+      soilMoisture: latest.soilMoisture,
+      phLevel: latest.phLevel,
+      timestamp: latest.timestamp,
     });
   } catch (error) {
     res.status(500).json({ error: 'Error fetching IoT data' });
@@ -33,7 +32,7 @@ export const updateStats = async (req, res) => {
       temperature: data.temperature,
       humidity: data.humidity,
       soilMoisture: data.soilMoisture,
-      phLevel: data.phLevel
+      phLevel: data.phLevel,
     });
     res.json({ status: 'success' });
   } catch (error) {
@@ -43,25 +42,33 @@ export const updateStats = async (req, res) => {
 
 export const getInsights = async (req, res) => {
   try {
-    const { sensorData, language } = req.body;
+    const { sensorData, language = 'en' } = req.body || {};
 
     if (!sensorData) {
       return res.status(400).json({ error: 'sensorData object is required' });
     }
 
     const systemInstruction = `You are a smart farming IoT data analyst.
-      Interpret sensor readings and provide 3 concise actionable recommendations.
-      Consider optimal ranges: temperature 20-35°C, humidity 50-80%,
-      soil moisture 30-60%, pH 6.0-7.5.
-      Reply strictly in ${language || 'English'}.
-      Use plain text only. No Markdown. Number points 1., 2., 3.`;
+Interpret sensor readings and provide 3 concise actionable recommendations.
+Optimal ranges: temperature 20-35°C, humidity 50-80%, soil moisture 30-60%, pH 6.0-7.5.
+Reply strictly in ${language || 'English'}.
+Use plain text only. Number points 1., 2., 3.`;
 
     const prompt = `Current sensor readings: Temperature: ${sensorData.temperature}°C, Humidity: ${sensorData.humidity}%, Soil Moisture: ${sensorData.soilMoisture}%, pH Level: ${sensorData.phLevel}.`;
 
-    const response = await generateText(prompt, systemInstruction);
-    res.json({ response });
+    const aiRes = await callGeminiText({
+      prompt,
+      systemInstruction,
+      userId: req.user?._id,
+      feature: 'iot_insights',
+    });
+
+    res.json({
+      response: aiRes.text,
+      aiAvailable: true,
+      requestId: aiRes.requestId,
+    });
   } catch (error) {
-    console.error('IoT Insights Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return sendAiErrorResponse(res, error);
   }
 };

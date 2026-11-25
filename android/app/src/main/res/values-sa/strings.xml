@@ -246,4 +246,25 @@
     <string name="auth_server_config">सर्वर्-विन्यासः</string>
     <string name="auth_server_config_save">संरक्ष्य योजयन्तु</string>
     <string name="tts_fallback_hindi">अस्मिन् यन्त्रे संस्कृतस्वरः नास्ति। हिन्दीभाषया श्रूयते।</string>
+
+    <!-- Stage 1 Weather, Planner & Second Opinion -->
+    <string name="weather_title">वातावरणं सेचनपरामर्शश्च</string>
+    <string name="weather_location_label">जनपदः अथवा नगरम्</string>
+    <string name="weather_check_alerts_btn">कृषिवातावरणसूचनां पश्यतु</string>
+    <string name="weather_spray_suitable">सेचनकालः: अनुकूलः</string>
+    <string name="weather_spray_hold">सेचनं स्थगयतु — संकटम्</string>
+    <string name="weather_advisories_heading">कृषिवातावरणपरामर्शाः</string>
+    <string name="weather_7day_heading">सप्तदिनपूर्वानुमानम्</string>
+    <string name="planner_title">सस्ययोजनादर्शिका</string>
+    <string name="planner_new_plan">नूतना सप्तदिनयोजना</string>
+    <string name="toolkit_weather_title">वातावरणसूचना</string>
+    <string name="toolkit_weather_desc">प्रत्यक्ष Open-Meteo वृष्टि-सेचनपरामर्शः</string>
+    <string name="toolkit_weather_tag">प्रत्यक्षम्</string>
+    <string name="toolkit_planner_title">सस्ययोजना</string>
+    <string name="toolkit_planner_desc">वातावरणानुसारं सप्तदिनकृषिकार्याणि</string>
+    <string name="toolkit_planner_tag">७-दिनम्</string>
+    <string name="crop_second_opinion_title">अनिश्चितनिर्णयः — Gemini द्वितीयमतं पृच्छतु?</string>
+    <string name="crop_second_opinion_desc">भवतः अनुमत्या इदं चित्रं Gemini Vision समीक्षायै प्रेष्यते; मूल-DINOv2-निर्णयः सुरक्षितः स्थास्यति।</string>
+    <string name="crop_second_opinion_consent">Gemini Vision समीक्षायै पर्णचित्रप्रेषणाय मम अनुमतिः अस्ति</string>
+    <string name="crop_second_opinion_btn">Gemini द्वितीयमतं प्राप्नोतु</string>
 </resources>

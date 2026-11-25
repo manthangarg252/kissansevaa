@@ -1,5 +1,6 @@
 package com.kissansevaai.core.repository
 
+import com.kissansevaai.core.data.DataStoreManager
 import com.kissansevaai.core.database.*
 import com.kissansevaai.core.network.KissanApi
 import dagger.Module
@@ -14,8 +15,13 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideSchemesRepository(api: KissanApi, dao: SchemeDao): SchemesRepository =
-        SchemesRepository(api, dao)
+    fun provideSchemesRepository(
+        api: KissanApi,
+        dao: SchemeDao,
+        savedSchemeDao: SavedSchemeDao,
+        syncDao: SyncOperationDao,
+        dataStore: DataStoreManager,
+    ): SchemesRepository = SchemesRepository(api, dao, savedSchemeDao, syncDao, dataStore)
 
     @Provides
     @Singleton
@@ -29,18 +35,29 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun providePricesRepository(api: KissanApi, dao: MarketPriceDao): PricesRepository =
-        PricesRepository(api, dao)
+    fun providePricesRepository(
+        api: KissanApi,
+        dao: MarketPriceDao,
+        favoriteDao: MarketFavoriteDao,
+        syncDao: SyncOperationDao,
+        dataStore: DataStoreManager,
+    ): PricesRepository = PricesRepository(api, dao, favoriteDao, syncDao, dataStore)
 
     @Provides
     @Singleton
-    fun provideCropRepository(api: KissanApi, dao: CropAnalysisDao): CropRepository =
-        CropRepository(api, dao)
+    fun provideCropRepository(
+        api: KissanApi,
+        dao: CropAnalysisDao,
+        dataStore: DataStoreManager,
+    ): CropRepository = CropRepository(api, dao, dataStore)
 
     @Provides
     @Singleton
-    fun provideChatRepository(api: KissanApi, dao: ChatDao): ChatRepository =
-        ChatRepository(api, dao)
+    fun provideChatRepository(
+        api: KissanApi,
+        dao: ChatDao,
+        dataStore: DataStoreManager,
+    ): ChatRepository = ChatRepository(api, dao, dataStore)
 
     @Provides
     @Singleton
@@ -49,11 +66,31 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideLivestockRepository(api: KissanApi): LivestockRepository =
-        LivestockRepository(api)
+    fun provideLivestockRepository(
+        api: KissanApi,
+        livestockDao: LivestockDao,
+        dataStore: DataStoreManager,
+    ): LivestockRepository = LivestockRepository(api, livestockDao, dataStore)
 
     @Provides
     @Singleton
     fun provideCarbonRepository(api: KissanApi): CarbonRepository =
         CarbonRepository(api)
+
+    @Provides
+    @Singleton
+    fun provideWeatherRepository(
+        api: KissanApi,
+        weatherDao: WeatherDao,
+    ): WeatherRepository = WeatherRepository(api, weatherDao)
+
+    @Provides
+    @Singleton
+    fun providePlannerRepository(
+        api: KissanApi,
+        planDao: CropPlanDao,
+        taskDao: PlannerTaskDao,
+        syncDao: SyncOperationDao,
+        dataStore: DataStoreManager,
+    ): PlannerRepository = PlannerRepository(api, planDao, taskDao, syncDao, dataStore)
 }

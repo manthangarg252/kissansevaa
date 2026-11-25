@@ -7,10 +7,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.kissansevaai.core.data.DataStoreManager
+import com.kissansevaai.feature.auth.AuthViewModel
 import com.kissansevaai.feature.auth.LoginScreen
 import com.kissansevaai.feature.auth.SignupScreen
-import com.kissansevaai.feature.auth.AuthViewModel
 import com.kissansevaai.feature.carbon.CarbonCreditsScreen
 import com.kissansevaai.feature.chat.ChatbotScreen
 import com.kissansevaai.feature.crop.CropDiseaseScreen
@@ -19,10 +18,12 @@ import com.kissansevaai.feature.iot.IoTMonitoringScreen
 import com.kissansevaai.feature.livestock.LivestockScreen
 import com.kissansevaai.feature.loans.LoansScreen
 import com.kissansevaai.feature.market.MarketInsightsScreen
+import com.kissansevaai.feature.planner.CropPlannerScreen
 import com.kissansevaai.feature.prices.LivePricesScreen
 import com.kissansevaai.feature.schemes.SchemesScreen
 import com.kissansevaai.feature.settings.SettingsScreen
 import com.kissansevaai.feature.traders.TradersScreen
+import com.kissansevaai.feature.weather.WeatherScreen
 
 @Composable
 fun KissanNavGraph() {
@@ -85,6 +86,14 @@ fun KissanNavGraph() {
 
         composable<Screen.Livestock> {
             LivestockScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable<Screen.Weather> {
+            WeatherScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable<Screen.CropPlanner> {
+            CropPlannerScreen(onBack = { navController.popBackStack() })
         }
 
         composable<Screen.MarketInsights> {

@@ -246,4 +246,25 @@
     <string name="auth_server_config">ਸਰਵਰ ਕੌਂਫਿਗਰੇਸ਼ਨ</string>
     <string name="auth_server_config_save">ਸੰਭਾਲੋ ਅਤੇ ਕਨੈਕਟ ਕਰੋ</string>
     <string name="tts_fallback_hindi">ਇਸ ਡਿਵਾਈਸ ਤੇ ਸੰਸਕ੍ਰਿਤ ਆਵਾਜ਼ ਉਪਲਬਧ ਨਹੀਂ ਹੈ। ਹਿੰਦੀ ਵਿੱਚ ਬੋਲਿਆ ਜਾ ਰਿਹਾ ਹੈ।</string>
+
+    <!-- Stage 1 Weather, Planner & Second Opinion -->
+    <string name="weather_title">ਮੌਸਮ ਅਤੇ ਛਿੜਕਾਅ ਸਲਾਹ</string>
+    <string name="weather_location_label">ਜ਼ਿਲ੍ਹਾ ਜਾਂ ਸ਼ਹਿਰ</string>
+    <string name="weather_check_alerts_btn">ਖੇਤੀ ਮੌਸਮ ਚੇਤਾਵਨੀ ਵੇਖੋ</string>
+    <string name="weather_spray_suitable">ਛਿੜਕਾਅ ਦਾ ਸਮਾਂ: ਢੁਕਵਾਂ</string>
+    <string name="weather_spray_hold">ਛਿੜਕਾਅ ਰੋਕੋ — ਮੌਸਮ ਦਾ ਖਤਰਾ</string>
+    <string name="weather_advisories_heading">ਖੇਤੀ ਮੌਸਮ ਸਲਾਹ</string>
+    <string name="weather_7day_heading">7-ਦਿਨ ਦਾ ਮੌਸਮ</string>
+    <string name="planner_title">ਸਮਾਰਟ ਫ਼ਸਲ ਪਲਾਨਰ</string>
+    <string name="planner_new_plan">ਨਵਾਂ 7-ਦਿਨ ਪਲਾਨ</string>
+    <string name="toolkit_weather_title">ਮੌਸਮ ਅਲਰਟ</string>
+    <string name="toolkit_weather_desc">ਲਾਈਵ Open-Meteo ਮੀਂਹ ਅਤੇ ਛਿੜਕਾਅ ਸਲਾਹ</string>
+    <string name="toolkit_weather_tag">ਲਾਈਵ</string>
+    <string name="toolkit_planner_title">ਫ਼ਸਲ ਪਲਾਨਰ</string>
+    <string name="toolkit_planner_desc">ਮੌਸਮ ਅਨੁਸਾਰ 7-ਦਿਨ ਦੇ ਖੇਤੀ ਕੰਮ</string>
+    <string name="toolkit_planner_tag">7-ਦਿਨ</string>
+    <string name="crop_second_opinion_title">ਗੈਰ-ਯਕੀਨੀ ਨਤੀਜਾ — Gemini ਦੂਜੀ ਰਾਏ ਲਓ?</string>
+    <string name="crop_second_opinion_desc">ਤੁਹਾਡੀ ਸਹਿਮਤੀ ਨਾਲ ਇਹ ਫੋਟੋ Gemini Vision ਕੋਲ ਭੇਜੀ ਜਾਵੇਗੀ; ਮੂਲ DINOv2 ਨਤੀਜਾ ਸੁਰੱਖਿਅਤ ਰਹੇਗਾ।</string>
+    <string name="crop_second_opinion_consent">ਮੈਂ Gemini Vision ਸਮੀਖਿਆ ਲਈ ਪੱਤੇ ਦੀ ਫੋਟੋ ਭੇਜਣ ਦੀ ਸਹਿਮਤੀ ਦਿੰਦਾ ਹਾਂ</string>
+    <string name="crop_second_opinion_btn">Gemini ਦੂਜੀ ਰਾਏ ਲਓ</string>
 </resources>

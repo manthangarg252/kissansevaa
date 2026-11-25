@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,15 +28,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kissansevaai.R
+import com.kissansevaai.core.ai.SpeechToText
+import com.kissansevaai.core.ai.TextToSpeechEngine
 import com.kissansevaai.core.common.Resource
 import com.kissansevaai.core.data.DataStoreManager
 import com.kissansevaai.core.repository.ChatRepository
 import com.kissansevaai.ui.component.FeatureScaffold
-import com.kissansevaai.ui.theme.*
-import com.kissansevaai.core.ai.SpeechToText
-import com.kissansevaai.core.ai.TextToSpeechEngine
 import com.kissansevaai.ui.component.MicButton
 import com.kissansevaai.ui.component.TTSButton
+import com.kissansevaai.ui.theme.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -46,7 +47,13 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class ChatMessage(val text: String, val isUser: Boolean)
+data class ChatMessage(
+    val text: String,
+    val isUser: Boolean,
+    val category: String = "general",
+    val groundedSources: List<String> = emptyList(),
+    val aiAvailable: Boolean = true,
+)
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
@@ -59,29 +66,46 @@ class ChatViewModel @Inject constructor(
     val language: StateFlow<String> = dataStore.language
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "en")
 
-    val messages: StateFlow<List<ChatMessage>> = repository.getMessages()
-        .map { list -> list.map { ChatMessage(it.text, it.sender == "user") } }
+    val messages: StateFlow<List<ChatMessage>> = repository.getSessionMessages("default")
+        .map { list ->
+            list.map {
+                ChatMessage(
+                    text = it.text,
+                    isUser = it.sender == "user",
+                    category = it.category,
+                    groundedSources = it.groundedSources,
+                    aiAvailable = it.aiAvailable,
+                )
+            }
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _isSending = MutableStateFlow(false)
     val isSending: StateFlow<Boolean> = _isSending
+
+    init {
+        viewModelScope.launch { repository.syncServerHistory("default") }
+    }
 
     fun send(text: String, mode: String = "general") {
         viewModelScope.launch {
             _isSending.value = true
             try {
                 val lang = dataStore.language.first()
-                repository.sendMessage(text, lang, mode).collect { res ->
+                repository.sendMessage(text, lang, mode, sessionId = "default").collect { res ->
                     when (res) {
                         is Resource.Loading -> _isSending.value = true
-                        is Resource.Success -> _isSending.value = false
-                        is Resource.Error -> _isSending.value = false
+                        is Resource.Success, is Resource.Error -> _isSending.value = false
                     }
                 }
             } catch (_: Exception) {
                 _isSending.value = false
             }
         }
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch { repository.clearHistory("default") }
     }
 }
 
@@ -96,55 +120,66 @@ fun ChatbotScreen(onBack: () -> Unit, viewModel: ChatViewModel = hiltViewModel()
     val listState = rememberLazyListState()
     var selectedMode by remember { mutableStateOf("General") }
 
-    val modes = listOf("General", "Crop Doctor", "Livestock", "Mandi Rates", "Schemes")
+    val modes = listOf("General", "Crop Doctor", "Livestock", "Mandi Rates", "Schemes", "Weather", "Crop Planner")
     val suggestions = listOf(
-        "What fertilizer is best for wheat?",
-        "Identify yellow rust symptoms",
-        "Today's cotton rate in Rajkot",
-        "PM-KISAN eligibility criteria"
+        "What is wheat rate in Nagpur mandi?",
+        "Am I eligible for PM-KISAN & PMFBY?",
+        "Is weather good for spraying today?",
+        "Next 7 day tasks for flowering Tomato",
     )
 
     LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex)
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
     }
 
     FeatureScaffold(
-        title = "KissanAI Assistant",
-        subtitle = "स्मार्ट कृषि सहायक • AI Agronomist",
+        title = stringResource(R.string.chatbot_title),
+        subtitle = "Tool-Grounded Multi-Turn AI Assistant",
         onBack = onBack,
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(padding),
         ) {
-            // Mode Selector Chips
+            // Mode Chips & Clear Button Row
             Surface(
                 color = CardWhite,
                 border = BorderStroke(1.dp, BorderLight),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    items(modes) { mode ->
-                        Surface(
-                            shape = RoundedCornerShape(9999.dp),
-                            color = if (selectedMode == mode) GreenTint else SurfaceContainerLow,
-                            border = BorderStroke(1.dp, if (selectedMode == mode) DeepEmerald else BorderMedium),
-                            modifier = Modifier.clickable { selectedMode = mode }
-                        ) {
-                            Text(
-                                text = mode,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = if (selectedMode == mode) DeepEmerald else TextCharcoal,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                            )
+                    LazyRow(
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(modes) { mode ->
+                            Surface(
+                                shape = RoundedCornerShape(9999.dp),
+                                color = if (selectedMode == mode) GreenTint else SurfaceContainerLow,
+                                border = BorderStroke(1.dp, if (selectedMode == mode) DeepEmerald else BorderLight),
+                                modifier = Modifier.clickable { selectedMode = mode }
+                            ) {
+                                Text(
+                                    text = mode,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (selectedMode == mode) DeepEmerald else TextCharcoal,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
+                    if (messages.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.clearHistory() }) {
+                            Icon(Icons.Default.DeleteSweep, contentDescription = "Clear History", tint = TextMuted)
                         }
                     }
                 }
@@ -159,7 +194,6 @@ fun ChatbotScreen(onBack: () -> Unit, viewModel: ChatViewModel = hiltViewModel()
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(vertical = 12.dp),
             ) {
-                // Initial greeting if empty
                 if (messages.isEmpty()) {
                     item {
                         Card(
@@ -225,19 +259,35 @@ fun ChatbotScreen(onBack: () -> Unit, viewModel: ChatViewModel = hiltViewModel()
                                 bottomEnd = if (msg.isUser) 4.dp else 16.dp
                             ),
                             colors = CardDefaults.cardColors(
-                                containerColor = if (msg.isUser) DeepEmerald else CardWhite,
+                                containerColor = when {
+                                    msg.isUser -> DeepEmerald
+                                    !msg.aiAvailable -> AmberTint
+                                    else -> CardWhite
+                                },
                             ),
                             border = if (!msg.isUser) BorderStroke(1.dp, BorderLight) else null,
                             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                             modifier = if (msg.isUser) Modifier.widthIn(max = 280.dp) else Modifier.weight(1f, fill = false),
                         ) {
-                            Text(
-                                text = msg.text,
-                                modifier = Modifier.padding(14.dp),
-                                color = if (msg.isUser) Color.White else TextCharcoal,
-                                style = MaterialTheme.typography.bodyMedium,
-                                lineHeight = 22.sp
-                            )
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(
+                                    text = msg.text,
+                                    color = if (msg.isUser) Color.White else TextCharcoal,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    lineHeight = 22.sp
+                                )
+                                if (!msg.isUser && msg.groundedSources.isNotEmpty()) {
+                                    Surface(shape = RoundedCornerShape(8.dp), color = GreenBg) {
+                                        Text(
+                                            text = "Grounded: ${msg.groundedSources.joinToString(", ")}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = DeepEmerald,
+                                            fontSize = 10.sp,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
 
                         if (!msg.isUser) {
@@ -318,7 +368,6 @@ fun ChatbotScreen(onBack: () -> Unit, viewModel: ChatViewModel = hiltViewModel()
                         )
                     )
 
-                    // Voice STT Mic Button
                     MicButton(
                         speechToText = viewModel.speechToText,
                         lang = language,
@@ -330,7 +379,6 @@ fun ChatbotScreen(onBack: () -> Unit, viewModel: ChatViewModel = hiltViewModel()
                         }
                     )
 
-                    // Send Button
                     FilledIconButton(
                         onClick = {
                             if (input.isNotBlank()) {

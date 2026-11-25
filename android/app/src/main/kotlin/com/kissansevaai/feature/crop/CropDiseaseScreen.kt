@@ -910,6 +910,115 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                             fontSize = 11.sp,
                             lineHeight = 15.sp
                         )
+
+                        // Explicit Farmer-Consent Gemini Second Opinion (Preserves DINOv2 primary result)
+                        val showConsentPrompt = (r.needs_review || r.secondOpinionEligible) && r.secondOpinion == null
+                        if (showConsentPrompt) {
+                            var consentChecked by remember(r.id) { mutableStateOf(false) }
+                            HorizontalDivider(color = BorderLight)
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = SurfaceContainerLow,
+                                border = BorderStroke(1.dp, BorderMedium),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.crop_second_opinion_title),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = DeepEmerald
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.crop_second_opinion_desc),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = TextCharcoal
+                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.clickable { consentChecked = !consentChecked }
+                                    ) {
+                                        Checkbox(
+                                            checked = consentChecked,
+                                            onCheckedChange = { consentChecked = it },
+                                            colors = CheckboxDefaults.colors(checkedColor = DeepEmerald)
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.crop_second_opinion_consent),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = TextCharcoal
+                                        )
+                                    }
+                                    Button(
+                                        onClick = { viewModel.requestSecondOpinion(selectedUri, location, soilType) },
+                                        enabled = consentChecked && !state.isSecondOpinionLoading,
+                                        shape = RoundedCornerShape(9999.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        if (state.isSecondOpinionLoading) {
+                                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
+                                        } else {
+                                            Text(stringResource(R.string.crop_second_opinion_btn), fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                    state.secondOpinionError?.let { secErr ->
+                                        Text(secErr, color = ErrorRed, style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+                            }
+                        }
+
+                        r.secondOpinion?.let { sec ->
+                            HorizontalDivider(color = BorderLight)
+                            val reconColor = when (r.reconciliationStatus) {
+                                "agreed" -> DeepEmerald
+                                "disagreed", "unsupported_or_non_leaf" -> SecondaryOrange
+                                else -> TextMuted
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = if (r.reconciliationStatus == "agreed") GreenBg else AmberTint,
+                                border = BorderStroke(1.dp, reconColor),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "Gemini Second Opinion (${r.reconciliationStatus ?: "reviewed"})",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = reconColor
+                                    )
+                                    Text(
+                                        text = "DINOv2 Primary: ${r.cropName ?: "Crop"} — ${r.diseaseName}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = TextCharcoal
+                                    )
+                                    if (!sec.diseaseName.isNullOrBlank()) {
+                                        val confPct = sec.confidence?.let { " (${(it * 100).toInt()}%)" }.orEmpty()
+                                        Text(
+                                            text = "Gemini Vision: ${sec.cropName ?: "Crop"} — ${sec.diseaseName}$confPct",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = DeepEmerald
+                                        )
+                                    }
+                                    r.reconciliationNote?.let { note ->
+                                        Text(note, style = MaterialTheme.typography.bodySmall, color = TextCharcoal)
+                                    }
+                                    sec.summary?.let { sum ->
+                                        Text(sum, style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

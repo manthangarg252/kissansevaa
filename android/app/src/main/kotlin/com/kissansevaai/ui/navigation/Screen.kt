@@ -8,6 +8,8 @@ sealed interface Screen {
     @Serializable data object Dashboard : Screen
     @Serializable data object CropDisease : Screen
     @Serializable data object Livestock : Screen
+    @Serializable data object Weather : Screen
+    @Serializable data object CropPlanner : Screen
     @Serializable data object MarketInsights : Screen
     @Serializable data object IoTMonitoring : Screen
     @Serializable data object Schemes : Screen
