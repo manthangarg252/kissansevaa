@@ -49,6 +49,10 @@ export const processSyncBatch = async (req, res) => {
               irrigationType: payload.irrigationType || 'Drip / Canal',
               farmSizeAcres: payload.farmSizeAcres ?? 1,
               locationName: payload.locationName || req.user.district || 'India',
+              latitude: payload.latitude ?? req.user.latitude,
+              longitude: payload.longitude ?? req.user.longitude,
+              sowingDate: payload.sowingDate || '',
+              customTask: payload.customTask || '',
               language: payload.language || req.user.languagePreference || 'en',
               clientRequestId: payload.clientRequestId || operationId,
               includeAi: false,
@@ -130,7 +134,26 @@ export const processSyncBatch = async (req, res) => {
           }
 
           case 'profile_update': {
-            const allowed = ['languagePreference', 'state', 'district', 'village', 'farmSizeAcres', 'soilType', 'irrigationType'];
+            const allowed = [
+              'name',
+              'phone',
+              'languagePreference',
+              'farmName',
+              'state',
+              'district',
+              'city',
+              'village',
+              'country',
+              'postalCode',
+              'latitude',
+              'longitude',
+              'locationSource',
+              'locationUpdatedAt',
+              'farmSizeAcres',
+              'soilType',
+              'irrigationType',
+              'primaryCrops',
+            ];
             const setFields = {};
             for (const key of allowed) {
               if (payload[key] !== undefined) setFields[key] = payload[key];

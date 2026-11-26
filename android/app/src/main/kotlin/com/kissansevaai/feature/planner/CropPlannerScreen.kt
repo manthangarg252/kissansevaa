@@ -26,14 +26,17 @@ import com.kissansevaai.core.ai.FieldExtractor
 import com.kissansevaai.core.ai.SpeechToText
 import com.kissansevaai.core.common.Resource
 import com.kissansevaai.core.data.DataStoreManager
+import com.kissansevaai.core.location.SavedFarmLocation
 import com.kissansevaai.core.model.CreatePlanRequest
 import com.kissansevaai.core.model.CropPlanDto
 import com.kissansevaai.core.model.PlannerTaskDto
+import com.kissansevaai.core.repository.FarmLocationRepository
 import com.kissansevaai.core.repository.PlannerRepository
 import com.kissansevaai.core.sync.OfflineSyncManager
 import com.kissansevaai.ui.component.FeatureScaffold
+import com.kissansevaai.ui.component.FillByVoiceButton
 import com.kissansevaai.ui.component.LoadingOverlay
-import com.kissansevaai.ui.component.VoiceFormFillButton
+import com.kissansevaai.ui.component.VoiceInputField
 import com.kissansevaai.ui.theme.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,6 +59,7 @@ data class PlannerUiState(
 @HiltViewModel
 class CropPlannerViewModel @Inject constructor(
     private val repository: PlannerRepository,
+    private val farmLocationRepository: FarmLocationRepository,
     private val offlineSyncManager: OfflineSyncManager,
     private val dataStore: DataStoreManager,
     val speechToText: SpeechToText,
@@ -67,6 +71,9 @@ class CropPlannerViewModel @Inject constructor(
 
     val pendingSyncCount: StateFlow<Int> = offlineSyncManager.observePendingCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val savedFarmLocation: StateFlow<SavedFarmLocation?> = farmLocationRepository.observeSavedFarmLocation()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _uiState = MutableStateFlow(PlannerUiState(isLoading = true))
     val uiState: StateFlow<PlannerUiState> = _uiState
@@ -110,9 +117,12 @@ class CropPlannerViewModel @Inject constructor(
         irrigation: String,
         farmSizeAcres: Double,
         location: String,
+        sowingDate: String = "",
+        customTask: String = "",
     ) {
         viewModelScope.launch {
             val lang = dataStore.language.first()
+            val farm = savedFarmLocation.value ?: farmLocationRepository.getSavedFarmLocationOnce()
             repository.createPlan(
                 CreatePlanRequest(
                     cropName = cropName,
@@ -121,7 +131,11 @@ class CropPlannerViewModel @Inject constructor(
                     soilType = soilType,
                     irrigationType = irrigation,
                     farmSizeAcres = farmSizeAcres,
-                    locationName = location,
+                    locationName = location.ifBlank { farm?.formattedSummary.orEmpty() },
+                    latitude = farm?.latitude,
+                    longitude = farm?.longitude,
+                    sowingDate = sowingDate,
+                    customTask = customTask,
                     language = lang,
                 )
             ).collect { res ->
@@ -195,15 +209,19 @@ fun CropPlannerScreen(onBack: () -> Unit, viewModel: CropPlannerViewModel = hilt
     val state by viewModel.uiState.collectAsState()
     val lang by viewModel.language.collectAsState()
     val pendingSync by viewModel.pendingSyncCount.collectAsState()
+    val savedFarm by viewModel.savedFarmLocation.collectAsState()
 
     var showCreateForm by remember { mutableStateOf(false) }
     var cropName by remember { mutableStateOf("Wheat") }
     var variety by remember { mutableStateOf("") }
+    var sowingDate by remember { mutableStateOf("") }
+    var customTask by remember { mutableStateOf("") }
     var stage by remember { mutableStateOf("vegetative") }
-    var soilType by remember { mutableStateOf("Loamy") }
-    var irrigationType by remember { mutableStateOf("Drip / Canal") }
-    var farmSize by remember { mutableStateOf("2.5") }
-    var location by remember { mutableStateOf("Nagpur") }
+    var soilType by remember(savedFarm) { mutableStateOf(savedFarm?.soilType?.ifBlank { "Loamy" } ?: "Loamy") }
+    var irrigationType by remember(savedFarm) { mutableStateOf(savedFarm?.irrigationType?.ifBlank { "Drip / Canal" } ?: "Drip / Canal") }
+    var farmSize by remember(savedFarm) { mutableStateOf(savedFarm?.farmSizeAcres?.toString() ?: "2.5") }
+    var location by remember(savedFarm) { mutableStateOf(savedFarm?.formattedSummary.orEmpty()) }
+    var ambiguousWarnings by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var notice by remember { mutableStateOf<String?>(null) }
 
     val stages = listOf("pre_sowing", "sowing", "vegetative", "flowering", "fruiting", "maturity", "harvest")
@@ -279,40 +297,64 @@ fun CropPlannerScreen(onBack: () -> Unit, viewModel: CropPlannerViewModel = hilt
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("Create 7-Day Crop Schedule", fontWeight = FontWeight.Bold, color = DeepEmerald)
-                        VoiceFormFillButton(
-                            fields = listOf("cropName", "soilType", "irrigationType", "farmSize", "location"),
+                        FillByVoiceButton(
+                            fields = listOf("cropName", "sowingDate", "farmSize", "soilType", "irrigationType", "customTask", "location"),
+                            fieldLabels = mapOf(
+                                "cropName" to "Crop Name",
+                                "sowingDate" to "Sowing Date (YYYY-MM-DD)",
+                                "farmSize" to "Field Size (Acres)",
+                                "soilType" to "Soil Type",
+                                "irrigationType" to "Irrigation Method",
+                                "customTask" to "Custom Task",
+                                "location" to "Farm Location",
+                            ),
                             lang = lang,
                             speechToText = viewModel.speechToText,
                             fieldExtractor = viewModel.fieldExtractor,
                             onFill = { map ->
                                 map["cropName"]?.takeIf { it.isNotBlank() }?.let { cropName = it }
+                                map["sowingDate"]?.takeIf { it.isNotBlank() }?.let { sowingDate = it }
+                                map["farmSize"]?.takeIf { it.isNotBlank() }?.let { farmSize = it }
                                 map["soilType"]?.takeIf { it.isNotBlank() }?.let { soilType = it }
                                 map["irrigationType"]?.takeIf { it.isNotBlank() }?.let { irrigationType = it }
-                                map["farmSize"]?.takeIf { it.isNotBlank() }?.let { farmSize = it }
+                                map["customTask"]?.takeIf { it.isNotBlank() }?.let { customTask = it }
                                 map["location"]?.takeIf { it.isNotBlank() }?.let { location = it }
                             },
+                            onAmbiguitiesDetected = { ambiguousWarnings = it },
                             onMessage = { notice = it },
                             modifier = Modifier.fillMaxWidth(),
                         )
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedTextField(
-                                value = cropName,
-                                onValueChange = { cropName = it },
-                                label = { Text("Crop*") },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                            )
-                            OutlinedTextField(
-                                value = variety,
-                                onValueChange = { variety = it },
-                                label = { Text("Variety") },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                            )
-                        }
+                        VoiceInputField(
+                            value = cropName,
+                            onValueChange = { cropName = it },
+                            label = "Crop Name*",
+                            fieldKey = "cropName",
+                            lang = lang,
+                            speechToText = viewModel.speechToText,
+                            onMessage = { notice = it },
+                        )
+
+                        VoiceInputField(
+                            value = sowingDate,
+                            onValueChange = { sowingDate = it },
+                            label = "Sowing Date (YYYY-MM-DD)",
+                            fieldKey = "sowingDate",
+                            lang = lang,
+                            speechToText = viewModel.speechToText,
+                            placeholder = "e.g. 2026-11-10",
+                            supportingWarning = ambiguousWarnings["sowingDate"],
+                            onMessage = { notice = it },
+                        )
+
+                        OutlinedTextField(
+                            value = variety,
+                            onValueChange = { variety = it },
+                            label = { Text("Variety (Optional)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                        )
 
                         Text("Growth Stage", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = TextCharcoal)
                         Row(
@@ -328,43 +370,53 @@ fun CropPlannerScreen(onBack: () -> Unit, viewModel: CropPlannerViewModel = hilt
                             }
                         }
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedTextField(
-                                value = soilType,
-                                onValueChange = { soilType = it },
-                                label = { Text("Soil") },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                            )
-                            OutlinedTextField(
-                                value = irrigationType,
-                                onValueChange = { irrigationType = it },
-                                label = { Text("Irrigation") },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                            )
-                        }
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedTextField(
-                                value = farmSize,
-                                onValueChange = { farmSize = it },
-                                label = { Text("Acres") },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                            )
-                            OutlinedTextField(
-                                value = location,
-                                onValueChange = { location = it },
-                                label = { Text("District / City") },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                            )
-                        }
+                        VoiceInputField(
+                            value = soilType,
+                            onValueChange = { soilType = it },
+                            label = "Soil Type",
+                            fieldKey = "soilType",
+                            lang = lang,
+                            speechToText = viewModel.speechToText,
+                            onMessage = { notice = it },
+                        )
+                        VoiceInputField(
+                            value = irrigationType,
+                            onValueChange = { irrigationType = it },
+                            label = "Irrigation Method",
+                            fieldKey = "irrigationType",
+                            lang = lang,
+                            speechToText = viewModel.speechToText,
+                            onMessage = { notice = it },
+                        )
+                        VoiceInputField(
+                            value = farmSize,
+                            onValueChange = { farmSize = it },
+                            label = "Field Size (Acres)",
+                            fieldKey = "farmSize",
+                            lang = lang,
+                            speechToText = viewModel.speechToText,
+                            supportingWarning = ambiguousWarnings["farmSize"],
+                            onMessage = { notice = it },
+                        )
+                        VoiceInputField(
+                            value = customTask,
+                            onValueChange = { customTask = it },
+                            label = "Custom Task (Optional)",
+                            fieldKey = "customTask",
+                            lang = lang,
+                            speechToText = viewModel.speechToText,
+                            placeholder = "e.g. Apply zinc sulfate spray",
+                            onMessage = { notice = it },
+                        )
+                        VoiceInputField(
+                            value = location,
+                            onValueChange = { location = it },
+                            label = "District / Location (uses saved farm by default)",
+                            fieldKey = "location",
+                            lang = lang,
+                            speechToText = viewModel.speechToText,
+                            onMessage = { notice = it },
+                        )
 
                         Button(
                             onClick = {
@@ -376,7 +428,9 @@ fun CropPlannerScreen(onBack: () -> Unit, viewModel: CropPlannerViewModel = hilt
                                         soilType = soilType.trim(),
                                         irrigation = irrigationType.trim(),
                                         farmSizeAcres = farmSize.toDoubleOrNull() ?: 1.0,
-                                        location = location.ifBlank { "India" },
+                                        location = location.trim(),
+                                        sowingDate = sowingDate.trim(),
+                                        customTask = customTask.trim(),
                                     )
                                     showCreateForm = false
                                 }

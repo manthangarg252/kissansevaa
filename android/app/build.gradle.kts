@@ -125,6 +125,9 @@ dependencies {
     // WorkManager
     implementation(libs.work.runtime.ktx)
 
+    // Location (Google Play Services FusedLocationProviderClient)
+    implementation(libs.play.services.location)
+
 
     // Testing
     testImplementation(libs.junit)

@@ -42,9 +42,10 @@ import com.kissansevaai.core.model.LivestockResult
 import com.kissansevaai.core.repository.LivestockRepository
 import com.kissansevaai.ui.component.CameraCaptureDialog
 import com.kissansevaai.ui.component.FeatureScaffold
+import com.kissansevaai.ui.component.FillByVoiceButton
 import com.kissansevaai.ui.component.LoadingOverlay
-import com.kissansevaai.ui.component.MicButton
 import com.kissansevaai.ui.component.TTSButton
+import com.kissansevaai.ui.component.VoiceInputField
 import com.kissansevaai.ui.theme.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -331,6 +332,37 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    FillByVoiceButton(
+                        fields = listOf("animalType", "animalAge", "symptomsNotes", "symptomDuration", "feverStatus", "appetiteStatus", "milkYieldChange"),
+                        fieldLabels = mapOf(
+                            "animalType" to "Animal Type",
+                            "animalAge" to "Approximate Age",
+                            "symptomsNotes" to "Symptoms",
+                            "symptomDuration" to "Duration",
+                            "feverStatus" to "Fever Status",
+                            "appetiteStatus" to "Appetite Change",
+                            "milkYieldChange" to "Milk Production Change",
+                        ),
+                        lang = currentLang,
+                        speechToText = viewModel.speechToText,
+                        fieldExtractor = viewModel.fieldExtractor,
+                        onFill = { map ->
+                            map["animalType"]?.takeIf { it.isNotBlank() }?.let { animalType = it }
+                            map["animalAge"]?.takeIf { it.isNotBlank() }?.let { animalAge = it }
+                            map["symptomDuration"]?.takeIf { it.isNotBlank() }?.let { symptomDuration = it }
+                            map["feverStatus"]?.takeIf { it.isNotBlank() }?.let { feverStatus = it }
+                            map["appetiteStatus"]?.takeIf { it.isNotBlank() }?.let { appetiteStatus = it }
+                            map["milkYieldChange"]?.takeIf { it.isNotBlank() }?.let { milkYieldChange = it }
+                            map["lesionsOrUlcers"]?.let { lesionsOrUlcers = it.equals("true", ignoreCase = true) }
+                            val spokenSymp = map["symptomsNotes"] ?: map["symptoms"]
+                            if (!spokenSymp.isNullOrBlank()) {
+                                symptomsNotes = if (symptomsNotes.isBlank()) spokenSymp else "$symptomsNotes, $spokenSymp"
+                            }
+                        },
+                        onMessage = { permissionNotice = it },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+
                     Text(stringResource(R.string.livestock_category_label), fontWeight = FontWeight.Bold, color = TextCharcoal)
                     Row(
                         modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -341,24 +373,35 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
                         }
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = animalAge,
-                            onValueChange = { animalAge = it },
-                            label = { Text("Age / Group") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                        )
-                        OutlinedTextField(
-                            value = symptomDuration,
-                            onValueChange = { symptomDuration = it },
-                            label = { Text("Duration") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                        )
-                    }
+                    VoiceInputField(
+                        value = animalType,
+                        onValueChange = { animalType = it },
+                        label = "Animal Type",
+                        fieldKey = "animalType",
+                        lang = currentLang,
+                        speechToText = viewModel.speechToText,
+                        onMessage = { permissionNotice = it },
+                    )
+
+                    VoiceInputField(
+                        value = animalAge,
+                        onValueChange = { animalAge = it },
+                        label = "Approximate Age / Group",
+                        fieldKey = "animalAge",
+                        lang = currentLang,
+                        speechToText = viewModel.speechToText,
+                        onMessage = { permissionNotice = it },
+                    )
+
+                    VoiceInputField(
+                        value = symptomDuration,
+                        onValueChange = { symptomDuration = it },
+                        label = "Symptom Duration",
+                        fieldKey = "symptomDuration",
+                        lang = currentLang,
+                        speechToText = viewModel.speechToText,
+                        onMessage = { permissionNotice = it },
+                    )
 
                     Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         durations.forEach { d ->
@@ -397,20 +440,15 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
                         Switch(checked = isolatedFromHerd, onCheckedChange = { isolatedFromHerd = it })
                     }
 
-                    OutlinedTextField(
+                    VoiceInputField(
                         value = symptomsNotes,
                         onValueChange = { symptomsNotes = it },
-                        label = { Text("Symptom notes (cough, lameness, swelling...)") },
-                        trailingIcon = {
-                            MicButton(
-                                speechToText = viewModel.speechToText,
-                                lang = currentLang,
-                                onResult = { symptomsNotes = if (symptomsNotes.isBlank()) it else "$symptomsNotes, $it" },
-                                onExplanation = { permissionNotice = it },
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        label = "Symptoms (fever, reduced milk, cough, lameness...)",
+                        fieldKey = "symptomsNotes",
+                        lang = currentLang,
+                        speechToText = viewModel.speechToText,
+                        singleLine = false,
+                        onMessage = { permissionNotice = it },
                     )
                 }
             }

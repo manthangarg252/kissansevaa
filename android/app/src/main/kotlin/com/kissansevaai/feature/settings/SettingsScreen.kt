@@ -5,10 +5,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EditLocationAlt
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -18,12 +22,16 @@ import androidx.lifecycle.viewModelScope
 import com.kissansevaai.R
 import com.kissansevaai.core.ai.FieldExtractor
 import com.kissansevaai.core.ai.SpeechToText
-import com.kissansevaai.core.common.toUserFriendlyMessage
+import com.kissansevaai.core.common.Resource
 import com.kissansevaai.core.data.DataStoreManager
-import com.kissansevaai.core.model.FarmProfileUpdateRequest
-import com.kissansevaai.core.network.KissanApi
+import com.kissansevaai.core.location.DetectedLocation
+import com.kissansevaai.core.location.LocationDetectionResult
+import com.kissansevaai.core.location.SavedFarmLocation
+import com.kissansevaai.core.repository.FarmLocationRepository
 import com.kissansevaai.ui.component.FeatureScaffold
-import com.kissansevaai.ui.component.VoiceFormFillButton
+import com.kissansevaai.ui.component.FillByVoiceButton
+import com.kissansevaai.ui.component.VoiceInputField
+import com.kissansevaai.ui.component.rememberFarmLocationPrompt
 import com.kissansevaai.ui.theme.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,7 +44,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val ds: DataStoreManager,
-    private val api: KissanApi,
+    private val farmLocationRepository: FarmLocationRepository,
     val speechToText: SpeechToText,
     val fieldExtractor: FieldExtractor,
 ) : ViewModel() {
@@ -44,29 +52,17 @@ class SettingsViewModel @Inject constructor(
     val engineMode = ds.engineMode.stateIn(viewModelScope, SharingStarted.Eagerly, "auto")
     val baseUrl = ds.baseUrl.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    val savedFarmLocation: StateFlow<SavedFarmLocation?> = farmLocationRepository.observeSavedFarmLocation()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val currentPhoneLocation: StateFlow<DetectedLocation?> = farmLocationRepository.currentPhoneLocation
+
     private val _profileStatus = MutableStateFlow<String?>(null)
     val profileStatus: StateFlow<String?> = _profileStatus
 
-    private val _stateField = MutableStateFlow("")
-    val stateField: StateFlow<String> = _stateField
-    private val _districtField = MutableStateFlow("")
-    val districtField: StateFlow<String> = _districtField
-    private val _soilField = MutableStateFlow("")
-    val soilField: StateFlow<String> = _soilField
-    private val _irrigationField = MutableStateFlow("")
-    val irrigationField: StateFlow<String> = _irrigationField
-    private val _farmSizeField = MutableStateFlow("")
-    val farmSizeField: StateFlow<String> = _farmSizeField
-
     init {
         viewModelScope.launch {
-            runCatching { api.getMe() }.onSuccess { u ->
-                _stateField.value = u.state
-                _districtField.value = u.district
-                _soilField.value = u.soilType
-                _irrigationField.value = u.irrigationType
-                _farmSizeField.value = u.farmSizeAcres?.toString() ?: ""
-            }
+            farmLocationRepository.refreshFromBackend()
         }
     }
 
@@ -74,26 +70,20 @@ class SettingsViewModel @Inject constructor(
     fun setEngineMode(mode: String) { viewModelScope.launch { ds.setEngineMode(mode) } }
     fun setBaseUrl(url: String) { viewModelScope.launch { ds.setBaseUrl(url) } }
 
-    fun saveFarmProfile(state: String, district: String, soilType: String, irrigation: String, acresText: String) {
+    suspend fun detectPhoneLocation(): LocationDetectionResult = farmLocationRepository.detectCurrentPhoneLocation()
+
+    fun saveFarmProfile(updated: SavedFarmLocation) {
         viewModelScope.launch {
-            try {
-                val updated = api.updateProfile(
-                    FarmProfileUpdateRequest(
-                        state = state.trim(),
-                        district = district.trim(),
-                        soilType = soilType.trim(),
-                        irrigationType = irrigation.trim(),
-                        farmSizeAcres = acresText.toDoubleOrNull(),
-                    )
-                )
-                _stateField.value = updated.state
-                _districtField.value = updated.district
-                _soilField.value = updated.soilType
-                _irrigationField.value = updated.irrigationType
-                _farmSizeField.value = updated.farmSizeAcres?.toString() ?: ""
-                _profileStatus.value = "Farm profile saved to backend."
-            } catch (e: Exception) {
-                _profileStatus.value = "Save deferred/failed: ${e.toUserFriendlyMessage()}"
+            when (val res = farmLocationRepository.confirmAndSaveFarmProfile(updated)) {
+                is Resource.Success -> {
+                    _profileStatus.value = if (res.data.pendingSync) {
+                        "Farm profile saved in Room offline — queued for MongoDB sync."
+                    } else {
+                        "Farm profile & location saved to Room and MongoDB."
+                    }
+                }
+                is Resource.Error -> _profileStatus.value = "Save failed: ${res.message}"
+                is Resource.Loading -> Unit
             }
         }
     }
@@ -115,19 +105,28 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
     val engine by viewModel.engineMode.collectAsState()
     val url by viewModel.baseUrl.collectAsState()
     val profileStatus by viewModel.profileStatus.collectAsState()
-    val loadedState by viewModel.stateField.collectAsState()
-    val loadedDistrict by viewModel.districtField.collectAsState()
-    val loadedSoil by viewModel.soilField.collectAsState()
-    val loadedIrrig by viewModel.irrigationField.collectAsState()
-    val loadedAcres by viewModel.farmSizeField.collectAsState()
+    val savedProfile by viewModel.savedFarmLocation.collectAsState()
+    val currentPhoneLoc by viewModel.currentPhoneLocation.collectAsState()
 
     var urlField by remember(url) { mutableStateOf(url ?: "") }
-    var stateInput by remember(loadedState) { mutableStateOf(loadedState) }
-    var districtInput by remember(loadedDistrict) { mutableStateOf(loadedDistrict) }
-    var soilInput by remember(loadedSoil) { mutableStateOf(loadedSoil) }
-    var irrigationInput by remember(loadedIrrig) { mutableStateOf(loadedIrrig) }
-    var acresInput by remember(loadedAcres) { mutableStateOf(loadedAcres) }
+    var farmerNameInput by remember(savedProfile) { mutableStateOf(savedProfile?.farmerName.orEmpty()) }
+    var farmNameInput by remember(savedProfile) { mutableStateOf(savedProfile?.farmName.orEmpty()) }
+    var villageInput by remember(savedProfile) { mutableStateOf(savedProfile?.village.orEmpty()) }
+    var districtInput by remember(savedProfile) { mutableStateOf(savedProfile?.district.orEmpty()) }
+    var stateInput by remember(savedProfile) { mutableStateOf(savedProfile?.state.orEmpty()) }
+    var soilInput by remember(savedProfile) { mutableStateOf(savedProfile?.soilType.orEmpty()) }
+    var irrigationInput by remember(savedProfile) { mutableStateOf(savedProfile?.irrigationType.orEmpty()) }
+    var acresInput by remember(savedProfile) { mutableStateOf(savedProfile?.farmSizeAcres?.toString().orEmpty()) }
+    var primaryCropsInput by remember(savedProfile) { mutableStateOf(savedProfile?.primaryCrops?.joinToString(", ").orEmpty()) }
     var voiceNotice by remember { mutableStateOf<String?>(null) }
+
+    val locationPrompt = rememberFarmLocationPrompt(
+        savedFarmLocation = savedProfile,
+        lang = lang,
+        speechToText = viewModel.speechToText,
+        onDetect = { viewModel.detectPhoneLocation() },
+        onConfirmSave = { confirmed -> viewModel.saveFarmProfile(confirmed) },
+    )
 
     FeatureScaffold(
         title = stringResource(R.string.settings_title),
@@ -142,7 +141,7 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Farm Profile Card (Used to personalize Weather, Planner, Schemes, Chatbot)
+            // Automatic Farm Location Card (Saved Farm vs Current Phone Location)
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = CardWhite),
@@ -151,72 +150,225 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "Farmer Profile (Weather & Planner Context)",
+                        text = if (lang.startsWith("hi")) "खेत का स्थान (स्वचालित पहचान और मैनुअल)" else "Farm Location (Auto GPS & Manual)",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = DeepEmerald
                     )
-                    VoiceFormFillButton(
-                        fields = listOf("state", "district", "soilType", "irrigation", "farmSize"),
+
+                    val savedSummary = savedProfile?.formattedSummary.orEmpty()
+                    Surface(shape = RoundedCornerShape(12.dp), color = GreenBg, border = BorderStroke(1.dp, GreenTint), modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("Saved Farm Location", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = DeepEmerald)
+                            Text(
+                                text = savedSummary.ifBlank { "Not configured yet — detect GPS or enter district & state below." },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextCharcoal
+                            )
+                            savedProfile?.let { s ->
+                                if (s.latitude != null && s.longitude != null) {
+                                    Text("Coords: %.4f, %.4f (${s.locationSource.ifBlank { "manual" }})".format(s.latitude, s.longitude), style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                                }
+                                if (s.locationUpdatedAt.isNotBlank()) {
+                                    Text("Last updated: ${s.locationUpdatedAt}${if (s.pendingSync) " (Pending Sync)" else ""}", style = MaterialTheme.typography.labelSmall, color = if (s.pendingSync) SecondaryOrange else TextMuted)
+                                }
+                            }
+                        }
+                    }
+
+                    currentPhoneLoc?.let { phone ->
+                        Surface(shape = RoundedCornerShape(10.dp), color = AmberTint, modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = "Current Phone Location: ${phone.displayLocality} (${phone.sourceBadgeLabel}) — kept separate until you Confirm.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = SecondaryOrange,
+                                modifier = Modifier.padding(10.dp),
+                            )
+                        }
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        Button(
+                            onClick = { locationPrompt.detectNow() },
+                            enabled = !locationPrompt.isDetecting,
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                            shape = RoundedCornerShape(9999.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
+                        ) {
+                            if (locationPrompt.isDetecting) {
+                                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                Spacer(Modifier.width(6.dp))
+                                Text("Detecting...")
+                            } else {
+                                Icon(Icons.Default.MyLocation, null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(stringResource(R.string.location_detect_btn), fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        OutlinedButton(
+                            onClick = { locationPrompt.openManual() },
+                            modifier = Modifier.heightIn(min = 48.dp),
+                            shape = RoundedCornerShape(9999.dp),
+                        ) {
+                            Icon(Icons.Default.EditLocationAlt, null, tint = DeepEmerald, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(stringResource(R.string.location_change_btn), color = DeepEmerald)
+                        }
+                    }
+
+                    locationPrompt.statusMessage?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = SecondaryOrange)
+                    }
+                }
+            }
+
+            // Farm Profile Card (Voice-enabled fields + persistence)
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = CardWhite),
+                border = BorderStroke(1.dp, BorderLight),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = if (lang.startsWith("hi")) "किसान एवं खेत प्रोफ़ाइल" else "Farmer Profile (Weather, Mandi & Schemes Context)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = DeepEmerald
+                    )
+                    FillByVoiceButton(
+                        fields = listOf("name", "farmName", "village", "district", "state", "farmSize", "soilType", "irrigation", "primaryCrops"),
+                        fieldLabels = mapOf(
+                            "name" to "Farmer Name",
+                            "farmName" to "Farm Name",
+                            "village" to "Village",
+                            "district" to "District",
+                            "state" to "State",
+                            "farmSize" to "Field Area (Acres)",
+                            "soilType" to "Soil Type",
+                            "irrigation" to "Irrigation",
+                            "primaryCrops" to "Primary Crops",
+                        ),
                         lang = lang,
                         speechToText = viewModel.speechToText,
                         fieldExtractor = viewModel.fieldExtractor,
                         onFill = { map ->
-                            map["state"]?.let { stateInput = it }
+                            map["name"]?.let { farmerNameInput = it }
+                            map["farmName"]?.let { farmNameInput = it }
+                            map["village"]?.let { villageInput = it }
                             map["district"]?.let { districtInput = it }
+                            map["state"]?.let { stateInput = it }
                             map["soilType"]?.let { soilInput = it }
                             map["irrigation"]?.let { irrigationInput = it }
                             map["farmSize"]?.let { acresInput = it }
+                            map["primaryCrops"]?.let { primaryCropsInput = it }
                         },
                         onMessage = { voiceNotice = it },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = stateInput,
-                            onValueChange = { stateInput = it },
-                            label = { Text("State") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                        )
-                        OutlinedTextField(
-                            value = districtInput,
-                            onValueChange = { districtInput = it },
-                            label = { Text("District") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = soilInput,
-                            onValueChange = { soilInput = it },
-                            label = { Text("Soil Type") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                        )
-                        OutlinedTextField(
-                            value = acresInput,
-                            onValueChange = { acresInput = it },
-                            label = { Text("Acres") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                        )
-                    }
-                    OutlinedTextField(
+
+                    VoiceInputField(
+                        value = farmerNameInput,
+                        onValueChange = { farmerNameInput = it },
+                        label = "Farmer Name",
+                        fieldKey = "farmerName",
+                        lang = lang,
+                        speechToText = viewModel.speechToText,
+                        onMessage = { voiceNotice = it },
+                    )
+                    VoiceInputField(
+                        value = farmNameInput,
+                        onValueChange = { farmNameInput = it },
+                        label = "Farm Name",
+                        fieldKey = "farmName",
+                        lang = lang,
+                        speechToText = viewModel.speechToText,
+                        onMessage = { voiceNotice = it },
+                    )
+                    VoiceInputField(
+                        value = villageInput,
+                        onValueChange = { villageInput = it },
+                        label = "Village / Locality",
+                        fieldKey = "village",
+                        lang = lang,
+                        speechToText = viewModel.speechToText,
+                        onMessage = { voiceNotice = it },
+                    )
+                    VoiceInputField(
+                        value = districtInput,
+                        onValueChange = { districtInput = it },
+                        label = "District",
+                        fieldKey = "district",
+                        lang = lang,
+                        speechToText = viewModel.speechToText,
+                        onMessage = { voiceNotice = it },
+                    )
+                    VoiceInputField(
+                        value = stateInput,
+                        onValueChange = { stateInput = it },
+                        label = "State",
+                        fieldKey = "state",
+                        lang = lang,
+                        speechToText = viewModel.speechToText,
+                        onMessage = { voiceNotice = it },
+                    )
+                    VoiceInputField(
+                        value = acresInput,
+                        onValueChange = { acresInput = it },
+                        label = "Field Area (Acres)",
+                        fieldKey = "farmSize",
+                        lang = lang,
+                        speechToText = viewModel.speechToText,
+                        onMessage = { voiceNotice = it },
+                    )
+                    VoiceInputField(
+                        value = soilInput,
+                        onValueChange = { soilInput = it },
+                        label = "Soil Type",
+                        fieldKey = "soilType",
+                        lang = lang,
+                        speechToText = viewModel.speechToText,
+                        onMessage = { voiceNotice = it },
+                    )
+                    VoiceInputField(
                         value = irrigationInput,
                         onValueChange = { irrigationInput = it },
-                        label = { Text("Irrigation") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        label = "Irrigation Method",
+                        fieldKey = "irrigationType",
+                        lang = lang,
+                        speechToText = viewModel.speechToText,
+                        onMessage = { voiceNotice = it },
                     )
+                    VoiceInputField(
+                        value = primaryCropsInput,
+                        onValueChange = { primaryCropsInput = it },
+                        label = "Primary Crops (comma separated)",
+                        fieldKey = "primaryCrops",
+                        lang = lang,
+                        speechToText = viewModel.speechToText,
+                        onMessage = { voiceNotice = it },
+                    )
+
                     Button(
-                        onClick = { viewModel.saveFarmProfile(stateInput, districtInput, soilInput, irrigationInput, acresInput) },
+                        onClick = {
+                            val base = savedProfile ?: SavedFarmLocation()
+                            val cropsList = primaryCropsInput.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                            viewModel.saveFarmProfile(
+                                base.copy(
+                                    farmerName = farmerNameInput.trim(),
+                                    farmName = farmNameInput.trim(),
+                                    village = villageInput.trim(),
+                                    district = districtInput.trim(),
+                                    state = stateInput.trim(),
+                                    soilType = soilInput.trim(),
+                                    irrigationType = irrigationInput.trim(),
+                                    farmSizeAcres = acresInput.toDoubleOrNull(),
+                                    primaryCrops = cropsList,
+                                    locationSource = base.locationSource.ifBlank { "manual" },
+                                )
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                         shape = RoundedCornerShape(9999.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
                     ) {

@@ -297,4 +297,18 @@
     <string name="crop_second_opinion_desc">With your permission, send this photo to Gemini Vision for an independent check while keeping the primary DINOv2 scan intact.</string>
     <string name="crop_second_opinion_consent">I consent to upload this leaf image for cloud Gemini Vision review</string>
     <string name="crop_second_opinion_btn">Get Gemini Second Opinion</string>
+
+    <!-- Stage 4 Smart Voice Auto-Fill & Farm Location -->
+    <string name="voice_fill_button">Fill by Voice</string>
+    <string name="voice_tap_to_speak">Speak to fill %1$s</string>
+    <string name="voice_stop_listening">Stop listening</string>
+    <string name="voice_cancel">Cancel</string>
+    <string name="voice_retry">Retry</string>
+    <string name="voice_confirm_apply">Apply</string>
+    <string name="voice_review_title">Confirm Voice Details</string>
+    <string name="location_confirm_title">Use this location for your farm?</string>
+    <string name="location_confirm_btn">Confirm</string>
+    <string name="location_change_btn">Change Location</string>
+    <string name="location_retry_btn">Retry Detection</string>
+    <string name="location_detect_btn">Detect Farm Location</string>
 </resources>

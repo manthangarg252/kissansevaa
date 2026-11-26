@@ -9,9 +9,11 @@ import com.kissansevaai.core.ai.SpeechToText
 import com.kissansevaai.core.ai.TextToSpeechEngine
 import com.kissansevaai.core.common.Resource
 import com.kissansevaai.core.data.DataStoreManager
+import com.kissansevaai.core.location.SavedFarmLocation
 import com.kissansevaai.core.model.CropAnalysisResult
 import com.kissansevaai.core.model.SecondOpinionResponse
 import com.kissansevaai.core.repository.CropRepository
+import com.kissansevaai.core.repository.FarmLocationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +30,7 @@ import javax.inject.Inject
 @HiltViewModel
 class CropViewModel @Inject constructor(
     private val repository: CropRepository,
+    private val farmLocationRepository: FarmLocationRepository,
     private val dataStore: DataStoreManager,
     @ApplicationContext private val context: Context,
     val speechToText: SpeechToText,
@@ -37,6 +40,9 @@ class CropViewModel @Inject constructor(
 
     val language: StateFlow<String> = dataStore.language
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "en")
+
+    val savedFarmLocation: StateFlow<SavedFarmLocation?> = farmLocationRepository.observeSavedFarmLocation()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _uiState = MutableStateFlow(CropUiState())
     val uiState: StateFlow<CropUiState> = _uiState
@@ -88,7 +94,13 @@ class CropViewModel @Inject constructor(
         return Uri.fromFile(file)
     }
 
-    fun analyze(imageUri: Uri, location: String, soilType: String) {
+    fun analyze(
+        imageUri: Uri,
+        location: String,
+        soilType: String,
+        cropHint: String = "",
+        symptomDescription: String = "",
+    ) {
         lastImageUri = imageUri
         lastLocation = location
         lastSoilType = soilType
@@ -106,6 +118,8 @@ class CropViewModel @Inject constructor(
                     location = location.toRequestBody("text/plain".toMediaTypeOrNull()),
                     soilType = soilType.toRequestBody("text/plain".toMediaTypeOrNull()),
                     language = lang.toRequestBody("text/plain".toMediaTypeOrNull()),
+                    cropHint = cropHint.takeIf { it.isNotBlank() }?.toRequestBody("text/plain".toMediaTypeOrNull()),
+                    symptomDescription = symptomDescription.takeIf { it.isNotBlank() }?.toRequestBody("text/plain".toMediaTypeOrNull()),
                 ).collect { res ->
                     when (res) {
                         is Resource.Loading -> _uiState.value = CropUiState(isLoading = true)

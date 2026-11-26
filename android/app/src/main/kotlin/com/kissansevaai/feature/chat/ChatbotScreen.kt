@@ -117,6 +117,7 @@ fun ChatbotScreen(onBack: () -> Unit, viewModel: ChatViewModel = hiltViewModel()
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var input by remember { mutableStateOf("") }
+    var partialVoiceText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     var selectedMode by remember { mutableStateOf("General") }
 
@@ -345,6 +346,21 @@ fun ChatbotScreen(onBack: () -> Unit, viewModel: ChatViewModel = hiltViewModel()
             }
 
             // Input Bar
+            if (partialVoiceText.isNotBlank()) {
+                Surface(
+                    color = GreenBg,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, DeepEmerald),
+                ) {
+                    Text(
+                        text = "Listening: $partialVoiceText",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DeepEmerald,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    )
+                }
+            }
             Surface(
                 color = CardWhite,
                 border = BorderStroke(1.dp, BorderLight),
@@ -372,8 +388,10 @@ fun ChatbotScreen(onBack: () -> Unit, viewModel: ChatViewModel = hiltViewModel()
                         speechToText = viewModel.speechToText,
                         lang = language,
                         onResult = { recognizedText ->
+                            partialVoiceText = ""
                             input = if (input.isBlank()) recognizedText else "$input $recognizedText"
                         },
+                        onPartialResult = { partial -> partialVoiceText = partial },
                         onExplanation = { explanation ->
                             coroutineScope.launch { snackbarHostState.showSnackbar(explanation) }
                         }

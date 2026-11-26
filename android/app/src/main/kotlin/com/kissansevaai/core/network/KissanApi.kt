@@ -31,6 +31,17 @@ interface KissanApi {
     ): CropAnalysisResult
 
     @Multipart
+    @POST("api/crop/analyze")
+    suspend fun analyzeCropWithDetails(
+        @Part image: MultipartBody.Part,
+        @Part("location") location: RequestBody,
+        @Part("soilType") soilType: RequestBody,
+        @Part("language") language: RequestBody,
+        @Part("cropHint") cropHint: RequestBody?,
+        @Part("symptomDescription") symptomDescription: RequestBody?,
+    ): CropAnalysisResult
+
+    @Multipart
     @POST("api/crop/second-opinion")
     suspend fun requestCropSecondOpinion(
         @Part image: MultipartBody.Part?,

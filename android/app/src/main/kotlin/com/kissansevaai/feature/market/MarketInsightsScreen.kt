@@ -21,8 +21,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kissansevaai.R
 import com.kissansevaai.core.data.DataStoreManager
+import com.kissansevaai.core.location.SavedFarmLocation
 import com.kissansevaai.core.model.MarketRecommendationRequest
 import com.kissansevaai.core.common.Resource
+import com.kissansevaai.core.repository.FarmLocationRepository
 import com.kissansevaai.core.repository.PricesRepository
 import com.kissansevaai.ui.component.AiResponseCard
 import com.kissansevaai.ui.component.FeatureScaffold
@@ -30,16 +32,22 @@ import com.kissansevaai.ui.component.LoadingOverlay
 import com.kissansevaai.ui.theme.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MarketViewModel @Inject constructor(
     private val repository: PricesRepository,
+    private val farmLocationRepository: FarmLocationRepository,
     private val ds: DataStoreManager,
 ) : ViewModel() {
+    val savedFarmLocation: StateFlow<SavedFarmLocation?> = farmLocationRepository.observeSavedFarmLocation()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     private val _uiState = MutableStateFlow(MarketUiState())
     val uiState: StateFlow<MarketUiState> = _uiState
 
@@ -62,11 +70,12 @@ data class MarketUiState(val isLoading: Boolean = false, val response: String? =
 @Composable
 fun MarketInsightsScreen(onBack: () -> Unit, viewModel: MarketViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsState()
-    var location by remember { mutableStateOf("Rajkot, Gujarat") }
-    var soilType by remember { mutableStateOf("Black Cotton") }
-    var farmSize by remember { mutableStateOf("5") }
-    var currentCrop by remember { mutableStateOf("Cotton") }
-    var irrigation by remember { mutableStateOf("Canal") }
+    val savedFarm by viewModel.savedFarmLocation.collectAsState()
+    var location by remember(savedFarm) { mutableStateOf(savedFarm?.formattedSummary.orEmpty()) }
+    var soilType by remember(savedFarm) { mutableStateOf(savedFarm?.soilType.orEmpty()) }
+    var farmSize by remember(savedFarm) { mutableStateOf(savedFarm?.farmSizeAcres?.toString().orEmpty()) }
+    var currentCrop by remember(savedFarm) { mutableStateOf(savedFarm?.primaryCrops?.firstOrNull().orEmpty()) }
+    var irrigation by remember(savedFarm) { mutableStateOf(savedFarm?.irrigationType.orEmpty()) }
 
     FeatureScaffold(
         title = stringResource(R.string.market_title),

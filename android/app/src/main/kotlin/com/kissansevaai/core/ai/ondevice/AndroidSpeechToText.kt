@@ -9,9 +9,9 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
+import com.kissansevaai.core.ai.RecognitionLocaleResolution
 import com.kissansevaai.core.ai.SpeechToText
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,8 +32,11 @@ class AndroidSpeechToText @Inject constructor(
             action()
         }
     }
+
     private var speechRecognizer: SpeechRecognizer? = null
     private var isListening = false
+    private var activeCancelledCallback: (() -> Unit)? = null
+    private var userCancelled = false
 
     override val isRecognitionAvailable: Boolean
         get() = try {
@@ -41,6 +44,24 @@ class AndroidSpeechToText @Inject constructor(
         } catch (_: Exception) {
             false
         }
+
+    override fun resolveRecognitionLocale(langCode: String): RecognitionLocaleResolution {
+        val normalized = normalizeLang(langCode)
+        return when (normalized) {
+            "hi" -> RecognitionLocaleResolution("hi", "hi", "hi-IN")
+            "mr" -> RecognitionLocaleResolution("mr", "mr", "mr-IN")
+            "pa" -> RecognitionLocaleResolution("pa", "pa", "pa-IN")
+            "bho" -> RecognitionLocaleResolution(
+                requestedLang = "bho",
+                effectiveLang = "hi",
+                localeTag = "hi-IN",
+                usedFallback = true,
+                notice = "Bhojpuri speech uses Hindi (hi-IN) acoustic recognition on Android; agricultural words remain normalized.",
+            )
+            "sa" -> RecognitionLocaleResolution("sa", "sa", "sa-IN")
+            else -> RecognitionLocaleResolution(normalized.ifBlank { "en" }, "en", "en-IN")
+        }
+    }
 
     /**
      * Checks if the language is supported by on-device / platform STT.
@@ -72,6 +93,8 @@ class AndroidSpeechToText @Inject constructor(
         onResult: (String) -> Unit,
         onError: (String) -> Unit,
         onReadyForSpeech: (() -> Unit)?,
+        onPartialResult: ((String) -> Unit)?,
+        onCancelled: (() -> Unit)?,
     ) {
         val normalized = normalizeLang(langCode)
         val reason = getUnsupportedReason(normalized)
@@ -80,30 +103,25 @@ class AndroidSpeechToText @Inject constructor(
             return
         }
 
+        val resolution = resolveRecognitionLocale(normalized)
+
         postOnMain {
             try {
-                stopListeningInternal()
+                destroyInternal()
+                userCancelled = false
+                activeCancelledCallback = onCancelled
 
                 val recognizer = SpeechRecognizer.createSpeechRecognizer(context).also {
                     speechRecognizer = it
                 }
 
-                val localeTag = when (normalized) {
-                    "hi" -> "hi-IN"
-                    "mr" -> "mr-IN"
-                    "pa" -> "pa-IN"
-                    "bho" -> "bho-IN"
-                    "sa" -> "sa-IN"
-                    else -> "en-IN"
-                }
-
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, localeTag)
-                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, localeTag)
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, resolution.localeTag)
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, resolution.localeTag)
                     putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
                     putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
-                    putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+                    putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                 }
 
                 recognizer.setRecognitionListener(object : RecognitionListener {
@@ -120,14 +138,20 @@ class AndroidSpeechToText @Inject constructor(
                     }
 
                     override fun onError(error: Int) {
+                        val wasCancelled = userCancelled
                         isListening = false
+                        activeCancelledCallback = null
+                        if (wasCancelled) return
                         val errorMsg = mapErrorCode(error)
                         Log.w("AndroidSpeechToText", "Speech recognition error code $error: $errorMsg")
                         onError(errorMsg)
                     }
 
                     override fun onResults(results: Bundle?) {
+                        val wasCancelled = userCancelled
                         isListening = false
+                        activeCancelledCallback = null
+                        if (wasCancelled) return
                         val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                         val text = matches?.firstOrNull()?.trim()
                         if (!text.isNullOrEmpty()) {
@@ -137,13 +161,24 @@ class AndroidSpeechToText @Inject constructor(
                         }
                     }
 
-                    override fun onPartialResults(partialResults: Bundle?) {}
+                    override fun onPartialResults(partialResults: Bundle?) {
+                        if (userCancelled) return
+                        val partial = partialResults
+                            ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                            ?.firstOrNull()
+                            ?.trim()
+                        if (!partial.isNullOrEmpty()) {
+                            onPartialResult?.invoke(partial)
+                        }
+                    }
+
                     override fun onEvent(eventType: Int, params: Bundle?) {}
                 })
 
                 recognizer.startListening(intent)
             } catch (e: Exception) {
                 isListening = false
+                activeCancelledCallback = null
                 Log.e("AndroidSpeechToText", "Failed to start speech recognition", e)
                 onError("Failed to start speech recognition: ${e.localizedMessage}")
             }
@@ -152,13 +187,25 @@ class AndroidSpeechToText @Inject constructor(
 
     override fun stopListening() {
         postOnMain {
-            stopListeningInternal()
+            try {
+                speechRecognizer?.stopListening()
+            } catch (_: Exception) {}
+            isListening = false
         }
     }
 
-    private fun stopListeningInternal() {
+    override fun cancelListening() {
+        postOnMain {
+            userCancelled = true
+            val cb = activeCancelledCallback
+            activeCancelledCallback = null
+            destroyInternal()
+            cb?.invoke()
+        }
+    }
+
+    private fun destroyInternal() {
         try {
-            speechRecognizer?.stopListening()
             speechRecognizer?.cancel()
             speechRecognizer?.destroy()
         } catch (_: Exception) {}
@@ -167,7 +214,11 @@ class AndroidSpeechToText @Inject constructor(
     }
 
     override fun destroy() {
-        stopListening()
+        postOnMain {
+            userCancelled = true
+            activeCancelledCallback = null
+            destroyInternal()
+        }
     }
 
     private fun normalizeLang(lang: String): String {

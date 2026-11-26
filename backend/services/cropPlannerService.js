@@ -147,6 +147,8 @@ export async function createPlanWithTasks({
   locationName = 'India',
   latitude = null,
   longitude = null,
+  sowingDate = '',
+  customTask = '',
   language = 'en',
   clientRequestId = null,
   includeAi = true,
@@ -177,7 +179,10 @@ export async function createPlanWithTasks({
     // Planner works deterministically even when external weather is down
   }
 
-  const startDate = new Date();
+  const parsedStart = sowingDate && /^\d{4}-\d{2}-\d{2}$/.test(String(sowingDate).trim())
+    ? new Date(`${String(sowingDate).trim()}T00:00:00Z`)
+    : null;
+  const startDate = parsedStart && !Number.isNaN(parsedStart.getTime()) ? parsedStart : new Date();
   const generatedTasks = buildDeterministicSevenDayPlan({
     cropName,
     stage,
@@ -187,6 +192,20 @@ export async function createPlanWithTasks({
     dailyWeather,
     startDate,
   });
+
+  if (customTask && String(customTask).trim()) {
+    generatedTasks.unshift({
+      dayOffset: 0,
+      scheduledDate: new Date().toISOString().slice(0, 10),
+      title: String(customTask).trim().slice(0, 140),
+      description: `Farmer custom task added for ${cropName} (${farmSizeAcres} ac, ${soilType} soil, ${irrigationType}).`,
+      category: 'custom',
+      priority: 'high',
+      status: 'pending',
+      weatherAdjusted: false,
+      weatherReason: '',
+    });
+  }
 
   let generationSource = 'rules_only';
   let aiAdvisoryNote = null;
@@ -220,6 +239,8 @@ export async function createPlanWithTasks({
     locationName: resolvedLocation,
     latitude,
     longitude,
+    sowingDate: sowingDate ? String(sowingDate).trim() : '',
+    customTask: customTask ? String(customTask).trim() : '',
     startDate,
     status: 'active',
     generationSource,

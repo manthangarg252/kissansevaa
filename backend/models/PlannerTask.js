@@ -11,7 +11,7 @@ const plannerTaskSchema = mongoose.Schema(
     description: { type: String, default: '' },
     category: {
       type: String,
-      enum: ['irrigation', 'fertilizer', 'spray', 'weeding', 'inspection', 'harvest', 'soil'],
+      enum: ['irrigation', 'fertilizer', 'spray', 'weeding', 'inspection', 'harvest', 'soil', 'custom'],
       default: 'inspection',
     },
     priority: {

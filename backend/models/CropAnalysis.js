@@ -53,6 +53,8 @@ const cropAnalysisSchema = mongoose.Schema(
     },
     prevention: [String],
     imagePath: { type: String },
+    cropHint: { type: String, default: '' },
+    symptomDescription: { type: String, default: '' },
     source: {
       type: String,
       enum: ['dinov2', 'model', 'gemini', 'mock', 'model_assets_missing', 'service_unavailable'],

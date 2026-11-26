@@ -29,16 +29,18 @@ import com.kissansevaai.core.ai.FieldExtractor
 import com.kissansevaai.core.ai.SpeechToText
 import com.kissansevaai.core.common.Resource
 import com.kissansevaai.core.data.DataStoreManager
+import com.kissansevaai.core.location.SavedFarmLocation
 import com.kissansevaai.core.model.Scheme
 import com.kissansevaai.core.model.SchemeEligibilityResponse
 import com.kissansevaai.core.model.SchemeExplainResponse
 import com.kissansevaai.core.model.SchemeRecommendationRequest
+import com.kissansevaai.core.repository.FarmLocationRepository
 import com.kissansevaai.core.repository.SchemesRepository
 import com.kissansevaai.ui.component.AiResponseCard
 import com.kissansevaai.ui.component.FeatureScaffold
-import com.kissansevaai.ui.component.FieldMicButton
+import com.kissansevaai.ui.component.FillByVoiceButton
 import com.kissansevaai.ui.component.LoadingOverlay
-import com.kissansevaai.ui.component.VoiceFormFillButton
+import com.kissansevaai.ui.component.VoiceInputField
 import com.kissansevaai.ui.theme.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,6 +54,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SchemesViewModel @Inject constructor(
     private val repository: SchemesRepository,
+    private val farmLocationRepository: FarmLocationRepository,
     private val ds: DataStoreManager,
     val speechToText: SpeechToText,
     val fieldExtractor: FieldExtractor,
@@ -59,6 +62,9 @@ class SchemesViewModel @Inject constructor(
 
     val language: StateFlow<String> = ds.language
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "en")
+
+    val savedFarmLocation: StateFlow<SavedFarmLocation?> = farmLocationRepository.observeSavedFarmLocation()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _schemes = MutableStateFlow<List<Scheme>>(emptyList())
     val schemes: StateFlow<List<Scheme>> = _schemes
@@ -158,17 +164,19 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
     val isSchemesLoading by viewModel.isSchemesLoading.collectAsState()
     val state by viewModel.uiState.collectAsState()
     val explainState by viewModel.explainState.collectAsState()
+    val savedFarm by viewModel.savedFarmLocation.collectAsState()
 
     var selectedTab by remember { mutableIntStateOf(0) }
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
     var savedOnly by remember { mutableStateOf(false) }
+    var selectedStateFilter by remember(savedFarm) { mutableStateOf(savedFarm?.state.orEmpty()) }
 
-    var stateField by remember { mutableStateOf("Maharashtra") }
-    var farmSize by remember { mutableStateOf("4") }
-    var crop by remember { mutableStateOf("Cotton & Wheat") }
-    var soilType by remember { mutableStateOf("Black Cotton") }
-    var landType by remember { mutableStateOf("Owned & Irrigated") }
+    var stateField by remember(savedFarm) { mutableStateOf(savedFarm?.state.orEmpty()) }
+    var farmSize by remember(savedFarm) { mutableStateOf(savedFarm?.farmSizeAcres?.toString() ?: "") }
+    var crop by remember(savedFarm) { mutableStateOf(savedFarm?.primaryCrops?.joinToString(", ").orEmpty()) }
+    var soilType by remember(savedFarm) { mutableStateOf(savedFarm?.soilType.orEmpty()) }
+    var landType by remember(savedFarm) { mutableStateOf(savedFarm?.irrigationType.orEmpty()) }
     var formNotice by remember { mutableStateOf<String?>(null) }
     val currentLang by viewModel.language.collectAsState()
     val uriHandler = LocalUriHandler.current
@@ -231,17 +239,37 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
 
             if (selectedTab == 0) {
                 Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
+                    VoiceInputField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text(stringResource(R.string.schemes_search_placeholder)) },
+                        label = stringResource(R.string.schemes_search_placeholder),
+                        fieldKey = "searchQuery",
+                        lang = currentLang,
+                        speechToText = viewModel.speechToText,
                         leadingIcon = { Icon(Icons.Default.Search, null, tint = DeepEmerald) },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth(),
                     )
 
                     androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        savedFarm?.state?.takeIf { it.isNotBlank() }?.let { farmState ->
+                            item {
+                                FilterChip(
+                                    selected = selectedStateFilter.equals(farmState, ignoreCase = true),
+                                    onClick = {
+                                        selectedStateFilter = if (selectedStateFilter.equals(farmState, ignoreCase = true)) "" else farmState
+                                    },
+                                    leadingIcon = { Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(15.dp)) },
+                                    label = { Text("$farmState Schemes") },
+                                )
+                            }
+                        }
+                        item {
+                            FilterChip(
+                                selected = selectedStateFilter.isBlank(),
+                                onClick = { selectedStateFilter = "" },
+                                label = { Text("All States") },
+                            )
+                        }
                         item {
                             FilterChip(
                                 selected = savedOnly,
@@ -261,14 +289,21 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
 
                     LoadingOverlay(isSchemesLoading && schemes.isEmpty())
 
-                    val filteredSchemes = remember(schemes, searchQuery, selectedCategory, savedOnly, savedIds) {
+                    val filteredSchemes = remember(schemes, searchQuery, selectedCategory, savedOnly, savedIds, selectedStateFilter) {
                         schemes.filter { scheme ->
                             val matchSaved = !savedOnly || savedIds.contains(scheme.id)
                             val matchCat = selectedCategory == "All" || scheme.category.contains(selectedCategory, ignoreCase = true)
+                            val matchState = selectedStateFilter.isBlank() ||
+                                scheme.states.isEmpty() ||
+                                scheme.states.any { st ->
+                                    st.equals("All", ignoreCase = true) ||
+                                        st.equals("All India", ignoreCase = true) ||
+                                        st.equals(selectedStateFilter, ignoreCase = true)
+                                }
                             val matchQ = searchQuery.isBlank() ||
                                 scheme.name.contains(searchQuery, ignoreCase = true) ||
                                 scheme.description.contains(searchQuery, ignoreCase = true)
-                            matchSaved && matchCat && matchQ
+                            matchSaved && matchCat && matchState && matchQ
                         }
                     }
 
@@ -343,34 +378,41 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
                             Text(stringResource(R.string.schemes_modal_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextCharcoal)
                             formNotice?.let { Text(it, color = DeepEmerald, style = MaterialTheme.typography.bodySmall) }
 
-                            OutlinedTextField(
+                            VoiceInputField(
                                 value = stateField, onValueChange = { stateField = it },
-                                label = { Text(stringResource(R.string.schemes_state_label)) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-                                trailingIcon = { FieldMicButton(viewModel.speechToText, currentLang, { stateField = it }, { formNotice = it }) }
+                                label = stringResource(R.string.schemes_state_label), fieldKey = "state", lang = currentLang,
+                                speechToText = viewModel.speechToText, modifier = Modifier.fillMaxWidth(), onMessage = { formNotice = it },
                             )
-                            OutlinedTextField(
+                            VoiceInputField(
                                 value = farmSize, onValueChange = { farmSize = it },
-                                label = { Text(stringResource(R.string.schemes_farm_size_label)) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-                                trailingIcon = { FieldMicButton(viewModel.speechToText, currentLang, { farmSize = it }, { formNotice = it }) }
+                                label = stringResource(R.string.schemes_farm_size_label), fieldKey = "farmSize", lang = currentLang,
+                                speechToText = viewModel.speechToText, modifier = Modifier.fillMaxWidth(), onMessage = { formNotice = it },
                             )
-                            OutlinedTextField(
+                            VoiceInputField(
                                 value = crop, onValueChange = { crop = it },
-                                label = { Text(stringResource(R.string.schemes_primary_crop_label)) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-                                trailingIcon = { FieldMicButton(viewModel.speechToText, currentLang, { crop = it }, { formNotice = it }) }
+                                label = stringResource(R.string.schemes_primary_crop_label), fieldKey = "cropName", lang = currentLang,
+                                speechToText = viewModel.speechToText, modifier = Modifier.fillMaxWidth(), onMessage = { formNotice = it },
                             )
-                            OutlinedTextField(
+                            VoiceInputField(
                                 value = soilType, onValueChange = { soilType = it },
-                                label = { Text(stringResource(R.string.schemes_soil_type_label)) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-                                trailingIcon = { FieldMicButton(viewModel.speechToText, currentLang, { soilType = it }, { formNotice = it }) }
+                                label = stringResource(R.string.schemes_soil_type_label), fieldKey = "soilType", lang = currentLang,
+                                speechToText = viewModel.speechToText, modifier = Modifier.fillMaxWidth(), onMessage = { formNotice = it },
                             )
-                            OutlinedTextField(
+                            VoiceInputField(
                                 value = landType, onValueChange = { landType = it },
-                                label = { Text(stringResource(R.string.schemes_irrigation_land_type)) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-                                trailingIcon = { FieldMicButton(viewModel.speechToText, currentLang, { landType = it }, { formNotice = it }) }
+                                label = stringResource(R.string.schemes_irrigation_land_type), fieldKey = "landType", lang = currentLang,
+                                speechToText = viewModel.speechToText, modifier = Modifier.fillMaxWidth(), onMessage = { formNotice = it },
                             )
 
-                            VoiceFormFillButton(
+                            FillByVoiceButton(
                                 fields = listOf("state", "farmSize", "crop", "soilType", "landType"),
+                                fieldLabels = mapOf(
+                                    "state" to stringResource(R.string.schemes_state_label),
+                                    "farmSize" to stringResource(R.string.schemes_farm_size_label),
+                                    "crop" to stringResource(R.string.schemes_primary_crop_label),
+                                    "soilType" to stringResource(R.string.schemes_soil_type_label),
+                                    "landType" to stringResource(R.string.schemes_irrigation_land_type),
+                                ),
                                 lang = currentLang,
                                 speechToText = viewModel.speechToText,
                                 fieldExtractor = viewModel.fieldExtractor,

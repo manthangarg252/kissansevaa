@@ -33,6 +33,8 @@ class AuthViewModel @Inject constructor(
     private val savedSchemeDao: SavedSchemeDao,
     private val marketFavoriteDao: MarketFavoriteDao,
     private val syncOperationDao: SyncOperationDao,
+    private val farmProfileDao: FarmProfileDao,
+    private val farmLocationRepository: com.kissansevaai.core.repository.FarmLocationRepository,
 ) : ViewModel() {
 
     val isLoggedIn: StateFlow<Boolean> = dataStore.token
@@ -106,6 +108,7 @@ class AuthViewModel @Inject constructor(
     fun loadProfile() {
         viewModelScope.launch(Dispatchers.IO) {
             runCatching { api.getMe() }.onSuccess { _profile.value = it }
+            runCatching { farmLocationRepository.refreshFromBackend() }
         }
     }
 
@@ -133,6 +136,7 @@ class AuthViewModel @Inject constructor(
                 savedSchemeDao.clearForUser(uid)
                 marketFavoriteDao.clearForUser(uid)
                 syncOperationDao.clearForUser(uid)
+                farmProfileDao.clearForUser(uid)
             }
             dataStore.clearAuth()
             _profile.value = null

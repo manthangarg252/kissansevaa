@@ -3,6 +3,7 @@ package com.kissansevaai.core.sync
 import android.util.Log
 import com.kissansevaai.core.data.DataStoreManager
 import com.kissansevaai.core.database.CropPlanDao
+import com.kissansevaai.core.database.FarmProfileDao
 import com.kissansevaai.core.database.PlannerTaskDao
 import com.kissansevaai.core.database.SyncOperationDao
 import com.kissansevaai.core.model.SyncBatchRequest
@@ -24,6 +25,7 @@ class OfflineSyncManager @Inject constructor(
     private val dataStore: DataStoreManager,
     private val cropPlanDao: CropPlanDao,
     private val plannerTaskDao: PlannerTaskDao,
+    private val farmProfileDao: FarmProfileDao? = null,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -76,6 +78,12 @@ class OfflineSyncManager @Inject constructor(
                         val localPlanId = "local_$opId"
                         plannerTaskDao.deleteForPlan(localPlanId)
                         cropPlanDao.deleteById(localPlanId)
+                    } else if (result.opType == "profile_update") {
+                        farmProfileDao?.getProfileOnce(userId)?.let { existing ->
+                            if (existing.pendingSync) {
+                                farmProfileDao.upsert(existing.copy(pendingSync = false))
+                            }
+                        }
                     }
                 } else {
                     val prev = pending.find { it.operationId == opId }

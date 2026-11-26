@@ -168,8 +168,18 @@ fun DashboardScreen(
     val upcomingTasks by viewModel.upcomingTasks.collectAsState()
     val pendingSyncCount by viewModel.pendingSyncCount.collectAsState()
     val isSpeaking by viewModel.isSpeaking.collectAsState()
+    val savedFarm by viewModel.savedFarmLocation.collectAsState()
+    val locationNotice by viewModel.locationSaveNotice.collectAsState()
     var showMenu by remember { mutableStateOf(false) }
     var showLangMenu by remember { mutableStateOf(false) }
+
+    val locationPrompt = com.kissansevaai.ui.component.rememberFarmLocationPrompt(
+        savedFarmLocation = savedFarm,
+        lang = lang,
+        speechToText = viewModel.speechToText,
+        onDetect = { viewModel.detectPhoneLocation() },
+        onConfirmSave = { confirmed -> viewModel.confirmFarmLocation(confirmed) },
+    )
 
     Scaffold(
         topBar = {
@@ -390,68 +400,117 @@ fun DashboardScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(16.dp)
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(DeepEmerald)
-                                )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(DeepEmerald)
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.dashboard_live_network),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TertiaryGreen
+                                    )
+                                }
+                                Spacer(Modifier.height(4.dp))
                                 Text(
-                                    text = stringResource(R.string.dashboard_live_network),
-                                    style = MaterialTheme.typography.labelSmall,
+                                    text = stringResource(R.string.dashboard_greeting),
+                                    style = MaterialTheme.typography.headlineSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = TertiaryGreen
+                                    color = TextCharcoal
                                 )
+                                Spacer(Modifier.height(2.dp))
+                                val farmLocalityText = savedFarm?.let { loc ->
+                                    val farmTitle = loc.farmName.ifBlank { if (lang.startsWith("hi")) "मेरा खेत" else "My Farm" }
+                                    val place = loc.formattedSummary.ifBlank {
+                                        if (lang.startsWith("hi")) "खेत का स्थान सेट नहीं" else "Farm location not set"
+                                    }
+                                    val cropTail = if (loc.primaryCrops.isNotEmpty()) " • ${loc.primaryCrops.joinToString(", ")}" else ""
+                                    "$farmTitle • $place$cropTail"
+                                } ?: if (lang.startsWith("hi")) "खेत का स्थान पहचानने के लिए टैप करें" else "Tap below to detect or set your farm location"
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier.clickable { locationPrompt.detectNow() }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.LocationOn,
+                                        contentDescription = "Detect or update farm location",
+                                        tint = DeepEmerald,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = farmLocalityText,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = DeepEmerald
+                                    )
+                                }
                             }
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = stringResource(R.string.dashboard_greeting),
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = TextCharcoal
-                            )
-                            Spacer(Modifier.height(2.dp))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+
+                            // Farmer Avatar Image
+                            Surface(
+                                shape = CircleShape,
+                                border = BorderStroke(2.dp, PrimaryFixed),
+                                modifier = Modifier.size(52.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.LocationOn,
-                                    contentDescription = null,
-                                    tint = DeepEmerald,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Text(
-                                    text = "Rajkot, Gujarat • Plot 1 (Groundnut & Cotton)",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = TextMuted
+                                AsyncImage(
+                                    model = "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200",
+                                    contentDescription = "Farmer Profile",
+                                    modifier = Modifier.fillMaxSize()
                                 )
                             }
                         }
-
-                        // Farmer Avatar Image
-                        Surface(
-                            shape = CircleShape,
-                            border = BorderStroke(2.dp, PrimaryFixed),
-                            modifier = Modifier.size(52.dp)
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            AsyncImage(
-                                model = "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200",
-                                contentDescription = "Farmer Profile",
-                                modifier = Modifier.fillMaxSize()
+                            AssistChip(
+                                onClick = { locationPrompt.detectNow() },
+                                label = {
+                                    Text(
+                                        text = if (locationPrompt.isDetecting) "Detecting..." else if (savedFarm?.hasConfirmedLocation == true) stringResource(R.string.location_retry_btn) else stringResource(R.string.location_detect_btn),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                    )
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.MyLocation, null, modifier = Modifier.size(14.dp), tint = DeepEmerald)
+                                },
                             )
+                            AssistChip(
+                                onClick = { locationPrompt.openManual() },
+                                label = {
+                                    Text(
+                                        stringResource(R.string.location_change_btn),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                    )
+                                },
+                            )
+                        }
+                        (locationNotice ?: locationPrompt.statusMessage)?.let { note ->
+                            Spacer(Modifier.height(4.dp))
+                            Text(note, style = MaterialTheme.typography.labelSmall, color = SecondaryOrange)
                         }
                     }
                 }
@@ -527,7 +586,8 @@ fun DashboardScreen(
                                         text = if (liveW != null) {
                                             "${liveW.current.temperatureC.toInt()}°C • ${liveW.locationName}"
                                         } else {
-                                            stringResource(R.string.dashboard_weather_summary)
+                                            savedFarm?.formattedSummary?.takeIf { it.isNotBlank() }?.let { "Weather • $it" }
+                                                ?: "Weather • Set Farm Location"
                                         },
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
@@ -537,7 +597,7 @@ fun DashboardScreen(
                                         text = if (liveW != null) {
                                             "Humidity ${liveW.current.humidityPct.toInt()}% • Wind ${liveW.current.windSpeedKmh} km/h"
                                         } else {
-                                            stringResource(R.string.dashboard_weather_details)
+                                            "Tap to load live forecast for your farm"
                                         },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = TextMuted
@@ -881,27 +941,10 @@ fun DashboardScreen(
                                 )
                             }
                         } else {
-                            // Fallback default snapshot rows
-                            MandiPriceRow(
-                                cropName = "Cotton",
-                                mandiLocation = "Rajkot, Gujarat",
-                                price = "₹7,100/q",
-                                trend = "+₹120",
-                                isUp = true
-                            )
-                            MandiPriceRow(
-                                cropName = "Wheat",
-                                mandiLocation = "Gondal APMC",
-                                price = "₹2,450/q",
-                                trend = "+₹40",
-                                isUp = true
-                            )
-                            MandiPriceRow(
-                                cropName = "Groundnut",
-                                mandiLocation = "Rajkot Mandi",
-                                price = "₹6,300/q",
-                                trend = "Steady",
-                                isUp = null
+                            Text(
+                                text = if (lang.startsWith("hi")) "ताज़ा मंडी भाव देखने के लिए 'View All' पर टैप करें।" else "Tap 'View All' to load live or cached APMC mandi prices.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextMuted,
                             )
                         }
                     }

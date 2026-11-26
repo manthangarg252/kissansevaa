@@ -42,7 +42,12 @@ class MigrationAndScreenTest {
             sqlite.close()
 
             val roomDb = Room.databaseBuilder(context, KissanDatabase::class.java, dbName)
-                .addMigrations(DatabaseModule.MIGRATION_1_2, DatabaseModule.MIGRATION_2_3, DatabaseModule.MIGRATION_3_4)
+                .addMigrations(
+                    DatabaseModule.MIGRATION_1_2,
+                    DatabaseModule.MIGRATION_2_3,
+                    DatabaseModule.MIGRATION_3_4,
+                    DatabaseModule.MIGRATION_4_5,
+                )
                 .build()
 
             val migrated = roomDb.cropAnalysisDao().getAllHistory().first()

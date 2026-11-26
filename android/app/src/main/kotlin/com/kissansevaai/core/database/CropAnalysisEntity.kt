@@ -43,6 +43,8 @@ data class CropAnalysisEntity(
     val secondOpinionSummary: String? = null,
     val reconciliationStatus: String? = null,
     val reconciliationNote: String? = null,
+    val cropHint: String? = null,
+    val symptomDescription: String? = null,
 ) {
     fun toDomain(): CropAnalysisResult {
         val sec = if (!secondOpinionSource.isNullOrBlank() || !secondOpinionDiseaseName.isNullOrBlank()) {
@@ -81,6 +83,8 @@ data class CropAnalysisEntity(
             secondOpinion = sec,
             reconciliationStatus = reconciliationStatus,
             reconciliationNote = reconciliationNote,
+            cropHint = cropHint,
+            symptomDescription = symptomDescription,
         )
     }
 }
@@ -115,6 +119,8 @@ fun CropAnalysisResult.toEntity(userId: String = ""): CropAnalysisEntity = CropA
     secondOpinionSummary = secondOpinion?.summary,
     reconciliationStatus = reconciliationStatus,
     reconciliationNote = reconciliationNote,
+    cropHint = cropHint,
+    symptomDescription = symptomDescription,
 )
 
 @Dao

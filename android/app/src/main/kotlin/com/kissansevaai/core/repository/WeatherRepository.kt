@@ -32,6 +32,8 @@ class WeatherRepository @Inject constructor(
     }
 
     fun getForecast(
+        lat: Double? = null,
+        lon: Double? = null,
         location: String? = null,
         language: String = "en",
         forceRefresh: Boolean = false,
@@ -46,6 +48,8 @@ class WeatherRepository @Inject constructor(
 
         try {
             val fresh = api.getWeatherForecast(
+                lat = lat,
+                lon = lon,
                 location = location?.takeIf { it.isNotBlank() },
                 language = language,
                 refresh = if (forceRefresh) true else null,

@@ -59,7 +59,7 @@ export function reconcileCropPredictions(primaryCrop, primaryDisease, secondOpin
 
 export const analyzeCrop = async (req, res) => {
   try {
-    const { location, soilType, language, clientRequestId } = req.body;
+    const { location, soilType, language, clientRequestId, cropHint = '', symptomDescription = '' } = req.body;
     const file = req.file;
 
     if (!file) {
@@ -206,6 +206,8 @@ export const analyzeCrop = async (req, res) => {
           treatment: result.treatment,
           prevention: result.prevention,
           imagePath: file.path || 'temp_path',
+          cropHint: String(cropHint || '').trim(),
+          symptomDescription: String(symptomDescription || '').trim(),
           source,
           reconciliationStatus: result.reconciliationStatus || 'primary_only',
         });
@@ -217,6 +219,8 @@ export const analyzeCrop = async (req, res) => {
     res.json({
       source,
       ...result,
+      cropHint: String(cropHint || '').trim() || undefined,
+      symptomDescription: String(symptomDescription || '').trim() || undefined,
       language,
       _id: savedAnalysis?._id || `temp_${Date.now()}`,
       id: savedAnalysis?._id || `temp_${Date.now()}`,

@@ -31,8 +31,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.kissansevaai.R
 import com.kissansevaai.ui.component.FeatureScaffold
-import com.kissansevaai.ui.component.FieldMicButton
+import com.kissansevaai.ui.component.FillByVoiceButton
 import com.kissansevaai.ui.component.LoadingOverlay
+import com.kissansevaai.ui.component.VoiceInputField
 import com.kissansevaai.ui.theme.*
 
 @Composable
@@ -40,9 +41,12 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
     val history by viewModel.history.collectAsState()
+    val savedFarm by viewModel.savedFarmLocation.collectAsState()
     var selectedUri by remember { mutableStateOf<Uri?>(null) }
-    var location by remember { mutableStateOf("") }
-    var soilType by remember { mutableStateOf("") }
+    var cropNameInput by remember { mutableStateOf("") }
+    var symptomDescriptionInput by remember { mutableStateOf("") }
+    var location by remember(savedFarm) { mutableStateOf(savedFarm?.formattedSummary.orEmpty()) }
+    var soilType by remember(savedFarm) { mutableStateOf(savedFarm?.soilType.orEmpty()) }
     var treatmentTab by remember { mutableStateOf(0) } // 0 = Organic, 1 = Chemical
 
     var showSourceChooser by remember { mutableStateOf(false) }
@@ -295,8 +299,10 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                 modifier = Modifier.weight(1f).clickable {
                                     val uri = viewModel.createSampleLeafUri(crop, disease)
                                     selectedUri = uri
-                                    location = "Rajkot, Gujarat"
-                                    soilType = soil
+                                    cropNameInput = crop
+                                    symptomDescriptionInput = "$crop $disease sample check"
+                                    location = savedFarm?.formattedSummary.orEmpty()
+                                    soilType = savedFarm?.soilType?.ifBlank { soil } ?: soil
                                     permissionNotice = null
                                 }
                             ) {
@@ -328,70 +334,90 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                 ) {
                     val currentLang by viewModel.language.collectAsState()
 
-                    OutlinedTextField(
-                        value = location,
-                        onValueChange = { location = it },
-                        label = { Text(stringResource(R.string.common_location)) },
-                        leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = DeepEmerald) },
-                        placeholder = { Text("e.g. Rajkot, Gujarat") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = {
-                            FieldMicButton(
-                                speechToText = viewModel.speechToText,
-                                lang = currentLang,
-                                onResult = { location = it },
-                                onError = { permissionNotice = it }
-                            )
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = DeepEmerald,
-                            unfocusedBorderColor = BorderMedium
-                        )
-                    )
-
-                    OutlinedTextField(
-                        value = soilType,
-                        onValueChange = { soilType = it },
-                        label = { Text(stringResource(R.string.common_soil_type)) },
-                        leadingIcon = { Icon(Icons.Default.Grass, null, tint = DeepEmerald) },
-                        placeholder = { Text("e.g. Alluvial / Black Cotton") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = {
-                            FieldMicButton(
-                                speechToText = viewModel.speechToText,
-                                lang = currentLang,
-                                onResult = { soilType = it },
-                                onError = { permissionNotice = it }
-                            )
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = DeepEmerald,
-                            unfocusedBorderColor = BorderMedium
-                        )
-                    )
-
-                    com.kissansevaai.ui.component.VoiceFormFillButton(
-                        fields = listOf("location", "soilType"),
+                    FillByVoiceButton(
+                        fields = listOf("cropName", "symptomDescription", "location", "soilType"),
+                        fieldLabels = mapOf(
+                            "cropName" to "Crop Name",
+                            "symptomDescription" to "Symptom Description",
+                            "location" to "Farm Location",
+                            "soilType" to "Soil Type",
+                        ),
                         lang = currentLang,
                         speechToText = viewModel.speechToText,
                         fieldExtractor = viewModel.fieldExtractor,
                         onFill = { data ->
+                            data["cropName"]?.let { cropNameInput = it }
+                            data["symptomDescription"]?.let { symptomDescriptionInput = it }
                             data["location"]?.let { location = it }
                             data["soilType"]?.let { soilType = it }
                         },
                         onMessage = { msg -> permissionNotice = msg },
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    VoiceInputField(
+                        value = cropNameInput,
+                        onValueChange = { cropNameInput = it },
+                        label = "Crop Name",
+                        fieldKey = "cropName",
+                        lang = currentLang,
+                        speechToText = viewModel.speechToText,
+                        placeholder = "e.g. Wheat, Paddy, Tomato",
+                        leadingIcon = { Icon(Icons.Default.Eco, null, tint = DeepEmerald) },
+                        onMessage = { permissionNotice = it },
+                    )
+
+                    VoiceInputField(
+                        value = symptomDescriptionInput,
+                        onValueChange = { symptomDescriptionInput = it },
+                        label = "Symptom Description",
+                        fieldKey = "symptomDescription",
+                        lang = currentLang,
+                        speechToText = viewModel.speechToText,
+                        placeholder = "e.g. Yellow rust spots, leaf curl",
+                        leadingIcon = { Icon(Icons.Default.BugReport, null, tint = DeepEmerald) },
+                        onMessage = { permissionNotice = it },
+                    )
+
+                    VoiceInputField(
+                        value = location,
+                        onValueChange = { location = it },
+                        label = stringResource(R.string.common_location),
+                        fieldKey = "location",
+                        lang = currentLang,
+                        speechToText = viewModel.speechToText,
+                        placeholder = "e.g. Saved farm village / district",
+                        leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = DeepEmerald) },
+                        onMessage = { permissionNotice = it },
+                    )
+
+                    VoiceInputField(
+                        value = soilType,
+                        onValueChange = { soilType = it },
+                        label = stringResource(R.string.common_soil_type),
+                        fieldKey = "soilType",
+                        lang = currentLang,
+                        speechToText = viewModel.speechToText,
+                        placeholder = "e.g. Alluvial / Black Cotton",
+                        leadingIcon = { Icon(Icons.Default.Grass, null, tint = DeepEmerald) },
+                        onMessage = { permissionNotice = it },
+                    )
                 }
             }
 
             // Analyze Crop CTA Button
             Button(
-                onClick = { selectedUri?.let { viewModel.analyze(it, location, soilType) } },
+                onClick = {
+                    selectedUri?.let {
+                        viewModel.analyze(
+                            imageUri = it,
+                            location = location,
+                            soilType = soilType,
+                            cropHint = cropNameInput,
+                            symptomDescription = symptomDescriptionInput,
+                        )
+                    }
+                },
                 enabled = selectedUri != null && !state.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()

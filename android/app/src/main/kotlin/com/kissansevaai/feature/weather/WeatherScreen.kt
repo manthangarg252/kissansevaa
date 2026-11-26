@@ -27,13 +27,17 @@ import com.kissansevaai.core.ai.SpeechToText
 import com.kissansevaai.core.ai.TextToSpeechEngine
 import com.kissansevaai.core.common.Resource
 import com.kissansevaai.core.data.DataStoreManager
+import com.kissansevaai.core.location.LocationDetectionResult
+import com.kissansevaai.core.location.SavedFarmLocation
 import com.kissansevaai.core.model.WeatherAlertRequest
 import com.kissansevaai.core.model.WeatherForecast
+import com.kissansevaai.core.repository.FarmLocationRepository
 import com.kissansevaai.core.repository.WeatherRepository
 import com.kissansevaai.ui.component.FeatureScaffold
 import com.kissansevaai.ui.component.LoadingOverlay
-import com.kissansevaai.ui.component.MicButton
 import com.kissansevaai.ui.component.TTSButton
+import com.kissansevaai.ui.component.VoiceInputField
+import com.kissansevaai.ui.component.rememberFarmLocationPrompt
 import com.kissansevaai.ui.theme.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,6 +57,7 @@ data class WeatherUiState(
 @HiltViewModel
 class WeatherViewModel @Inject constructor(
     private val repository: WeatherRepository,
+    private val farmLocationRepository: FarmLocationRepository,
     private val dataStore: DataStoreManager,
     val speechToText: SpeechToText,
     val ttsEngine: TextToSpeechEngine,
@@ -61,6 +66,9 @@ class WeatherViewModel @Inject constructor(
     val language: StateFlow<String> = dataStore.language
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "en")
 
+    val savedFarmLocation: StateFlow<SavedFarmLocation?> = farmLocationRepository.observeSavedFarmLocation()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     private val _uiState = MutableStateFlow(WeatherUiState(isLoading = true))
     val uiState: StateFlow<WeatherUiState> = _uiState
 
@@ -68,11 +76,45 @@ class WeatherViewModel @Inject constructor(
         loadForecast()
     }
 
-    fun loadForecast(location: String? = null, forceRefresh: Boolean = false, includeAi: Boolean = false) {
+    suspend fun detectPhoneLocation(): LocationDetectionResult = farmLocationRepository.detectCurrentPhoneLocation()
+
+    fun confirmAndSaveFarmLocation(location: SavedFarmLocation) {
+        viewModelScope.launch {
+            val saved = farmLocationRepository.confirmAndSaveFarmProfile(location)
+            if (saved is Resource.Success) {
+                loadForecastForSavedFarm(saved.data, forceRefresh = true)
+            }
+        }
+    }
+
+    fun loadForecastForSavedFarm(saved: SavedFarmLocation?, forceRefresh: Boolean = false) {
         viewModelScope.launch {
             val lang = dataStore.language.first()
             repository.getForecast(
-                location = location,
+                lat = saved?.latitude,
+                lon = saved?.longitude,
+                location = saved?.formattedSummary?.takeIf { it.isNotBlank() },
+                language = lang,
+                forceRefresh = forceRefresh,
+                includeAi = false,
+            ).collect { res ->
+                when (res) {
+                    is Resource.Loading -> _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+                    is Resource.Success -> _uiState.value = WeatherUiState(isLoading = false, forecast = res.data)
+                    is Resource.Error -> _uiState.value = _uiState.value.copy(isLoading = false, error = res.message)
+                }
+            }
+        }
+    }
+
+    fun loadForecast(location: String? = null, forceRefresh: Boolean = false, includeAi: Boolean = false) {
+        viewModelScope.launch {
+            val lang = dataStore.language.first()
+            val saved = if (location.isNullOrBlank()) (savedFarmLocation.value ?: farmLocationRepository.getSavedFarmLocationOnce()) else null
+            repository.getForecast(
+                lat = saved?.latitude,
+                lon = saved?.longitude,
+                location = location?.takeIf { it.isNotBlank() } ?: saved?.formattedSummary?.takeIf { it.isNotBlank() },
                 language = lang,
                 forceRefresh = forceRefresh,
                 includeAi = includeAi,
@@ -89,9 +131,13 @@ class WeatherViewModel @Inject constructor(
     fun evaluateFarmAlerts(location: String, crop: String, soilType: String) {
         viewModelScope.launch {
             val lang = dataStore.language.first()
+            val saved = savedFarmLocation.value ?: farmLocationRepository.getSavedFarmLocationOnce()
+            val useCoords = location.isBlank() || location.equals(saved?.formattedSummary, ignoreCase = true)
             repository.evaluateFarmAlerts(
                 WeatherAlertRequest(
-                    location = location,
+                    location = location.ifBlank { saved?.formattedSummary.orEmpty() },
+                    lat = if (useCoords) saved?.latitude else null,
+                    lon = if (useCoords) saved?.longitude else null,
                     crop = crop,
                     soilType = soilType,
                     language = lang,
@@ -112,12 +158,21 @@ class WeatherViewModel @Inject constructor(
 fun WeatherScreen(onBack: () -> Unit, viewModel: WeatherViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsState()
     val lang by viewModel.language.collectAsState()
-    var locationInput by remember { mutableStateOf("") }
+    val savedFarm by viewModel.savedFarmLocation.collectAsState()
+    var locationInput by remember(savedFarm) { mutableStateOf(savedFarm?.formattedSummary.orEmpty()) }
     var cropInput by remember { mutableStateOf("Wheat") }
-    var soilInput by remember { mutableStateOf("Loamy") }
+    var soilInput by remember(savedFarm) { mutableStateOf(savedFarm?.soilType?.ifBlank { "Loamy" } ?: "Loamy") }
     var voiceNotice by remember { mutableStateOf<String?>(null) }
 
-    val quickHubs = listOf("Nagpur", "Rajkot", "Ludhiana", "Indore", "Patna", "New Delhi")
+    val locationPrompt = rememberFarmLocationPrompt(
+        savedFarmLocation = savedFarm,
+        lang = lang,
+        speechToText = viewModel.speechToText,
+        onDetect = { viewModel.detectPhoneLocation() },
+        onConfirmSave = { confirmed -> viewModel.confirmAndSaveFarmLocation(confirmed) },
+    )
+
+    val quickHubs = listOf("Ludhiana", "Indore", "Patna", "Pune", "Karnal", "New Delhi")
 
     FeatureScaffold(
         title = stringResource(R.string.weather_title),
@@ -151,26 +206,19 @@ fun WeatherScreen(onBack: () -> Unit, viewModel: WeatherViewModel = hiltViewMode
             ) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
+                        VoiceInputField(
                             value = locationInput,
                             onValueChange = { locationInput = it },
-                            label = { Text(stringResource(R.string.weather_location_label)) },
-                            placeholder = { Text("e.g. Nagpur, Rajkot, Ludhiana") },
-                            singleLine = true,
-                            trailingIcon = {
-                                MicButton(
-                                    speechToText = viewModel.speechToText,
-                                    lang = lang,
-                                    onResult = { locationInput = it },
-                                    onExplanation = { voiceNotice = it },
-                                )
-                            },
+                            label = stringResource(R.string.weather_location_label),
+                            fieldKey = "district",
+                            lang = lang,
+                            speechToText = viewModel.speechToText,
+                            placeholder = "Speak or type district / city",
+                            onMessage = { voiceNotice = it },
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = DeepEmerald, unfocusedBorderColor = BorderMedium),
                         )
                         Button(
-                            onClick = { viewModel.loadForecast(locationInput.ifBlank { null }, forceRefresh = true, includeAi = true) },
+                            onClick = { viewModel.loadForecast(locationInput.ifBlank { null }, forceRefresh = true, includeAi = false) },
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp),
@@ -183,6 +231,21 @@ fun WeatherScreen(onBack: () -> Unit, viewModel: WeatherViewModel = hiltViewMode
                         modifier = Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
+                        AssistChip(
+                            onClick = { locationPrompt.detectNow() },
+                            leadingIcon = { Icon(Icons.Default.MyLocation, null, modifier = Modifier.size(14.dp), tint = DeepEmerald) },
+                            label = { Text(if (locationPrompt.isDetecting) "Detecting..." else "Detect Farm GPS", style = MaterialTheme.typography.labelSmall) },
+                        )
+                        savedFarm?.takeIf { it.hasConfirmedLocation }?.let { farm ->
+                            FilterChip(
+                                selected = locationInput.equals(farm.formattedSummary, ignoreCase = true),
+                                onClick = {
+                                    locationInput = farm.formattedSummary
+                                    viewModel.loadForecastForSavedFarm(farm, forceRefresh = true)
+                                },
+                                label = { Text("My Farm (${farm.district.ifBlank { farm.state }})", style = MaterialTheme.typography.labelSmall) },
+                            )
+                        }
                         quickHubs.forEach { hub ->
                             FilterChip(
                                 selected = locationInput.equals(hub, ignoreCase = true),
@@ -215,7 +278,7 @@ fun WeatherScreen(onBack: () -> Unit, viewModel: WeatherViewModel = hiltViewMode
                     }
 
                     Button(
-                        onClick = { viewModel.evaluateFarmAlerts(locationInput.ifBlank { "Nagpur" }, cropInput, soilInput) },
+                        onClick = { viewModel.evaluateFarmAlerts(locationInput, cropInput, soilInput) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(9999.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),

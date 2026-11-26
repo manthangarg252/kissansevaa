@@ -22,5 +22,5 @@ abstract class AiModule {
 
     @Binds
     @Singleton
-    abstract fun bindFieldExtractor(impl: com.kissansevaai.core.ai.remote.RemoteFieldExtractor): FieldExtractor
+    abstract fun bindFieldExtractor(impl: com.kissansevaai.core.ai.voice.HybridFieldExtractor): FieldExtractor
 }

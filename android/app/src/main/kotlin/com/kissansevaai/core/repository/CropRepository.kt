@@ -103,16 +103,29 @@ class CropRepository @Inject constructor(
         location: RequestBody,
         soilType: RequestBody,
         language: RequestBody,
+        cropHint: RequestBody? = null,
+        symptomDescription: RequestBody? = null,
     ): Flow<Resource<CropAnalysisResult>> = flow {
         emit(Resource.Loading)
         val userId = activeUserId()
         try {
-            val result = api.analyzeCrop(
-                image = image,
-                location = location,
-                soilType = soilType,
-                language = language,
-            )
+            val result = if (cropHint != null || symptomDescription != null) {
+                api.analyzeCropWithDetails(
+                    image = image,
+                    location = location,
+                    soilType = soilType,
+                    language = language,
+                    cropHint = cropHint,
+                    symptomDescription = symptomDescription,
+                )
+            } else {
+                api.analyzeCrop(
+                    image = image,
+                    location = location,
+                    soilType = soilType,
+                    language = language,
+                )
+            }
             cropDao.insert(result.toEntity(userId = userId))
             emit(Resource.Success(result))
         } catch (e: Exception) {

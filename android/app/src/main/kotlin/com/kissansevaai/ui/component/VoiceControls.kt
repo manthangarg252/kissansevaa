@@ -40,6 +40,7 @@ fun MicButton(
     onResult: (String) -> Unit,
     onError: (String) -> Unit = {},
     onExplanation: ((String) -> Unit)? = null,
+    onPartialResult: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -53,12 +54,18 @@ fun MicButton(
         )
     }
 
+    DisposableEffect(speechToText) {
+        onDispose {
+            if (isListening) speechToText.cancelListening()
+        }
+    }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         hasPermission = isGranted
         if (isGranted) {
-            startListeningInternal(speechToText, lang, onResult, onError, onExplanation) {
+            startListeningInternal(speechToText, lang, onResult, onError, onExplanation, onPartialResult) {
                 isListening = it
             }
         } else {
@@ -83,7 +90,7 @@ fun MicButton(
     IconButton(
         onClick = {
             if (isListening) {
-                speechToText.stopListening()
+                speechToText.cancelListening()
                 isListening = false
                 return@IconButton
             }
@@ -100,19 +107,23 @@ fun MicButton(
             if (!hasPermission) {
                 permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             } else {
-                startListeningInternal(speechToText, lang, onResult, onError, onExplanation) {
+                startListeningInternal(speechToText, lang, onResult, onError, onExplanation, onPartialResult) {
                     isListening = it
                 }
             }
         },
         modifier = modifier
-            .size(44.dp)
+            .size(48.dp)
             .scale(if (isListening) pulseScale else 1f)
             .clip(CircleShape)
             .background(if (isListening) Emerald500 else Slate800),
     ) {
         Icon(
-            imageVector = if (!speechToText.isLanguageSupported(lang)) Icons.Default.MicOff else Icons.Default.Mic,
+            imageVector = when {
+                isListening -> Icons.Default.Stop
+                !speechToText.isLanguageSupported(lang) -> Icons.Default.MicOff
+                else -> Icons.Default.Mic
+            },
             contentDescription = if (isListening) "Stop listening" else "Start voice input",
             tint = if (isListening) Color.White else if (!speechToText.isLanguageSupported(lang)) Slate500 else Emerald400
         )
@@ -206,6 +217,7 @@ private fun startListeningInternal(
     onResult: (String) -> Unit,
     onError: (String) -> Unit,
     onExplanation: ((String) -> Unit)?,
+    onPartialResult: ((String) -> Unit)? = null,
     setListening: (Boolean) -> Unit
 ) {
     if (!stt.isLanguageSupported(lang)) {
@@ -219,14 +231,23 @@ private fun startListeningInternal(
         langCode = lang,
         onResult = { text ->
             setListening(false)
+            onPartialResult?.invoke("")
             onResult(text)
         },
         onError = { err ->
             setListening(false)
+            onPartialResult?.invoke("")
             onError(err)
         },
         onReadyForSpeech = {
             setListening(true)
+        },
+        onPartialResult = { partial ->
+            onPartialResult?.invoke(partial)
+        },
+        onCancelled = {
+            setListening(false)
+            onPartialResult?.invoke("")
         }
     )
 }

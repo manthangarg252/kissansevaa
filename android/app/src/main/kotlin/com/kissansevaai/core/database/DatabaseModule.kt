@@ -203,6 +203,39 @@ object DatabaseModule {
         }
     }
 
+    val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE crop_plans ADD COLUMN sowingDate TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE crop_plans ADD COLUMN customTask TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE crop_history ADD COLUMN cropHint TEXT")
+            db.execSQL("ALTER TABLE crop_history ADD COLUMN symptomDescription TEXT")
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS farm_profiles (
+                    userId TEXT NOT NULL PRIMARY KEY,
+                    farmerName TEXT NOT NULL,
+                    farmName TEXT NOT NULL,
+                    village TEXT NOT NULL,
+                    city TEXT NOT NULL,
+                    district TEXT NOT NULL,
+                    state TEXT NOT NULL,
+                    country TEXT NOT NULL,
+                    postalCode TEXT NOT NULL,
+                    latitude REAL,
+                    longitude REAL,
+                    locationSource TEXT NOT NULL,
+                    locationUpdatedAt TEXT NOT NULL,
+                    farmSizeAcres REAL,
+                    soilType TEXT NOT NULL,
+                    irrigationType TEXT NOT NULL,
+                    primaryCropsJson TEXT NOT NULL,
+                    pendingSync INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+        }
+    }
+
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): KissanDatabase {
@@ -210,7 +243,7 @@ object DatabaseModule {
             context,
             KissanDatabase::class.java,
             "kissansevaai.db"
-        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build()
     }
 
     @Provides
@@ -254,4 +287,7 @@ object DatabaseModule {
 
     @Provides
     fun provideSyncOperationDao(db: KissanDatabase): SyncOperationDao = db.syncOperationDao()
+
+    @Provides
+    fun provideFarmProfileDao(db: KissanDatabase): FarmProfileDao = db.farmProfileDao()
 }

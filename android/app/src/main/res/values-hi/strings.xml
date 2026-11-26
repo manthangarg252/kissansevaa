@@ -267,4 +267,18 @@
     <string name="crop_second_opinion_desc">आपकी सहमति से यह फोटो स्वतंत्र जांच के लिए Gemini Vision को भेजा जाएगा; प्राथमिक DINOv2 परिणाम सुरक्षित रहेगा।</string>
     <string name="crop_second_opinion_consent">मैं Gemini Vision समीक्षा के लिए पत्ती की फोटो भेजने की सहमति देता हूँ</string>
     <string name="crop_second_opinion_btn">जेमिनी दूसरी राय प्राप्त करें</string>
+
+    <!-- Stage 4 Smart Voice Auto-Fill & Farm Location -->
+    <string name="voice_fill_button">बोलकर फॉर्म भरें</string>
+    <string name="voice_tap_to_speak">%1$s बोलकर भरें</string>
+    <string name="voice_stop_listening">सुनना रोकें</string>
+    <string name="voice_cancel">रद्द करें</string>
+    <string name="voice_retry">फिर से बोलें</string>
+    <string name="voice_confirm_apply">लागू करें</string>
+    <string name="voice_review_title">बोलकर भरी जानकारी की पुष्टि करें</string>
+    <string name="location_confirm_title">क्या आप इस स्थान को अपने खेत के लिए उपयोग करना चाहते हैं?</string>
+    <string name="location_confirm_btn">पुष्टि करें</string>
+    <string name="location_change_btn">स्थान बदलें</string>
+    <string name="location_retry_btn">फिर से खोजें</string>
+    <string name="location_detect_btn">खेत का स्थान पहचानें</string>
 </resources>

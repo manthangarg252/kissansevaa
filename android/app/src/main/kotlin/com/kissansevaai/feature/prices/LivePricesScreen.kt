@@ -29,24 +29,40 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil3.compose.AsyncImage
 import com.kissansevaai.R
+import com.kissansevaai.core.ai.SpeechToText
 import com.kissansevaai.core.common.Resource
+import com.kissansevaai.core.data.DataStoreManager
+import com.kissansevaai.core.location.SavedFarmLocation
 import com.kissansevaai.core.model.MarketComparisonDto
 import com.kissansevaai.core.model.MarketPrice
 import com.kissansevaai.core.model.MarketStatsDto
+import com.kissansevaai.core.repository.FarmLocationRepository
 import com.kissansevaai.core.repository.PricesRepository
 import com.kissansevaai.ui.component.FeatureScaffold
 import com.kissansevaai.ui.component.LoadingOverlay
+import com.kissansevaai.ui.component.VoiceInputField
 import com.kissansevaai.ui.theme.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class PricesViewModel @Inject constructor(
     private val repository: PricesRepository,
+    private val farmLocationRepository: FarmLocationRepository,
+    private val dataStore: DataStoreManager,
+    val speechToText: SpeechToText,
 ) : ViewModel() {
+    val language: StateFlow<String> = dataStore.language
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "en")
+
+    val savedFarmLocation: StateFlow<SavedFarmLocation?> = farmLocationRepository.observeSavedFarmLocation()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     private val _prices = MutableStateFlow<List<MarketPrice>>(emptyList())
     val prices: StateFlow<List<MarketPrice>> = _prices
     private val _isLoading = MutableStateFlow(true)
@@ -63,11 +79,16 @@ class PricesViewModel @Inject constructor(
     val favoriteKeys: StateFlow<Set<String>> = _favoriteKeys
 
     private var activeCrop: String? = null
+    private var activeState: String? = null
+    private var activeDistrictOrMarket: String? = null
     private var activeCategory: String? = null
 
     init {
-        fetch()
-        loadMeta()
+        viewModelScope.launch {
+            val saved = farmLocationRepository.getSavedFarmLocationOnce()
+            fetch(state = saved?.state?.takeIf { it.isNotBlank() })
+            loadMeta()
+        }
     }
 
     private fun loadMeta() {
@@ -86,15 +107,25 @@ class PricesViewModel @Inject constructor(
         }
     }
 
-    fun fetch(crop: String? = null, category: String? = null, refresh: Boolean = false) {
+    fun fetch(
+        crop: String? = null,
+        state: String? = activeState,
+        category: String? = null,
+        districtOrMarket: String? = activeDistrictOrMarket,
+        refresh: Boolean = false,
+    ) {
         activeCrop = crop
+        activeState = state
+        activeDistrictOrMarket = districtOrMarket
         activeCategory = category
         viewModelScope.launch {
             if (refresh) _isRefreshing.value = true
             repository.getMarketPrices(
                 crop = crop,
+                state = state,
                 category = if (category.isNullOrBlank() || category.equals("all", ignoreCase = true)) null else category,
-                refresh = refresh
+                refresh = refresh,
+                districtOrMarket = districtOrMarket,
             ).collect { res ->
                 when (res) {
                     is Resource.Loading -> {
@@ -119,7 +150,13 @@ class PricesViewModel @Inject constructor(
     }
 
     fun refreshNow() {
-        fetch(crop = activeCrop, category = activeCategory, refresh = true)
+        fetch(
+            crop = activeCrop,
+            state = activeState,
+            category = activeCategory,
+            districtOrMarket = activeDistrictOrMarket,
+            refresh = true,
+        )
     }
 
     fun toggleFavorite(item: MarketPrice) {
@@ -157,8 +194,12 @@ fun LivePricesScreen(onBack: () -> Unit, viewModel: PricesViewModel = hiltViewMo
     val stats by viewModel.stats.collectAsState()
     val comparisons by viewModel.comparisons.collectAsState()
     val favoriteKeys by viewModel.favoriteKeys.collectAsState()
+    val lang by viewModel.language.collectAsState()
+    val savedFarm by viewModel.savedFarmLocation.collectAsState()
 
     var search by remember { mutableStateOf("") }
+    var marketSearch by remember { mutableStateOf("") }
+    var filterByFarmState by remember(savedFarm) { mutableStateOf(!savedFarm?.state.isNullOrBlank()) }
     var selectedCategory by remember { mutableStateOf("All") }
     var selectedCropFilter by remember { mutableStateOf("All") }
     var favoritesOnly by remember { mutableStateOf(false) }
@@ -240,7 +281,9 @@ fun LivePricesScreen(onBack: () -> Unit, viewModel: PricesViewModel = hiltViewMo
                                     search = ""
                                     viewModel.fetch(
                                         crop = null,
-                                        category = if (key == "All") null else key
+                                        state = if (filterByFarmState) savedFarm?.state else null,
+                                        category = if (key == "All") null else key,
+                                        districtOrMarket = marketSearch.ifBlank { null },
                                     )
                                 }
                         ) {
@@ -257,38 +300,30 @@ fun LivePricesScreen(onBack: () -> Unit, viewModel: PricesViewModel = hiltViewMo
                 }
             }
 
-            // Search + Refresh + Compare / Favorites toggles
+            // Crop / Commodity Voice Search + Refresh
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(
+                VoiceInputField(
                     value = search,
                     onValueChange = {
                         search = it
                         selectedCropFilter = "All"
                         viewModel.fetch(
                             crop = it.ifBlank { null },
-                            category = if (selectedCategory == "All") null else selectedCategory
+                            state = if (filterByFarmState) savedFarm?.state else null,
+                            category = if (selectedCategory == "All") null else selectedCategory,
+                            districtOrMarket = marketSearch.ifBlank { null },
                         )
                     },
-                    placeholder = { Text(stringResource(R.string.prices_search_placeholder), fontSize = 13.sp) },
+                    label = stringResource(R.string.prices_search_placeholder),
+                    fieldKey = "cropSearch",
+                    lang = lang,
+                    speechToText = viewModel.speechToText,
                     leadingIcon = { Icon(Icons.Default.Search, null, tint = DeepEmerald) },
-                    trailingIcon = {
-                        if (search.isNotEmpty()) {
-                            IconButton(onClick = {
-                                search = ""
-                                viewModel.fetch(null, if (selectedCategory == "All") null else selectedCategory)
-                            }) {
-                                Icon(Icons.Default.Clear, null, tint = TextMuted)
-                            }
-                        }
-                    },
-                    singleLine = true,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = DeepEmerald, unfocusedBorderColor = BorderMedium)
                 )
 
                 Surface(
@@ -308,18 +343,84 @@ fun LivePricesScreen(onBack: () -> Unit, viewModel: PricesViewModel = hiltViewMo
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
-                    selected = favoritesOnly,
-                    onClick = { favoritesOnly = !favoritesOnly; showCompareMode = false },
-                    leadingIcon = { Icon(Icons.Default.Star, null, modifier = Modifier.size(16.dp)) },
-                    label = { Text("Saved (${favoriteKeys.size})") },
-                )
-                FilterChip(
-                    selected = showCompareMode,
-                    onClick = { showCompareMode = !showCompareMode },
-                    leadingIcon = { Icon(Icons.Default.CompareArrows, null, modifier = Modifier.size(16.dp)) },
-                    label = { Text("Compare Mandis") },
+            // District / Market Voice Search
+            VoiceInputField(
+                value = marketSearch,
+                onValueChange = {
+                    marketSearch = it
+                    viewModel.fetch(
+                        crop = search.ifBlank { null },
+                        state = if (filterByFarmState) savedFarm?.state else null,
+                        category = if (selectedCategory == "All") null else selectedCategory,
+                        districtOrMarket = it.ifBlank { null },
+                    )
+                },
+                label = if (lang.startsWith("hi")) "मंडी / जिला खोजें" else "Search Market / District",
+                fieldKey = "marketSearch",
+                lang = lang,
+                speechToText = viewModel.speechToText,
+                placeholder = savedFarm?.district?.ifBlank { "e.g. Pune, Ludhiana APMC" } ?: "e.g. Pune, Ludhiana APMC",
+                leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = DeepEmerald) },
+            )
+
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                savedFarm?.state?.takeIf { it.isNotBlank() }?.let { farmState ->
+                    item {
+                        FilterChip(
+                            selected = filterByFarmState,
+                            onClick = {
+                                filterByFarmState = !filterByFarmState
+                                viewModel.fetch(
+                                    crop = search.ifBlank { null },
+                                    state = if (filterByFarmState) farmState else null,
+                                    category = if (selectedCategory == "All") null else selectedCategory,
+                                    districtOrMarket = marketSearch.ifBlank { null },
+                                )
+                            },
+                            leadingIcon = { Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(16.dp)) },
+                            label = { Text(if (filterByFarmState) "Farm State: $farmState" else "Filter: $farmState") },
+                        )
+                    }
+                }
+                item {
+                    FilterChip(
+                        selected = !filterByFarmState && marketSearch.isBlank(),
+                        onClick = {
+                            filterByFarmState = false
+                            marketSearch = ""
+                            viewModel.fetch(
+                                crop = search.ifBlank { null },
+                                state = null,
+                                category = if (selectedCategory == "All") null else selectedCategory,
+                                districtOrMarket = null,
+                            )
+                        },
+                        label = { Text("All / Neighboring Markets") },
+                    )
+                }
+                item {
+                    FilterChip(
+                        selected = favoritesOnly,
+                        onClick = { favoritesOnly = !favoritesOnly; showCompareMode = false },
+                        leadingIcon = { Icon(Icons.Default.Star, null, modifier = Modifier.size(16.dp)) },
+                        label = { Text("Saved (${favoriteKeys.size})") },
+                    )
+                }
+                item {
+                    FilterChip(
+                        selected = showCompareMode,
+                        onClick = { showCompareMode = !showCompareMode },
+                        leadingIcon = { Icon(Icons.Default.CompareArrows, null, modifier = Modifier.size(16.dp)) },
+                        label = { Text("Compare Mandis") },
+                    )
+                }
+            }
+
+            if (filterByFarmState && !savedFarm?.state.isNullOrBlank()) {
+                Text(
+                    text = "Showing mandis in ${savedFarm?.state}${savedFarm?.district?.takeIf { it.isNotBlank() }?.let { " (farm district: $it)" } ?: ""}. Distance is not computed without verified mandi coordinates.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextMuted,
                 )
             }
 

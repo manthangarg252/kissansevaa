@@ -17,6 +17,8 @@ const cropPlanSchema = mongoose.Schema(
     locationName: { type: String, default: 'India' },
     latitude: { type: Number, default: null },
     longitude: { type: Number, default: null },
+    sowingDate: { type: String, default: '' },
+    customTask: { type: String, default: '' },
     startDate: { type: Date, default: Date.now },
     status: {
       type: String,

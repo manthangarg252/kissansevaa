@@ -20,8 +20,9 @@ import androidx.room.TypeConverters
         SavedSchemeEntity::class,
         MarketFavoriteEntity::class,
         SyncOperationEntity::class,
+        FarmProfileEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -40,4 +41,5 @@ abstract class KissanDatabase : RoomDatabase() {
     abstract fun savedSchemeDao(): SavedSchemeDao
     abstract fun marketFavoriteDao(): MarketFavoriteDao
     abstract fun syncOperationDao(): SyncOperationDao
+    abstract fun farmProfileDao(): FarmProfileDao
 }

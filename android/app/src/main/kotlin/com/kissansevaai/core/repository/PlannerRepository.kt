@@ -88,39 +88,62 @@ class PlannerRepository @Inject constructor(
                 soilType = request.soilType,
                 irrigationType = request.irrigationType,
                 farmSizeAcres = request.farmSizeAcres,
-                locationName = request.locationName,
-                startDate = today,
+                locationName = request.locationName.ifBlank { "Saved Farm" },
+                sowingDate = request.sowingDate,
+                customTask = request.customTask,
+                startDate = request.sowingDate.ifBlank { today },
                 status = "active",
                 generationSource = "rules_only",
                 updatedAt = today,
             )
-            val localTasks = listOf(
-                PlannerTaskDto(
-                    id = "localtask_${reqId}_0",
-                    planId = localPlanId,
-                    dayOffset = 0,
-                    scheduledDate = today,
-                    title = "${request.cropName}: Moisture & Pest Check (Offline Plan)",
-                    description = "Saved locally in Room. Will synchronize full 7-day weather plan when online.",
-                    category = "inspection",
-                    priority = "high",
-                    status = "pending",
+            val localTasks = buildList {
+                add(
+                    PlannerTaskDto(
+                        id = "localtask_${reqId}_0",
+                        planId = localPlanId,
+                        dayOffset = 0,
+                        scheduledDate = today,
+                        title = "${request.cropName}: Moisture & Pest Check (Offline Plan)",
+                        description = "Saved locally in Room. Will synchronize full 7-day weather plan when online.",
+                        category = "inspection",
+                        priority = "high",
+                        status = "pending",
+                    )
                 )
-            )
+                if (request.customTask.isNotBlank()) {
+                    add(
+                        PlannerTaskDto(
+                            id = "localtask_${reqId}_custom",
+                            planId = localPlanId,
+                            dayOffset = 0,
+                            scheduledDate = today,
+                            title = request.customTask.trim(),
+                            description = "Custom farmer task saved offline for ${request.cropName}.",
+                            category = "custom",
+                            priority = "high",
+                            status = "pending",
+                        )
+                    )
+                }
+            }
             planDao.insert(localPlan.toEntity(userId = userId, pendingSync = true))
             taskDao.insertAll(localTasks.map { it.toEntity(userId = userId, pendingSync = true) })
 
-            val payloadMap = mapOf(
-                "cropName" to JsonPrimitive(request.cropName),
-                "variety" to JsonPrimitive(request.variety),
-                "stage" to JsonPrimitive(request.stage),
-                "soilType" to JsonPrimitive(request.soilType),
-                "irrigationType" to JsonPrimitive(request.irrigationType),
-                "farmSizeAcres" to JsonPrimitive(request.farmSizeAcres),
-                "locationName" to JsonPrimitive(request.locationName),
-                "language" to JsonPrimitive(request.language),
-                "clientRequestId" to JsonPrimitive(reqId),
-            )
+            val payloadMap = buildMap<String, JsonPrimitive> {
+                put("cropName", JsonPrimitive(request.cropName))
+                put("variety", JsonPrimitive(request.variety))
+                put("stage", JsonPrimitive(request.stage))
+                put("soilType", JsonPrimitive(request.soilType))
+                put("irrigationType", JsonPrimitive(request.irrigationType))
+                put("farmSizeAcres", JsonPrimitive(request.farmSizeAcres))
+                put("locationName", JsonPrimitive(request.locationName))
+                request.latitude?.let { put("latitude", JsonPrimitive(it)) }
+                request.longitude?.let { put("longitude", JsonPrimitive(it)) }
+                if (request.sowingDate.isNotBlank()) put("sowingDate", JsonPrimitive(request.sowingDate))
+                if (request.customTask.isNotBlank()) put("customTask", JsonPrimitive(request.customTask))
+                put("language", JsonPrimitive(request.language))
+                put("clientRequestId", JsonPrimitive(reqId))
+            }
             syncDao.enqueue(
                 SyncOperationEntity(
                     operationId = reqId,

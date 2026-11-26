@@ -36,6 +36,7 @@ class PricesRepository @Inject constructor(
         state: String? = null,
         category: String? = null,
         refresh: Boolean = false,
+        districtOrMarket: String? = null,
     ): Flow<Resource<List<MarketPrice>>> = flow {
         emit(Resource.Loading)
 
@@ -48,7 +49,7 @@ class PricesRepository @Inject constructor(
         val cached = cachedEntities.map { it.toDomain() }
         var emittedCache = false
         if (cached.isNotEmpty() && !refresh) {
-            val filteredCached = filterPrices(cached, crop, state, category)
+            val filteredCached = filterPrices(cached, crop, state, category, districtOrMarket)
             emit(Resource.Success(filteredCached))
             emittedCache = true
         }
@@ -63,15 +64,15 @@ class PricesRepository @Inject constructor(
             if (networkPrices.isNotEmpty()) {
                 marketPriceDao.insertAll(networkPrices.map { it.toEntity() })
                 val allUpdated = marketPriceDao.getAllMarketPrices().first().map { it.toDomain() }
-                emit(Resource.Success(filterPrices(allUpdated, crop, state, category)))
+                emit(Resource.Success(filterPrices(allUpdated, crop, state, category, districtOrMarket)))
             } else if (!emittedCache) {
-                emit(Resource.Success(filterPrices(cached, crop, state, category)))
+                emit(Resource.Success(filterPrices(cached, crop, state, category, districtOrMarket)))
             }
         } catch (e: Exception) {
             if (cached.isEmpty()) {
                 emit(Resource.Error(e.toUserFriendlyMessage(), e))
             } else if (!emittedCache) {
-                emit(Resource.Success(filterPrices(cached, crop, state, category)))
+                emit(Resource.Success(filterPrices(cached, crop, state, category, districtOrMarket)))
             }
         }
     }.flowOn(Dispatchers.IO)
@@ -197,13 +198,25 @@ class PricesRepository @Inject constructor(
         }
     }.flowOn(Dispatchers.IO)
 
-    private fun filterPrices(prices: List<MarketPrice>, crop: String?, state: String?, category: String? = null): List<MarketPrice> {
+    private fun filterPrices(
+        prices: List<MarketPrice>,
+        crop: String?,
+        state: String?,
+        category: String? = null,
+        districtOrMarket: String? = null,
+    ): List<MarketPrice> {
         return prices.filter { p ->
-            val matchCrop = crop.isNullOrBlank() || p.crop.contains(crop, ignoreCase = true)
+            val matchCrop = crop.isNullOrBlank() ||
+                p.crop.contains(crop, ignoreCase = true) ||
+                (p.crop.equals("Rice", ignoreCase = true) && crop.equals("Paddy", ignoreCase = true))
             val matchState = state.isNullOrBlank() || p.state.contains(state, ignoreCase = true)
+            val matchDistrictOrMarket = districtOrMarket.isNullOrBlank() ||
+                p.market.contains(districtOrMarket, ignoreCase = true) ||
+                p.district.contains(districtOrMarket, ignoreCase = true) ||
+                p.state.contains(districtOrMarket, ignoreCase = true)
             val matchCategory = category.isNullOrBlank() || category.equals("all", ignoreCase = true) ||
                 p.effectiveCategory.equals(category, ignoreCase = true)
-            matchCrop && matchState && matchCategory
+            matchCrop && matchState && matchDistrictOrMarket && matchCategory
         }
     }
 }
