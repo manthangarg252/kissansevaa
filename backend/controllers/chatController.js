@@ -36,7 +36,7 @@ function normalizeCategory(modeOrCat = 'general', message = '') {
   return 'general';
 }
 
-async function gatherToolGrounding({ user, category, message }) {
+export async function gatherToolGrounding({ user, category, message }) {
   const contextLines = [];
   const groundedSources = [];
 

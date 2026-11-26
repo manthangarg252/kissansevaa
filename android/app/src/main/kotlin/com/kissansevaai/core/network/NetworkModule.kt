@@ -37,10 +37,28 @@ object NetworkModule {
      * Fast fallback interceptor for emulator (10.0.2.2) and USB-tethered physical device (127.0.0.1)
      * plus active LAN fallback with bounded 3s connect timeout per retry candidate.
      */
+    @Volatile
+    private var lastWorkingFallbackHost: String? = null
+
     private val hostFallbackInterceptor = Interceptor { chain ->
         val originalRequest = chain.request()
         val originalUrl = originalRequest.url
         val currentHost = originalUrl.host
+        val preferredHost = lastWorkingFallbackHost
+
+        if (preferredHost != null && preferredHost != currentHost) {
+            val fastUrl = originalUrl.newBuilder()
+                .host(preferredHost)
+                .port(originalUrl.port)
+                .build()
+            try {
+                return@Interceptor chain
+                    .withConnectTimeout(2500, TimeUnit.MILLISECONDS)
+                    .proceed(originalRequest.newBuilder().url(fastUrl).build())
+            } catch (_: IOException) {
+                lastWorkingFallbackHost = null
+            }
+        }
 
         try {
             chain.proceed(originalRequest)
@@ -56,9 +74,11 @@ object NetworkModule {
                     .url(fallbackUrl)
                     .build()
                 try {
-                    return@Interceptor chain
-                        .withConnectTimeout(3000, TimeUnit.MILLISECONDS)
+                    val resp = chain
+                        .withConnectTimeout(2500, TimeUnit.MILLISECONDS)
                         .proceed(retryRequest)
+                    lastWorkingFallbackHost = targetHost
+                    return@Interceptor resp
                 } catch (_: IOException) {
                     // Try next candidate
                 }
@@ -81,11 +101,12 @@ object NetworkModule {
             }
         }
         return OkHttpClient.Builder()
-            .addInterceptor(hostFallbackInterceptor)
+            // AuthInterceptor MUST run before hostFallbackInterceptor so DataStore baseUrl rewrite does not overwrite fallback retry hosts
             .addInterceptor(authInterceptor)
+            .addInterceptor(hostFallbackInterceptor)
             .addInterceptor(unauthorizedInterceptor)
             .addInterceptor(logging)
-            .connectTimeout(5, TimeUnit.SECONDS)
+            .connectTimeout(4, TimeUnit.SECONDS)
             .readTimeout(90, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
             .build()

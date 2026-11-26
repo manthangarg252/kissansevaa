@@ -42,6 +42,8 @@ android/local.properties
 
 # Backend
 backend/uploads/
+backend/data/
+backend/.mongodb-data/
 
 # Python / ML
 __pycache__/

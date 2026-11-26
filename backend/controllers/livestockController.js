@@ -9,7 +9,7 @@ import LivestockAnalysis from '../models/LivestockAnalysis.js';
 
 const SUPPORTED_SPECIES = ['Cattle', 'Buffalo', 'Goat', 'Sheep', 'Poultry', 'Pig', 'Other'];
 
-const SAFETY_NOTICE =
+export const SAFETY_NOTICE =
   'Veterinary Safety Notice: Prescription antibiotics, steroids, or injectable dosage schedules are intentionally withheld. Consult a registered veterinarian (BVSc) or call Pashu helpline 1962 before medicating.';
 
 const livestockSchema = {
@@ -237,8 +237,57 @@ Strict Safety Policy:
       });
     } catch (aiErr) {
       const classified = classifyGeminiError(aiErr);
+      const degradedCondition = redFlags.urgentVetEscalation
+        ? 'Urgent Veterinary Escalation Flagged (AI Unavailable)'
+        : 'Symptomatic Intake Logged (AI Unavailable)';
+      const degradedImmediateAction = redFlags.urgentVetEscalation
+        ? 'URGENT: Isolate affected animal from the herd immediately, provide clean water and shade, and contact a registered veterinarian or call 1962.'
+        : 'Isolate symptomatic animal if contagious signs appear, ensure clean drinking water, and consult your local veterinary officer.';
+      const degradedConsultAdvice =
+        'AI image triage is currently unavailable. Call state veterinary helpline 1962 or visit the nearest veterinary dispensary.';
+
+      let saved = null;
+      if (dbReady && req.user?._id) {
+        try {
+          saved = await LivestockAnalysis.create({
+            userId: req.user._id,
+            clientRequestId: clientRequestId || undefined,
+            animalType,
+            animalAge,
+            symptomDuration,
+            feverStatus,
+            appetiteStatus,
+            milkYieldChange,
+            lesionsOrUlcers,
+            isolatedFromHerd,
+            symptomsNotes,
+            language,
+            conditionName: degradedCondition,
+            confidence: null,
+            severity: redFlags.urgentVetEscalation ? 'High' : 'Unknown',
+            urgentVetEscalation: redFlags.urgentVetEscalation,
+            escalationReason: redFlags.escalationReason,
+            prescriptionsWithheld: true,
+            safetyNotice: SAFETY_NOTICE,
+            source: 'service_unavailable',
+            aiAvailable: false,
+            serviceStatus: classified.code,
+            requestId: classified.requestId,
+            symptoms: [],
+            immediateAction: degradedImmediateAction,
+            longTermCare: '',
+            vetConsultationAdvice: degradedConsultAdvice,
+            imagePath: file?.path || null,
+          });
+        } catch (dbErr) {
+          console.warn('Could not persist degraded livestock triage:', dbErr.message);
+        }
+      }
+
       // Do NOT invent fake confidence (e.g. 0.91). Return honest unavailable status + safety triage flags!
       return res.status(classified.statusCode || 503).json({
+        _id: saved?._id || undefined,
+        id: saved?._id || undefined,
         error: classified.userMessage,
         aiAvailable: false,
         serviceStatus: classified.code,
@@ -251,10 +300,9 @@ Strict Safety Policy:
         escalationReason: redFlags.escalationReason,
         prescriptionsWithheld: true,
         safetyNotice: SAFETY_NOTICE,
-        immediateAction: redFlags.urgentVetEscalation
-          ? 'URGENT: Isolate affected animal from the herd immediately, provide clean water and shade, and contact a registered veterinarian or call 1962.'
-          : 'Isolate symptomatic animal if contagious signs appear, ensure clean drinking water, and consult your local veterinary officer.',
-        vetConsultationAdvice: 'AI image triage is currently unavailable. Call state veterinary helpline 1962 or visit the nearest veterinary dispensary.',
+        immediateAction: degradedImmediateAction,
+        vetConsultationAdvice: degradedConsultAdvice,
+        createdAt: saved?.createdAt || new Date().toISOString(),
       });
     }
   } catch (error) {

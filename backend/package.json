@@ -6,7 +6,10 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "dev:persistent": "node scripts/startDevServer.js",
+    "dev:memory": "USE_IN_MEMORY_DB=true node scripts/startDevServer.js",
+    "mongo:start": "node scripts/startPersistentMongo.js"
   },
   "dependencies": {
     "@google/genai": "^1.35.0",

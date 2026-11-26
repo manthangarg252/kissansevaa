@@ -53,7 +53,14 @@ setGeminiUsageSink(async (entry) => {
 const app = express();
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(
+  express.json({
+    limit: '10mb',
+    verify: (req, _res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
 
 // Dev-only JSONL request/response logger
 app.use(requestLogger);

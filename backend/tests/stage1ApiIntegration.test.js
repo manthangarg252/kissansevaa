@@ -292,6 +292,13 @@ test('Full Stage 1 Backend Integration Suite against in-memory MongoDB', async (
     assert.equal(failLiveJson.confidence, null);
     assert.equal(failLiveJson.urgentVetEscalation, true);
 
+    const liveHistAfterFailRes = await fetch(`${baseUrl}/api/livestock/history`, { headers: authHeaders });
+    assert.equal(liveHistAfterFailRes.status, 200);
+    const liveHistAfterFail = await liveHistAfterFailRes.json();
+    assert.equal(liveHistAfterFail.length, 2);
+    assert.equal(liveHistAfterFail[0].source, 'service_unavailable');
+    assert.equal(liveHistAfterFail[0].urgentVetEscalation, true);
+
     // 11. AI Status & Call-Agent Integration Contract (no secrets exposed)
     const aiStatusRes = await fetch(`${baseUrl}/api/ai/status`);
     assert.equal(aiStatusRes.status, 200);
