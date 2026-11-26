@@ -2,12 +2,16 @@ package com.kissansevaai.core.sync
 
 import android.util.Log
 import com.kissansevaai.core.data.DataStoreManager
+import com.kissansevaai.core.database.CropPlanDao
+import com.kissansevaai.core.database.PlannerTaskDao
 import com.kissansevaai.core.database.SyncOperationDao
 import com.kissansevaai.core.model.SyncBatchRequest
 import com.kissansevaai.core.model.SyncOperationItem
 import com.kissansevaai.core.network.KissanApi
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import javax.inject.Inject
@@ -18,10 +22,16 @@ class OfflineSyncManager @Inject constructor(
     private val api: KissanApi,
     private val syncDao: SyncOperationDao,
     private val dataStore: DataStoreManager,
+    private val cropPlanDao: CropPlanDao,
+    private val plannerTaskDao: PlannerTaskDao,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun observePendingCount(): Flow<Int> = syncDao.observePendingCount("")
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun observePendingCount(): Flow<Int> =
+        dataStore.userId.flatMapLatest { uid ->
+            syncDao.observePendingCount(uid.orEmpty())
+        }
 
     suspend fun flushPendingOperations(): Int {
         val userId = dataStore.userId.first().orEmpty()
@@ -61,6 +71,12 @@ class OfflineSyncManager @Inject constructor(
                 if (result.status == "applied" || result.status == "already_applied") {
                     syncDao.updateStatus(opId, "synced", 0, null, now)
                     syncedCount++
+                    if (result.opType == "planner_plan_create") {
+                        // Clean up offline synthetic placeholder rows so server copy doesn't duplicate
+                        val localPlanId = "local_$opId"
+                        plannerTaskDao.deleteForPlan(localPlanId)
+                        cropPlanDao.deleteById(localPlanId)
+                    }
                 } else {
                     val prev = pending.find { it.operationId == opId }
                     syncDao.updateStatus(

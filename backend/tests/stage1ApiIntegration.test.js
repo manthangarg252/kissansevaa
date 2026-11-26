@@ -244,6 +244,27 @@ test('Full Stage 1 Backend Integration Suite against in-memory MongoDB', async (
     const sync2Json = await sync2.json();
     assert.equal(sync2Json.alreadyApplied, 2);
 
+    // 9b. Offline local plan create followed by local task toggle should NEVER throw CastError and MUST resolve via planClientRequestId
+    const offlineComboSync = {
+      operations: [
+        {
+          operationId: 'plan_offline_combo_1',
+          opType: 'planner_plan_create',
+          payload: { cropName: 'Soybean', stage: 'vegetative', locationName: 'Indore', clientRequestId: 'plan_offline_combo_1' },
+        },
+        {
+          operationId: 'task_offline_combo_1',
+          opType: 'planner_task_update',
+          payload: { taskId: 'localtask_plan_offline_combo_1_0', planClientRequestId: 'plan_offline_combo_1', dayOffset: 0, status: 'completed' },
+        },
+      ],
+    };
+    const comboRes = await fetch(`${baseUrl}/api/sync/batch`, { method: 'POST', headers: authHeaders, body: JSON.stringify(offlineComboSync) });
+    assert.equal(comboRes.status, 200);
+    const comboJson = await comboRes.json();
+    assert.equal(comboJson.ok, true);
+    assert.equal(comboJson.applied, 2);
+
     // 10. AI failure honesty test (mock 429 quota error -> explicit 429, ZERO fake 0.91 confidence!)
     setGeminiClientFactoryForTests(() => ({
       models: {

@@ -1,6 +1,8 @@
+import mongoose from 'mongoose';
 import SyncOperation from '../models/SyncOperation.js';
 import SavedScheme from '../models/SavedScheme.js';
 import MarketFavorite from '../models/MarketFavorite.js';
+import CropPlan from '../models/CropPlan.js';
 import PlannerTask from '../models/PlannerTask.js';
 import User from '../models/User.js';
 import { createPlanWithTasks } from '../services/cropPlannerService.js';
@@ -49,19 +51,34 @@ export const processSyncBatch = async (req, res) => {
               locationName: payload.locationName || req.user.district || 'India',
               language: payload.language || req.user.languagePreference || 'en',
               clientRequestId: payload.clientRequestId || operationId,
-              includeAi: false, // fast deterministic sync
+              includeAi: false,
             });
             resultId = String(created.plan._id);
             break;
           }
 
           case 'planner_task_update': {
-            const task = await PlannerTask.findOne({ _id: payload.taskId, userId });
+            let task = null;
+            if (payload.taskId && mongoose.Types.ObjectId.isValid(String(payload.taskId))) {
+              task = await PlannerTask.findOne({ _id: payload.taskId, userId });
+            } else if (payload.planClientRequestId) {
+              const parentPlan = await CropPlan.findOne({
+                userId,
+                clientRequestId: String(payload.planClientRequestId),
+              }).lean();
+              if (parentPlan) {
+                const offset = Number(payload.dayOffset ?? 0);
+                task = await PlannerTask.findOne({ planId: parentPlan._id, userId, dayOffset: offset });
+              }
+            }
             if (task && ['pending', 'completed', 'skipped'].includes(payload.status)) {
               task.status = payload.status;
               task.completedAt = payload.status === 'completed' ? new Date() : null;
               await task.save();
               resultId = String(task._id);
+            } else {
+              // Offline local task without mapped server parent no longer crashes batch sync with CastError
+              resultId = String(payload.taskId || 'unmapped');
             }
             break;
           }

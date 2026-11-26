@@ -128,6 +128,9 @@ interface CropPlanDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(plan: CropPlanEntity)
 
+    @Query("DELETE FROM crop_plans WHERE id = :planId")
+    suspend fun deleteById(planId: String)
+
     @Query("DELETE FROM crop_plans WHERE userId = :userId")
     suspend fun clearForUser(userId: String)
 }
@@ -137,6 +140,9 @@ interface PlannerTaskDao {
     @Query("SELECT * FROM planner_tasks WHERE planId = :planId ORDER BY dayOffset ASC")
     fun getTasksForPlan(planId: String): Flow<List<PlannerTaskEntity>>
 
+    @Query("SELECT * FROM planner_tasks WHERE id = :taskId LIMIT 1")
+    suspend fun getById(taskId: String): PlannerTaskEntity?
+
     @Query("SELECT * FROM planner_tasks WHERE (userId = :userId OR userId = '') AND status = 'pending' ORDER BY scheduledDate ASC")
     fun getPendingTasks(userId: String): Flow<List<PlannerTaskEntity>>
 
@@ -145,6 +151,9 @@ interface PlannerTaskDao {
 
     @Query("UPDATE planner_tasks SET status = :status, completedAt = :completedAt, pendingSync = :pendingSync WHERE id = :taskId")
     suspend fun updateStatus(taskId: String, status: String, completedAt: String?, pendingSync: Boolean)
+
+    @Query("DELETE FROM planner_tasks WHERE planId = :planId")
+    suspend fun deleteForPlan(planId: String)
 
     @Query("DELETE FROM planner_tasks WHERE userId = :userId")
     suspend fun clearForUser(userId: String)

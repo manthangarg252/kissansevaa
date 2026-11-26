@@ -504,6 +504,7 @@ fun DashboardScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(
+                                modifier = Modifier.weight(1f).padding(end = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
@@ -844,7 +845,7 @@ fun DashboardScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column {
+                            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                                 Text(
                                     text = stringResource(R.string.dashboard_mandi_title),
                                     style = MaterialTheme.typography.titleMedium,
@@ -862,7 +863,9 @@ fun DashboardScreen(
                                     text = stringResource(R.string.dashboard_mandi_view_all),
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = DeepEmerald
+                                    color = DeepEmerald,
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
                         }

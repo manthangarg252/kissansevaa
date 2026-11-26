@@ -52,7 +52,13 @@ class PlannerRepository @Inject constructor(
             val remote = api.getCropPlans()
             planDao.insertAll(remote.plans.map { it.toEntity(userId = userId) })
             taskDao.insertAll(remote.tasks.map { it.toEntity(userId = userId) })
-            emit(Resource.Success(remote))
+            val mergedPlans = planDao.getPlans(userId).first().map { it.toDomain() }
+            val mergedTasks = mutableListOf<PlannerTaskDto>()
+            for (p in mergedPlans) {
+                val pId = p.id ?: continue
+                mergedTasks += taskDao.getTasksForPlan(pId).first().map { it.toDomain() }
+            }
+            emit(Resource.Success(PlannerListResponse(plans = mergedPlans, tasks = mergedTasks)))
         } catch (e: Exception) {
             if (cachedPlans.isEmpty()) {
                 emit(Resource.Error(e.toUserFriendlyMessage(), e))
@@ -72,8 +78,7 @@ class PlannerRepository @Inject constructor(
             taskDao.insertAll(bundle.tasks.map { it.toEntity(userId = userId) })
             emit(Resource.Success(bundle))
         } catch (e: Exception) {
-            // Save local offline plan & queue idempotent sync mutation
-            val localPlanId = "local_${UUID.randomUUID()}"
+            val localPlanId = "local_$reqId"
             val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
             val localPlan = CropPlanDto(
                 id = localPlanId,
@@ -91,7 +96,7 @@ class PlannerRepository @Inject constructor(
             )
             val localTasks = listOf(
                 PlannerTaskDto(
-                    id = "task_${UUID.randomUUID()}",
+                    id = "localtask_${reqId}_0",
                     planId = localPlanId,
                     dayOffset = 0,
                     scheduledDate = today,
@@ -131,7 +136,28 @@ class PlannerRepository @Inject constructor(
     suspend fun toggleTaskStatus(taskId: String, nextStatus: String): Resource<Unit> {
         val userId = dataStore.userId.first().orEmpty()
         val nowIso = if (nextStatus == "completed") SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(Date()) else null
+        val localTask = taskDao.getById(taskId)
         taskDao.updateStatus(taskId = taskId, status = nextStatus, completedAt = nowIso, pendingSync = true)
+
+        if (taskId.startsWith("localtask_") || localTask?.planId?.startsWith("local_") == true) {
+            val planClientReqId = (localTask?.planId ?: "").removePrefix("local_")
+            val payloadMap = buildMap<String, JsonPrimitive> {
+                put("taskId", JsonPrimitive(taskId))
+                put("status", JsonPrimitive(nextStatus))
+                put("dayOffset", JsonPrimitive(localTask?.dayOffset ?: 0))
+                if (planClientReqId.isNotBlank()) put("planClientRequestId", JsonPrimitive(planClientReqId))
+            }
+            syncDao.enqueue(
+                SyncOperationEntity(
+                    operationId = "task_${taskId}_${System.currentTimeMillis()}",
+                    userId = userId,
+                    opType = "planner_task_update",
+                    payloadJson = json.encodeToString(payloadMap),
+                ),
+            )
+            return Resource.Success(Unit)
+        }
+
         return try {
             api.updatePlannerTask(taskId, TaskStatusUpdateRequest(status = nextStatus))
             taskDao.updateStatus(taskId = taskId, status = nextStatus, completedAt = nowIso, pendingSync = false)

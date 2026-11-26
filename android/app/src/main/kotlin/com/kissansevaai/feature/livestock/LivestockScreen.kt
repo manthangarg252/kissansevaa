@@ -507,6 +507,17 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
 
                         r.conditionName?.let {
                             Text(it, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = TextCharcoal)
+                        } ?: run {
+                            if (!r.aiAvailable) {
+                                Surface(shape = RoundedCornerShape(10.dp), color = AmberTint, border = BorderStroke(1.dp, SecondaryOrange)) {
+                                    Text(
+                                        text = "AI Veterinary Vision Unavailable (${r.serviceStatus ?: "service_unavailable"}): ${r.error ?: "Showing deterministic emergency rule triage only."}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = SecondaryOrange,
+                                        modifier = Modifier.padding(10.dp)
+                                    )
+                                }
+                            }
                         }
 
                         r.safetyNotice?.let { safety ->

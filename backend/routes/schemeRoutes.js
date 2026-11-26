@@ -8,11 +8,11 @@ import {
   saveScheme,
   removeSavedScheme,
 } from '../controllers/schemeController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, optionalProtect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.get('/', getSchemesCatalog);
+router.get('/', optionalProtect, getSchemesCatalog);
 router.post('/eligibility', protect, checkSchemeEligibility);
 router.post('/recommendations', protect, recommendSchemes);
 router.post('/explain', protect, explainScheme);

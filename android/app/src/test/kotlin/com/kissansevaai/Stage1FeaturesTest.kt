@@ -1,18 +1,25 @@
 package com.kissansevaai
 
+import com.kissansevaai.core.common.toUserFriendlyMessage
 import com.kissansevaai.core.database.*
 import com.kissansevaai.core.model.*
 import com.kissansevaai.core.network.KissanApi
+import com.kissansevaai.core.repository.LivestockRepository
 import com.kissansevaai.core.repository.PlannerRepository
 import com.kissansevaai.core.repository.WeatherRepository
 import com.kissansevaai.core.sync.OfflineSyncManager
 import io.mockk.*
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.*
 import org.junit.Test
+import retrofit2.HttpException
+import retrofit2.Response
 import java.io.IOException
 
 class Stage1FeaturesTest {
@@ -108,30 +115,34 @@ class Stage1FeaturesTest {
     }
 
     @Test
-    fun `OfflineSyncManager flushes queued operations and marks applied ops synced`() = runTest {
+    fun `OfflineSyncManager flushes queued operations and removes local placeholder plan to avoid duplicates`() = runTest {
         val api = mockk<KissanApi>()
         val syncDao = mockk<SyncOperationDao>(relaxed = true)
         val dataStore = mockk<com.kissansevaai.core.data.DataStoreManager>()
+        val cropPlanDao = mockk<CropPlanDao>(relaxed = true)
+        val plannerTaskDao = mockk<PlannerTaskDao>(relaxed = true)
 
         every { dataStore.userId } returns flowOf("user_abc")
         coEvery { syncDao.getPendingOperations("user_abc") } returns listOf(
             SyncOperationEntity(
-                operationId = "op_1",
+                operationId = "plan_op_1",
                 userId = "user_abc",
-                opType = "scheme_save",
-                payloadJson = """{"schemeId":"pm-kisan"}""",
+                opType = "planner_plan_create",
+                payloadJson = """{"cropName":"Soybean"}""",
             )
         )
         coEvery { api.syncBatch(any()) } returns SyncBatchResponse(
             ok = true,
             applied = 1,
-            results = listOf(SyncResultEntry(operationId = "op_1", opType = "scheme_save", status = "applied")),
+            results = listOf(SyncResultEntry(operationId = "plan_op_1", opType = "planner_plan_create", status = "applied")),
         )
 
-        val mgr = OfflineSyncManager(api, syncDao, dataStore)
+        val mgr = OfflineSyncManager(api, syncDao, dataStore, cropPlanDao, plannerTaskDao)
         val synced = mgr.flushPendingOperations()
         assertEquals(1, synced)
-        coVerify(exactly = 1) { syncDao.updateStatus("op_1", "synced", 0, null, any()) }
+        coVerify(exactly = 1) { plannerTaskDao.deleteForPlan("local_plan_op_1") }
+        coVerify(exactly = 1) { cropPlanDao.deleteById("local_plan_op_1") }
+        coVerify(exactly = 1) { syncDao.updateStatus("plan_op_1", "synced", 0, null, any()) }
         coVerify(exactly = 1) { syncDao.pruneSynced() }
     }
 
@@ -155,5 +166,48 @@ class Stage1FeaturesTest {
         assertTrue(decoded.urgentVetEscalation)
         assertTrue(decoded.prescriptionsWithheld)
         assertEquals(0.72, decoded.confidence ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun `toUserFriendlyMessage extracts server JSON error body on HTTP 429 instead of generic message`() {
+        val body = """{"error":"AI daily API quota is exhausted on the configured key.","serviceStatus":"quota_exhausted"}"""
+            .toResponseBody("application/json".toMediaType())
+        val httpErr = HttpException(Response.error<Any>(429, body))
+        assertEquals("AI daily API quota is exhausted on the configured key.", httpErr.toUserFriendlyMessage())
+    }
+
+    @Test
+    fun `LivestockRepository preserves emergency vet escalation on HTTP 429 degraded response`() = runTest {
+        val api = mockk<KissanApi>()
+        val livestockDao = mockk<LivestockDao>(relaxed = true)
+        val dataStore = mockk<com.kissansevaai.core.data.DataStoreManager>()
+        every { dataStore.userId } returns flowOf("user_abc")
+
+        val degradedBody = """
+            {
+              "error": "AI daily API quota is exhausted.",
+              "aiAvailable": false,
+              "serviceStatus": "quota_exhausted",
+              "urgentVetEscalation": true,
+              "escalationReason": "Fever combined with blisters/lesions/ulcers",
+              "prescriptionsWithheld": true,
+              "safetyNotice": "Veterinary Safety Notice: Prescription antibiotics withheld.",
+              "immediateAction": "URGENT: Isolate affected animal and call 1962."
+            }
+        """.trimIndent().toResponseBody("application/json".toMediaType())
+
+        coEvery {
+            api.analyzeLivestockDetailed(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+        } throws HttpException(Response.error<LivestockResult>(429, degradedBody))
+
+        val repo = LivestockRepository(api, livestockDao, dataStore)
+        val txt = "Cattle".toRequestBody("text/plain".toMediaType())
+        val results = mutableListOf<com.kissansevaai.core.common.Resource<LivestockResult>>()
+        repo.analyzeLivestockDetailed(null, txt, txt, txt, txt, txt, txt, txt, txt, txt, txt).collect { results.add(it) }
+
+        val res = results.filterIsInstance<com.kissansevaai.core.common.Resource.Success<LivestockResult>>().single().data
+        assertFalse(res.aiAvailable)
+        assertTrue(res.urgentVetEscalation)
+        assertEquals("quota_exhausted", res.serviceStatus)
     }
 }

@@ -294,6 +294,10 @@ class MarketDataService {
       null;
 
     if (process.env.NODE_ENV !== 'test') {
+      const initialTimer = setTimeout(() => {
+        this.updatePrices().catch((e) => console.error('[MarketDataService] Initial fetch notice:', e.message));
+      }, 1000);
+      if (typeof initialTimer.unref === 'function') initialTimer.unref();
       this.startAutoUpdater();
     }
   }

@@ -348,14 +348,25 @@ fun LivePricesScreen(onBack: () -> Unit, viewModel: PricesViewModel = hiltViewMo
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text(cmp.crop, fontWeight = FontWeight.Bold, color = TextCharcoal)
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        cmp.crop,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextCharcoal,
+                                        modifier = Modifier.weight(1f).padding(end = 8.dp)
+                                    )
                                     Surface(shape = RoundedCornerShape(9999.dp), color = GreenTint) {
                                         Text(
                                             "Spread ₹${cmp.spreadPerQuintal.toInt()}/q",
                                             color = DeepEmerald,
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            softWrap = false,
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                         )
                                     }

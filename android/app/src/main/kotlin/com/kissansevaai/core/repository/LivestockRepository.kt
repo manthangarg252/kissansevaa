@@ -12,8 +12,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.serialization.json.Json
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import retrofit2.HttpException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,7 +25,28 @@ class LivestockRepository @Inject constructor(
     private val livestockDao: LivestockDao? = null,
     private val dataStore: DataStoreManager? = null,
 ) {
+    private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true; isLenient = true }
+
     private suspend fun activeUserId(): String = dataStore?.userId?.first().orEmpty()
+
+    private fun parseHttpDegradedTriage(err: HttpException): LivestockResult? {
+        val raw = try {
+            err.response()?.errorBody()?.string()
+        } catch (_: Exception) {
+            null
+        } ?: return null
+
+        return try {
+            val decoded = json.decodeFromString<LivestockResult>(raw)
+            if (!decoded.safetyNotice.isNullOrBlank() || !decoded.immediateAction.isNullOrBlank() || decoded.urgentVetEscalation) {
+                decoded
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
 
     fun getHistory(): Flow<Resource<List<LivestockResult>>> = flow {
         emit(Resource.Loading)
@@ -59,6 +82,13 @@ class LivestockRepository @Inject constructor(
             val result = api.analyzeLivestock(image, animalType, language)
             livestockDao?.insert(result.toEntity(userId = userId))
             emit(Resource.Success(result))
+        } catch (e: HttpException) {
+            val degraded = parseHttpDegradedTriage(e)
+            if (degraded != null) {
+                emit(Resource.Success(degraded))
+            } else {
+                emit(Resource.Error(e.toUserFriendlyMessage(), e))
+            }
         } catch (e: Exception) {
             emit(Resource.Error(e.toUserFriendlyMessage(), e))
         }
@@ -95,6 +125,13 @@ class LivestockRepository @Inject constructor(
             )
             livestockDao?.insert(result.toEntity(userId = userId))
             emit(Resource.Success(result))
+        } catch (e: HttpException) {
+            val degraded = parseHttpDegradedTriage(e)
+            if (degraded != null) {
+                emit(Resource.Success(degraded))
+            } else {
+                emit(Resource.Error(e.toUserFriendlyMessage(), e))
+            }
         } catch (e: Exception) {
             emit(Resource.Error(e.toUserFriendlyMessage(), e))
         }

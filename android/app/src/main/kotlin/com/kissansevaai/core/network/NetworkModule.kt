@@ -12,7 +12,6 @@ import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
@@ -35,9 +34,8 @@ object NetworkModule {
     fun provideJson(): Json = json
 
     /**
-     * Fallback interceptor for physical and emulator environments.
-     * If the configured host fails to connect (e.g. phone on Wi-Fi vs ADB reverse over USB),
-     * it automatically tries the active LAN IP (10.201.214.248) or localhost (127.0.0.1).
+     * Fast fallback interceptor for emulator (10.0.2.2) and USB-tethered physical device (127.0.0.1)
+     * plus active LAN fallback with bounded 3s connect timeout per retry candidate.
      */
     private val hostFallbackInterceptor = Interceptor { chain ->
         val originalRequest = chain.request()
@@ -47,7 +45,7 @@ object NetworkModule {
         try {
             chain.proceed(originalRequest)
         } catch (e: IOException) {
-            val fallbackCandidates = listOf("10.201.214.248", "127.0.0.1", "10.0.2.2")
+            val fallbackCandidates = listOf("127.0.0.1", "10.0.2.2", "192.168.1.7")
             for (targetHost in fallbackCandidates) {
                 if (targetHost == currentHost) continue
                 val fallbackUrl = originalUrl.newBuilder()
@@ -58,7 +56,9 @@ object NetworkModule {
                     .url(fallbackUrl)
                     .build()
                 try {
-                    return@Interceptor chain.proceed(retryRequest)
+                    return@Interceptor chain
+                        .withConnectTimeout(3000, TimeUnit.MILLISECONDS)
+                        .proceed(retryRequest)
                 } catch (_: IOException) {
                     // Try next candidate
                 }
@@ -85,8 +85,8 @@ object NetworkModule {
             .addInterceptor(authInterceptor)
             .addInterceptor(unauthorizedInterceptor)
             .addInterceptor(logging)
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(90, TimeUnit.SECONDS) // AI endpoints can be slow
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(90, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
             .build()
     }
@@ -96,8 +96,8 @@ object NetworkModule {
         val m = android.os.Build.MODEL
         val h = android.os.Build.HARDWARE
         return f.startsWith("generic") || f.startsWith("unknown") ||
-                m.contains("google_sdk") || m.contains("Emulator") || m.contains("Android SDK built for x86") ||
-                h.contains("goldfish") || h.contains("ranchu")
+            m.contains("google_sdk") || m.contains("Emulator") || m.contains("Android SDK built for x86") ||
+            h.contains("goldfish") || h.contains("ranchu")
     }
 
     @Provides
@@ -109,7 +109,8 @@ object NetworkModule {
                 if (isProbablyEmulator()) {
                     "http://10.0.2.2:5050"
                 } else {
-                    "http://10.201.214.248:5050"
+                    // Default physical USB debugging via adb reverse tcp:5050 tcp:5050; falls back fast to LAN
+                    "http://127.0.0.1:5050"
                 }
             } else {
                 BuildConfig.BASE_URL
