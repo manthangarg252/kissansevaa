@@ -100,13 +100,16 @@ object NetworkModule {
                 HttpLoggingInterceptor.Level.NONE
             }
         }
-        return OkHttpClient.Builder()
+        val builder = OkHttpClient.Builder()
             // AuthInterceptor MUST run before hostFallbackInterceptor so DataStore baseUrl rewrite does not overwrite fallback retry hosts
             .addInterceptor(authInterceptor)
-            .addInterceptor(hostFallbackInterceptor)
+        if (CloudUrlValidator.shouldAttachDevHostFallback(BuildConfig.DEBUG)) {
+            builder.addInterceptor(hostFallbackInterceptor)
+        }
+        return builder
             .addInterceptor(unauthorizedInterceptor)
             .addInterceptor(logging)
-            .connectTimeout(4, TimeUnit.SECONDS)
+            .connectTimeout(if (BuildConfig.DEBUG) 4L else 12L, TimeUnit.SECONDS)
             .readTimeout(90, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
             .build()
@@ -124,20 +127,17 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideRetrofit(client: OkHttpClient, dataStore: DataStoreManager): Retrofit {
-        val configuredUrl = runBlocking { dataStore.baseUrl.first() }
-        val baseUrl = configuredUrl ?: run {
-            if (BuildConfig.DEBUG) {
-                if (isProbablyEmulator()) {
-                    "http://10.0.2.2:5050"
-                } else {
-                    // Default physical USB debugging via adb reverse tcp:5050 tcp:5050; falls back fast to LAN
-                    "http://127.0.0.1:5050"
-                }
-            } else {
-                BuildConfig.BASE_URL
-            }
+        val configuredUrl = if (BuildConfig.DEBUG) {
+            runBlocking { dataStore.baseUrl.first() }
+        } else {
+            null
         }
-        val url = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
+        val url = CloudUrlValidator.resolveEffectiveBaseUrl(
+            isDebug = BuildConfig.DEBUG,
+            buildConfigBaseUrl = BuildConfig.BASE_URL,
+            storedCustomUrl = configuredUrl,
+            isEmulator = isProbablyEmulator(),
+        )
         return Retrofit.Builder()
             .baseUrl(url)
             .client(client)

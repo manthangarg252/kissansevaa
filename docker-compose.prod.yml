@@ -1,0 +1,168 @@
+name: kissansevaai-prod
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  mongodb:
+    image: mongo:8.0
+    restart: unless-stopped
+    command:
+      - mongod
+      - --auth
+      - --bind_ip_all
+      - --wiredTigerCacheSizeGB
+      - "0.5"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:?MONGO_INITDB_ROOT_USERNAME is required}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:?MONGO_INITDB_ROOT_PASSWORD is required}
+      MONGO_APP_DB: ${MONGO_APP_DB:-kissansevaai}
+      MONGO_APP_USER: ${MONGO_APP_USER:-kissan_app}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?MONGO_APP_PASSWORD is required}
+    volumes:
+      - mongodb_data:/data/db
+      - ./infra/mongo/init-app-user.sh:/docker-entrypoint-initdb.d/01-init-app-user.sh:ro
+    expose:
+      - "27017"
+    networks:
+      - kissansevaai_internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet --username \"$$MONGO_INITDB_ROOT_USERNAME\" --password \"$$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --eval 'db.adminCommand({ ping: 1 }).ok' | grep -q 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      start_period: 25s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+    logging: *default-logging
+
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    image: kissansevaai-ml:local
+    restart: unless-stopped
+    environment:
+      ACTIVE_CROP_MODEL: ${ACTIVE_CROP_MODEL:-v1}
+      ENABLE_V3_SHADOW: ${ENABLE_V3_SHADOW:-true}
+      V3_LOAD_FULL_FAISS: ${V3_LOAD_FULL_FAISS:-true}
+      CROP_MODEL_DIR: /app/model_assets
+      V3_CANDIDATE_DIR: /app/model_candidates/v3_svm_repaired/model_assets
+      SHADOW_LOG_PATH: /app/logs/shadow_comparison.jsonl
+    volumes:
+      - ./ml-service/model_assets:/app/model_assets:ro
+      - ./ml-service/model_candidates/v3_svm_repaired/model_assets:/app/model_candidates/v3_svm_repaired/model_assets:ro
+      - ml_logs:/app/logs
+    expose:
+      - "8000"
+    networks:
+      - kissansevaai_internal
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 20s
+      timeout: 5s
+      start_period: 45s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+    logging: *default-logging
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: kissansevaai-backend:local
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      ml-service:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: ${PORT:-5000}
+      HOST: 0.0.0.0
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      MONGO_URI: mongodb://${MONGO_APP_USER:-kissan_app}:${MONGO_APP_PASSWORD:?MONGO_APP_PASSWORD is required}@mongodb:27017/${MONGO_APP_DB:-kissansevaai}?authSource=${MONGO_APP_DB:-kissansevaai}
+      ML_SERVICE_URL: http://ml-service:8000
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3-flash-preview}
+      GEMINI_FALLBACK_MODELS: ${GEMINI_FALLBACK_MODELS:-}
+      GEMINI_TIMEOUT_MS: ${GEMINI_TIMEOUT_MS:-25000}
+      GEMINI_MAX_RETRIES: ${GEMINI_MAX_RETRIES:-2}
+      GEMINI_USER_RPM: ${GEMINI_USER_RPM:-20}
+      GEMINI_USER_RPD: ${GEMINI_USER_RPD:-200}
+      DATA_GOV_IN_API_KEY: ${DATA_GOV_IN_API_KEY:-}
+      WEATHER_CACHE_TTL_MINUTES: ${WEATHER_CACHE_TTL_MINUTES:-30}
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_logs:/app/logs
+    expose:
+      - "5000"
+    networks:
+      - kissansevaai_internal
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:5000/health"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    logging: *default-logging
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      KISSAN_API_DOMAIN: ${KISSAN_API_DOMAIN:-localhost}
+      CADDY_ACME_EMAIL: ${CADDY_ACME_EMAIL:-ops@example.com}
+    ports:
+      - "${CADDY_HTTP_PORT:-80}:80"
+      - "${CADDY_HTTPS_PORT:-443}:443"
+      - "${CADDY_HTTPS_PORT:-443}:443/udp"
+    volumes:
+      - ${CADDYFILE_PATH:-./infra/caddy/Caddyfile}:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - kissansevaai_internal
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:2019/config/ >/dev/null || exit 1"]
+      interval: 20s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    logging: *default-logging
+
+networks:
+  kissansevaai_internal:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  backend_uploads:
+  backend_logs:
+  ml_logs:
+  caddy_data:
+  caddy_config:

@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import mongoose from 'mongoose';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -51,6 +52,7 @@ setGeminiUsageSink(async (entry) => {
 });
 
 const app = express();
+app.set('trust proxy', 1);
 
 app.use(cors());
 app.use(
@@ -67,6 +69,18 @@ app.use(requestLogger);
 
 // Serving uploaded images as static assets
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Unauthenticated health probe for container orchestration and reverse proxy checks
+app.get('/health', (_req, res) => {
+  const mongoConnected = mongoose.connection.readyState === 1;
+  res.status(mongoConnected ? 200 : 503).json({
+    ok: mongoConnected,
+    status: mongoConnected ? 'healthy' : 'degraded',
+    service: 'kissansevaai-backend',
+    mongodb: mongoConnected ? 'connected' : 'disconnected',
+    uptimeSeconds: Math.floor(process.uptime()),
+  });
+});
 
 // Core API Routes
 app.use('/api/auth', authRoutes);

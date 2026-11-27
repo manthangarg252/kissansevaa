@@ -50,8 +50,30 @@ android {
                 "proguard-rules.pro"
             )
             // Release signing configured via gradle.properties or CI env vars
-            // See docs/ANDROID_PLAN.md for setup instructions
-            buildConfigField("String", "BASE_URL", "\"https://api.kissansevaai.com\"")
+            // Pass -PKISSAN_PROD_API_URL=https://api.yourdomain.com or set KISSAN_PROD_API_URL env var
+            val rawProdUrl = ((project.findProperty("KISSAN_PROD_API_URL") as? String)
+                ?: System.getenv("KISSAN_PROD_API_URL")
+                ?: "https://api.kissansevaai.com")
+                .trim()
+                .trimEnd('/')
+            val lowerProdUrl = rawProdUrl.lowercase()
+            require(lowerProdUrl.startsWith("https://")) {
+                "Release KISSAN_PROD_API_URL must use https:// (got '$rawProdUrl')"
+            }
+            require(
+                !lowerProdUrl.contains("localhost") &&
+                    !lowerProdUrl.contains("127.0.0.1") &&
+                    !lowerProdUrl.contains("10.0.2.2") &&
+                    !lowerProdUrl.contains("192.168.") &&
+                    !Regex("""https://10\.\d+\.\d+\.\d+""").containsMatchIn(lowerProdUrl)
+            ) {
+                "Release KISSAN_PROD_API_URL must not target a local or private dev address (got '$rawProdUrl')"
+            }
+            buildConfigField(
+                "String",
+                "BASE_URL",
+                "\"${rawProdUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\""
+            )
         }
     }
 

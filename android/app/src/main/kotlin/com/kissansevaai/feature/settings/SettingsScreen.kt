@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kissansevaai.BuildConfig
 import com.kissansevaai.R
 import com.kissansevaai.core.ai.FieldExtractor
 import com.kissansevaai.core.ai.SpeechToText
@@ -436,40 +437,42 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewMo
                 }
             }
 
-            // Base URL
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = CardWhite),
-                border = BorderStroke(1.dp, BorderLight),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    Text(
-                        text = stringResource(R.string.settings_base_url),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = DeepEmerald
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = urlField,
-                        onValueChange = { urlField = it },
-                        placeholder = { Text("http://10.0.2.2:5050") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = DeepEmerald,
-                            unfocusedBorderColor = BorderMedium
+            // Base URL override (debug builds only)
+            if (BuildConfig.DEBUG) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardWhite),
+                    border = BorderStroke(1.dp, BorderLight),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text(
+                            text = stringResource(R.string.settings_base_url),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = DeepEmerald
                         )
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Button(
-                        onClick = { viewModel.setBaseUrl(urlField.trim()) },
-                        shape = RoundedCornerShape(9999.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
-                    ) {
-                        Text(stringResource(R.string.common_save), fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = urlField,
+                            onValueChange = { urlField = it },
+                            placeholder = { Text("http://10.0.2.2:5050") },
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = DeepEmerald,
+                                unfocusedBorderColor = BorderMedium
+                            )
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = { viewModel.setBaseUrl(urlField.trim()) },
+                            shape = RoundedCornerShape(9999.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
+                        ) {
+                            Text(stringResource(R.string.common_save), fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }

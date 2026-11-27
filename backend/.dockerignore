@@ -1,0 +1,14 @@
+node_modules
+.env
+.env.*
+data
+logs
+uploads
+tests
+scripts
+gemini-usage*.jsonl
+*.log
+.DS_Store
+docker-compose.yml
+Dockerfile
+.dockerignore

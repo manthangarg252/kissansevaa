@@ -1,0 +1,33 @@
+{
+	email {$CADDY_ACME_EMAIL}
+	servers {
+		timeouts {
+			read_body 30s
+			read_header 10s
+			write 60s
+			idle 120s
+		}
+	}
+}
+
+{$KISSAN_API_DOMAIN} {
+	encode gzip zstd
+
+	request_body {
+		max_size 15MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	reverse_proxy backend:5000 {
+		health_uri /health
+		health_interval 15s
+		health_timeout 5s
+	}
+}

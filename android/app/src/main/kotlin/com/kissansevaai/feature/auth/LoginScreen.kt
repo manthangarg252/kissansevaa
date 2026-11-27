@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
+import com.kissansevaai.BuildConfig
 import com.kissansevaai.R
 import com.kissansevaai.ui.theme.*
 
@@ -59,7 +60,7 @@ fun LoginScreen(
         }
     }
 
-    if (showServerDialog) {
+    if (BuildConfig.DEBUG && showServerDialog) {
         AlertDialog(
             onDismissRequest = { showServerDialog = false },
             title = { Text(stringResource(R.string.auth_server_config), fontWeight = FontWeight.Bold, color = TextCharcoal) },
@@ -208,13 +209,15 @@ fun LoginScreen(
                         }
                     }
 
-                    // Server Config
-                    IconButton(onClick = { showServerDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Server Settings",
-                            tint = DeepEmerald
-                        )
+                    // Server Config (debug developer convenience only)
+                    if (BuildConfig.DEBUG) {
+                        IconButton(onClick = { showServerDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Server Settings",
+                                tint = DeepEmerald
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

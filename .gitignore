@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
+!infra/caddy/Caddyfile.local
 
 # Editor directories and files
 .vscode/*
@@ -39,6 +40,13 @@ android/local.properties
 .env.local
 .env.*
 .env.*.local
+!.env.example
+!.env.prod.example
+
+# Backups & Database Exports
+backups/
+*.archive.gz
+*.dump
 
 # Backend
 backend/uploads/
