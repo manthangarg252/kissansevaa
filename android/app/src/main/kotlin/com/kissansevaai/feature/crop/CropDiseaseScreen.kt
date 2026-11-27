@@ -1002,8 +1002,15 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                             HorizontalDivider(color = BorderLight)
                             val reconColor = when (r.reconciliationStatus) {
                                 "agreed" -> DeepEmerald
-                                "disagreed", "unsupported_or_non_leaf" -> SecondaryOrange
+                                "disagreed", "unsupported_or_non_leaf", "inconclusive" -> SecondaryOrange
                                 else -> TextMuted
+                            }
+                            val reconLabel = when (r.reconciliationStatus) {
+                                "agreed" -> "Agreed"
+                                "disagreed" -> "Disagreed"
+                                "inconclusive" -> "Inconclusive"
+                                "unsupported_or_non_leaf" -> "Non-Leaf / Unsupported"
+                                else -> r.reconciliationStatus ?: "Reviewed"
                             }
                             Surface(
                                 shape = RoundedCornerShape(14.dp),
@@ -1016,7 +1023,7 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                     verticalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Text(
-                                        text = "Gemini Second Opinion (${r.reconciliationStatus ?: "reviewed"})",
+                                        text = "Gemini Second Opinion ($reconLabel)",
                                         style = MaterialTheme.typography.labelLarge,
                                         fontWeight = FontWeight.Bold,
                                         color = reconColor
@@ -1028,9 +1035,9 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                         color = TextCharcoal
                                     )
                                     if (!sec.diseaseName.isNullOrBlank()) {
-                                        val confPct = sec.confidence?.let { " (${(it * 100).toInt()}%)" }.orEmpty()
+                                        val confNote = sec.confidence?.let { " (screening heuristic ${(it * 100).toInt()}%, not calibrated probability)" }.orEmpty()
                                         Text(
-                                            text = "Gemini Vision: ${sec.cropName ?: "Crop"} — ${sec.diseaseName}$confPct",
+                                            text = "Gemini Vision: ${sec.cropName ?: "Crop"} — ${sec.diseaseName}$confNote",
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.SemiBold,
                                             color = DeepEmerald
@@ -1041,6 +1048,17 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                     }
                                     sec.summary?.let { sum ->
                                         Text(sum, style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                                    }
+                                    if (r.reconciliationStatus == "agreed" && !r.treatmentWithheld && (sec.treatment.organic.isNotEmpty() || sec.treatment.chemical.isNotEmpty())) {
+                                        if (sec.treatment.organic.isNotEmpty()) {
+                                            Text("Agreed Organic Care: ${sec.treatment.organic.joinToString("; ")}", style = MaterialTheme.typography.bodySmall, color = DeepEmerald)
+                                        }
+                                        if (sec.treatment.chemical.isNotEmpty()) {
+                                            Text("Agreed Chemical Guidance (verify dosage at KVK): ${sec.treatment.chemical.joinToString("; ")}", style = MaterialTheme.typography.bodySmall, color = TextCharcoal)
+                                        }
+                                    }
+                                    if (sec.prevention.isNotEmpty()) {
+                                        Text("Prevention: ${sec.prevention.joinToString("; ")}", style = MaterialTheme.typography.labelSmall, color = TextMuted)
                                     }
                                 }
                             }

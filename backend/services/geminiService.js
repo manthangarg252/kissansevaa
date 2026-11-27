@@ -5,7 +5,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 dotenv.config();
 
 const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
-const DEFAULT_TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS || 15000);
+const DEFAULT_TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS || 25000);
 const DEFAULT_MAX_RETRIES = Number(process.env.GEMINI_MAX_RETRIES || 2);
 const USER_RPM_LIMIT = Number(process.env.GEMINI_USER_RPM || 20);
 const USER_RPD_LIMIT = Number(process.env.GEMINI_USER_RPD || 200);
@@ -118,9 +118,16 @@ function getAiClient() {
 }
 
 function sanitizeMessage(msg = '') {
-  return String(msg)
+  let clean = String(msg)
     .replace(/AIza[0-9A-Za-z\-_]{10,}/g, '[REDACTED_KEY]')
-    .replace(/key=[0-9A-Za-z\-_]+/gi, 'key=[REDACTED]');
+    .replace(/AQ\.[0-9A-Za-z\-_.]{8,}/g, '[REDACTED_KEY]')
+    .replace(/Bearer\s+[0-9A-Za-z\-_.=]+/gi, 'Bearer [REDACTED]')
+    .replace(/key=[0-9A-Za-z\-_.]+/gi, 'key=[REDACTED]');
+  const liveKey = (process.env.GEMINI_API_KEY || '').trim();
+  if (liveKey.length >= 6 && clean.includes(liveKey)) {
+    clean = clean.split(liveKey).join('[REDACTED_KEY]');
+  }
+  return clean;
 }
 
 function parseRetrySeconds(rawMessage = '') {
@@ -144,7 +151,7 @@ export function classifyGeminiError(err, { requestId = null, model = DEFAULT_MOD
   const status = Number(err?.status || err?.statusCode || (rawMsg.match(/"code":\s*(\d{3})/)?.[1] || 0));
   const retryAfterSeconds = parseRetrySeconds(rawMsg);
 
-  if (rawMsg.includes('TIMEOUT') || err?.name === 'AbortError') {
+  if (rawMsg.includes('TIMEOUT') || err?.name === 'AbortError' || err?.code === 'ETIMEDOUT') {
     return new GeminiServiceError({
       code: 'timeout',
       statusCode: 504,
@@ -158,7 +165,8 @@ export function classifyGeminiError(err, { requestId = null, model = DEFAULT_MOD
   }
 
   if (status === 429 || /RESOURCE_EXHAUSTED|quota exceeded/i.test(rawMsg)) {
-    const isDailyExhaustion = /PerDay|FreeTier|generate_content_free_tier_requests/i.test(rawMsg);
+    const isPerMinute = /PerMinute|RequestsPerMinute|TokensPerMinute|RATE_LIMIT_EXCEEDED/i.test(rawMsg);
+    const isDailyExhaustion = !isPerMinute && /PerDay|RequestsPerDay|RPD|FreeTier|generate_content_free_tier_requests|limit:\s*0|daily quota/i.test(rawMsg);
     return new GeminiServiceError({
       code: isDailyExhaustion ? 'quota_exhausted' : 'rate_limited',
       statusCode: 429,
@@ -169,16 +177,30 @@ export function classifyGeminiError(err, { requestId = null, model = DEFAULT_MOD
       requestId,
       model,
       latencyMs,
-      retryAfterSeconds: retryAfterSeconds || 60,
+      retryAfterSeconds: retryAfterSeconds || (isDailyExhaustion ? 3600 : 15),
       cause: err,
     });
   }
 
-  if (status === 401 || status === 403 || /API_KEY_INVALID|permission denied/i.test(rawMsg)) {
+  if (/billing|BILLING_DISABLED|FAILED_PRECONDITION|paid tier/i.test(rawMsg)
+    || (status === 403 && !/API_KEY_INVALID|API key not valid/i.test(rawMsg))) {
     return new GeminiServiceError({
-      code: 'not_configured',
+      code: 'billing_restricted',
       statusCode: 503,
-      message: `Gemini authentication error (${status}): ${rawMsg}`,
+      message: `Gemini billing or project restriction (${status || 403}): ${rawMsg}`,
+      userMessage: 'AI service is blocked by project billing or permission restrictions.',
+      requestId,
+      model,
+      latencyMs,
+      cause: err,
+    });
+  }
+
+  if (status === 401 || /API_KEY_INVALID|API key not valid|UNAUTHENTICATED|invalid api key/i.test(rawMsg)) {
+    return new GeminiServiceError({
+      code: 'invalid_key',
+      statusCode: 503,
+      message: `Gemini authentication error (${status || 401}): ${rawMsg}`,
       userMessage: 'AI service API credentials are invalid or unauthorized.',
       requestId,
       model,
@@ -187,12 +209,39 @@ export function classifyGeminiError(err, { requestId = null, model = DEFAULT_MOD
     });
   }
 
-  if (status === 400 || status === 404) {
+  if (status === 404 || /NOT_FOUND|not found for API version|not supported for generateContent|unknown model/i.test(rawMsg)) {
+    return new GeminiServiceError({
+      code: 'model_unavailable',
+      statusCode: 502,
+      message: `Gemini model unavailable (${status || 404}): ${rawMsg}`,
+      userMessage: `Configured AI model (${model}) is unavailable on this API project.`,
+      requestId,
+      model,
+      latencyMs,
+      cause: err,
+    });
+  }
+
+  if (status === 400) {
     return new GeminiServiceError({
       code: 'bad_request',
       statusCode: 502,
-      message: `Gemini model/request error (${status}): ${rawMsg}`,
-      userMessage: `Configured AI model (${model}) rejected the request or is unavailable.`,
+      message: `Gemini request rejected (${status}): ${rawMsg}`,
+      userMessage: `Configured AI model (${model}) rejected the request parameters.`,
+      requestId,
+      model,
+      latencyMs,
+      cause: err,
+    });
+  }
+
+  if (/ENOTFOUND|ECONNREFUSED|ECONNRESET|EAI_AGAIN|fetch failed|network|socket hang up/i.test(rawMsg)
+    || ['ENOTFOUND', 'ECONNREFUSED', 'ECONNRESET', 'EAI_AGAIN'].includes(String(err?.code || ''))) {
+    return new GeminiServiceError({
+      code: 'network_failure',
+      statusCode: 503,
+      message: `Gemini network error: ${rawMsg}`,
+      userMessage: 'Could not reach Gemini AI due to network connectivity. Deterministic tools remain active.',
       requestId,
       model,
       latencyMs,
@@ -203,7 +252,7 @@ export function classifyGeminiError(err, { requestId = null, model = DEFAULT_MOD
   return new GeminiServiceError({
     code: 'upstream_unavailable',
     statusCode: 503,
-    message: `Gemini upstream error (${status || 'network'}): ${rawMsg}`,
+    message: `Gemini upstream error (${status || 'unknown'}): ${rawMsg}`,
     userMessage: 'AI service is temporarily unavailable. Deterministic features remain active.',
     requestId,
     model,
@@ -461,6 +510,7 @@ async function executeWithRetry({
     latencyMs: Date.now() - startMs,
     userId,
   });
+  console.warn(`[GeminiService] feature=${feature} code=${lastError?.code} msg=${sanitizeMessage(lastError?.message || '')}`);
   telemetry.lastErrorMessage = lastError?.message || null;
   throw lastError;
 }

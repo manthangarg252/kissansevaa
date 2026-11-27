@@ -19,6 +19,12 @@ const livestockSchema = {
     confidence: { type: Type.NUMBER },
     severity: { type: Type.STRING, enum: ['Low', 'Medium', 'High', 'Critical', 'Unknown'] },
     symptoms: { type: Type.ARRAY, items: { type: Type.STRING } },
+    visibleObservations: { type: Type.ARRAY, items: { type: Type.STRING } },
+    possibleConcerns: { type: Type.ARRAY, items: { type: Type.STRING } },
+    missingInformation: { type: Type.ARRAY, items: { type: Type.STRING } },
+    warningSigns: { type: Type.ARRAY, items: { type: Type.STRING } },
+    veterinaryUrgency: { type: Type.STRING },
+    uncertaintyNote: { type: Type.STRING },
     immediateAction: { type: Type.STRING },
     longTermCare: { type: Type.STRING },
     vetConsultationAdvice: { type: Type.STRING },
@@ -106,6 +112,7 @@ export const analyzeLivestock = async (req, res) => {
       feverStatus = 'unknown',
       appetiteStatus = 'unknown',
       milkYieldChange = 'unknown',
+      measuredTemperature = '',
       lesionsOrUlcers: rawLesions = false,
       isolatedFromHerd: rawIsolated = false,
       symptomsNotes = '',
@@ -147,6 +154,7 @@ export const analyzeLivestock = async (req, res) => {
       animalAge ? `Age: ${animalAge}` : null,
       symptomDuration ? `Duration: ${symptomDuration}` : null,
       `Fever: ${feverStatus}`,
+      measuredTemperature ? `Measured temperature: ${measuredTemperature}` : null,
       `Appetite: ${appetiteStatus}`,
       `Milk yield: ${milkYieldChange}`,
       `Lesions/ulcers: ${lesionsOrUlcers ? 'Yes' : 'No'}`,
@@ -159,10 +167,17 @@ export const analyzeLivestock = async (req, res) => {
     const prompt = `You are a Veterinary Triage Assistant for Indian livestock farmers.
 Evaluate this case (${clinicalSummary}) in language "${language}".
 Strict Safety Policy:
-1. Do NOT prescribe prescription antibiotics, systemic drugs, or mg/ml injectable dosages.
-2. Provide safe first-aid/isolation hygiene, supportive hydration/nutrition guidance, and when to call a licensed vet (1962 / BVSc).
-3. Flag urgentVetEscalation=true if contagious disease signs (FMD, LSD, HS, Anthrax, avian flu, acute bloat, high fever + lesions) are possible.
-4. Set confidence honestly in [0.0, 1.0]. Never exaggerate certainty from visual photos alone.`;
+1. Do NOT prescribe prescription antibiotics, systemic drugs, or mg/ml injectable dosages, and do NOT issue a definitive veterinary diagnosis.
+2. Separate clearly:
+   - visibleObservations: objective visual findings from the photo (or ["No image uploaded"] if text-only)
+   - possibleConcerns: non-definitive differential possibilities to discuss with a veterinarian
+   - missingInformation: key vitals or clinical details still needed (e.g., thermometer reading, vaccination history)
+   - warningSigns: emergency red flags requiring immediate vet attention
+   - veterinaryUrgency: concise urgency band (e.g. "Emergency - Immediate Vet / 1962", "Same-Day Veterinary Visit", "Monitor & Consult Vet")
+   - uncertaintyNote: explicit statement of limitations & uncertainty
+3. Provide safe first-aid/isolation hygiene in immediateAction, general supportive care precautions in longTermCare, and when to call a licensed vet (1962 / BVSc) in vetConsultationAdvice.
+4. Flag urgentVetEscalation=true if contagious or acute disease signs (FMD, LSD, HS, Anthrax, avian flu, acute bloat, high fever + lesions) are possible.
+5. Set confidence honestly in [0.0, 1.0].`;
 
     try {
       let aiRes;
@@ -217,6 +232,12 @@ Strict Safety Policy:
         serviceStatus: 'ok',
         requestId: aiRes.requestId,
         symptoms: data.symptoms || [],
+        visibleObservations: data.visibleObservations || [],
+        possibleConcerns: data.possibleConcerns || [],
+        missingInformation: data.missingInformation || [],
+        warningSigns: data.warningSigns || [],
+        veterinaryUrgency: data.veterinaryUrgency || (urgent ? 'Emergency - Immediate Vet / 1962' : 'Routine / Same-Day Vet Check'),
+        uncertaintyNote: data.uncertaintyNote || 'AI screening is informational only and cannot replace a physical veterinary exam.',
         immediateAction: data.immediateAction,
         longTermCare: data.longTermCare,
         vetConsultationAdvice: data.vetConsultationAdvice,
@@ -274,6 +295,12 @@ Strict Safety Policy:
             serviceStatus: classified.code,
             requestId: classified.requestId,
             symptoms: [],
+            visibleObservations: [],
+            possibleConcerns: [],
+            missingInformation: ['Live veterinary screening unavailable; capture temperature & full vitals for BVSc exam.'],
+            warningSigns: redFlags.escalationReason ? [redFlags.escalationReason] : [],
+            veterinaryUrgency: redFlags.urgentVetEscalation ? 'Emergency - Immediate Vet / 1962' : 'Consult Local Vet',
+            uncertaintyNote: classified.userMessage,
             immediateAction: degradedImmediateAction,
             longTermCare: '',
             vetConsultationAdvice: degradedConsultAdvice,
@@ -300,6 +327,12 @@ Strict Safety Policy:
         escalationReason: redFlags.escalationReason,
         prescriptionsWithheld: true,
         safetyNotice: SAFETY_NOTICE,
+        visibleObservations: [],
+        possibleConcerns: [],
+        missingInformation: ['Live veterinary screening unavailable; capture temperature & full vitals for BVSc exam.'],
+        warningSigns: redFlags.escalationReason ? [redFlags.escalationReason] : [],
+        veterinaryUrgency: redFlags.urgentVetEscalation ? 'Emergency - Immediate Vet / 1962' : 'Consult Local Vet',
+        uncertaintyNote: classified.userMessage,
         immediateAction: degradedImmediateAction,
         vetConsultationAdvice: degradedConsultAdvice,
         createdAt: saved?.createdAt || new Date().toISOString(),

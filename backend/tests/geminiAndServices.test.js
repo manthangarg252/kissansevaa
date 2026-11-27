@@ -209,6 +209,25 @@ test('Schemes catalog, eligibility engine, livestock red flags, crop reconciliat
   });
   assert.equal(reconAgree.status, 'agreed');
 
+  const reconInconclusive = reconcileCropPredictions('Wheat', 'Wheat_Black_Rust', {
+    ok: true,
+    isPlantLeaf: true,
+    needs_review: true,
+    confidence: 0.45,
+    cropName: 'Wheat',
+    diseaseName: 'Inconclusive Visual Screening',
+  });
+  assert.equal(reconInconclusive.status, 'inconclusive');
+
+  assert.equal(classifyGeminiError({ status: 401, message: 'API_KEY_INVALID AQ.AbFakeSecretKey12345' }).code, 'invalid_key');
+  assert.equal(classifyGeminiError({ status: 403, message: 'BILLING_DISABLED on project' }).code, 'billing_restricted');
+  assert.equal(classifyGeminiError({ status: 404, message: 'models/gemini-bad is not found' }).code, 'model_unavailable');
+  assert.equal(classifyGeminiError({ status: 429, message: 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier' }).code, 'rate_limited');
+  assert.equal(classifyGeminiError({ status: 429, message: 'https://aistudio.google.com/docs/rate-limits GenerateRequestsPerDayPerProjectPerModel-FreeTier limit: 20' }).code, 'quota_exhausted');
+  assert.equal(classifyGeminiError({ code: 'ENOTFOUND', message: 'fetch failed ENOTFOUND' }).code, 'network_failure');
+  const aqErr = classifyGeminiError(new Error('Request failed with AQ.AbFakeSecretKey12345'));
+  assert.ok(!aqErr.message.includes('AQ.AbFakeSecretKey12345'));
+
   const stats = marketService.getStats();
   assert.ok(stats.cropsCount > 0 && stats.vegetablesCount > 0 && stats.fruitsCount > 0);
   const cmp = marketService.compareMarkets({});

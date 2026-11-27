@@ -23,6 +23,14 @@ android {
         // Configurable backend base URL
         buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:5000\"")
 
+        // Authorized Sarvam farmer helpline configuration (blank if unconfigured)
+        val sarvamHelplineNumber = (project.findProperty("SARVAM_HELPLINE_NUMBER") as? String)?.trim().orEmpty()
+        buildConfigField(
+            "String",
+            "SARVAM_HELPLINE_NUMBER",
+            "\"${sarvamHelplineNumber.replace("\\", "\\\\").replace("\"", "\\\"")}\""
+        )
+
         // Room schema export
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas")

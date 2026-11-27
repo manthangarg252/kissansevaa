@@ -281,4 +281,14 @@
     <string name="location_change_btn">स्थान बदलें</string>
     <string name="location_retry_btn">फिर से खोजें</string>
     <string name="location_detect_btn">खेत का स्थान पहचानें</string>
+
+    <!-- Stage 5 Simple AI Phone Helpline -->
+    <string name="helpline_card_title">हमारे AI कृषि सहायक से बात करें</string>
+    <string name="helpline_card_desc">हमारी AI हेल्पलाइन पर कॉल करके खेती से जुड़ी सहायता प्राप्त करें। स्मार्टफोन और साधारण कीपैड मोबाइल फोन दोनों पर उपलब्ध।</string>
+    <string name="helpline_basic_phone_note">स्मार्टफोन और साधारण कीपैड फोन दोनों से सीधे डायल करें</string>
+    <string name="helpline_call_now">अभी कॉल करें</string>
+    <string name="helpline_copy_number">नंबर कॉपी करें</string>
+    <string name="helpline_copied_feedback">हेल्पलाइन नंबर कॉपी हो गया: %1$s</string>
+    <string name="helpline_dialer_unavailable">इस डिवाइस पर फोन डायलर उपलब्ध नहीं है। कृपया %1$s कॉपी करके किसी भी फोन से डायल करें।</string>
+    <string name="helpline_unconfigured">हेल्पलाइन नंबर सेट करना आवश्यक है (SARVAM_HELPLINE_NUMBER कॉन्फ़िगर नहीं है)।</string>
 </resources>

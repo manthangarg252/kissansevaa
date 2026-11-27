@@ -311,4 +311,14 @@
     <string name="location_change_btn">Change Location</string>
     <string name="location_retry_btn">Retry Detection</string>
     <string name="location_detect_btn">Detect Farm Location</string>
+
+    <!-- Stage 5 Simple AI Phone Helpline -->
+    <string name="helpline_card_title">Talk to Our AI Farming Assistant</string>
+    <string name="helpline_card_desc">Get farming assistance by calling our AI helpline. Available on smartphones and basic mobile phones.</string>
+    <string name="helpline_basic_phone_note">Works on smartphones &amp; basic keypad mobile phones</string>
+    <string name="helpline_call_now">Call Now</string>
+    <string name="helpline_copy_number">Copy Number</string>
+    <string name="helpline_copied_feedback">Helpline number copied: %1$s</string>
+    <string name="helpline_dialer_unavailable">Phone dialer not found on this device. Copy %1$s to dial from any phone.</string>
+    <string name="helpline_unconfigured">Helpline configuration required: SARVAM_HELPLINE_NUMBER is missing or invalid.</string>
 </resources>

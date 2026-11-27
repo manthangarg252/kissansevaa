@@ -564,14 +564,32 @@ fun LivestockScreen(onBack: () -> Unit, viewModel: LivestockViewModel = hiltView
                             }
                         }
 
+                        r.veterinaryUrgency?.takeIf { it.isNotBlank() }?.let { urgency ->
+                            Text("Veterinary Urgency: $urgency", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = if (r.urgentVetEscalation) ErrorRed else DeepEmerald)
+                        }
+                        if (r.visibleObservations.isNotEmpty()) {
+                            Text("Visible Observations: ${r.visibleObservations.joinToString("; ")}", style = MaterialTheme.typography.bodySmall, color = TextCharcoal)
+                        }
+                        if (r.possibleConcerns.isNotEmpty()) {
+                            Text("Possible Health Concerns: ${r.possibleConcerns.joinToString("; ")}", style = MaterialTheme.typography.bodySmall, color = TextCharcoal)
+                        }
+                        if (r.warningSigns.isNotEmpty()) {
+                            Text("Warning Signs: ${r.warningSigns.joinToString("; ")}", style = MaterialTheme.typography.bodySmall, color = ErrorRed, fontWeight = FontWeight.SemiBold)
+                        }
+                        if (r.missingInformation.isNotEmpty()) {
+                            Text("Missing Information to Share with Vet: ${r.missingInformation.joinToString("; ")}", style = MaterialTheme.typography.bodySmall, color = SecondaryOrange)
+                        }
                         r.immediateAction?.let {
                             Text("Immediate Care: $it", style = MaterialTheme.typography.bodyMedium, color = TextCharcoal)
                         }
-                        r.longTermCare?.let {
-                            Text("Supportive Care: $it", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                        r.longTermCare?.takeIf { it.isNotBlank() }?.let {
+                            Text("General Care Precautions: $it", style = MaterialTheme.typography.bodySmall, color = TextMuted)
                         }
                         r.vetConsultationAdvice?.let {
                             Text("Vet Advice: $it", style = MaterialTheme.typography.bodySmall, color = DeepEmerald, fontWeight = FontWeight.SemiBold)
+                        }
+                        r.uncertaintyNote?.takeIf { it.isNotBlank() }?.let { note ->
+                            Text("Uncertainty Notice: $note", style = MaterialTheme.typography.labelSmall, color = TextMuted)
                         }
                     }
                 }

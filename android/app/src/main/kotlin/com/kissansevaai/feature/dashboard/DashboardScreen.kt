@@ -730,6 +730,11 @@ fun DashboardScreen(
                 }
             }
 
+            // 2b. Talk to Our AI Farming Assistant (Sarvam Simple Phone Helpline)
+            item {
+                com.kissansevaai.ui.component.AiHelplineDashboardCard()
+            }
+
             // 3. IoT Farm Telemetry Live Grid
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

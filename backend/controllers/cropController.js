@@ -44,6 +44,17 @@ export function reconcileCropPredictions(primaryCrop, primaryDisease, secondOpin
   const bothHealthy = String(primaryDisease || '').toLowerCase().includes('healthy')
     && String(secondOpinion.diseaseName || '').toLowerCase().includes('healthy');
 
+  if (
+    secondOpinion.needs_review
+    || (typeof secondOpinion.confidence === 'number' && secondOpinion.confidence < 0.60)
+    || /inconclusive|uncertain|unclear/i.test(String(secondOpinion.diseaseName || ''))
+  ) {
+    return {
+      status: 'inconclusive',
+      note: `Gemini visual screening was inconclusive ("${secondOpinion.diseaseName || 'Uncertain'}"). Original DINOv2 prediction remains preserved and treatments stay withheld pending KVK review.`,
+    };
+  }
+
   if ((cropMatch && (overlap > 0 || bothHealthy)) || (!pCrop && overlap > 0)) {
     return {
       status: 'agreed',
@@ -316,7 +327,10 @@ export const requestCropSecondOpinion = async (req, res) => {
       });
     }
 
-    const keepWithheld = sec.isPlantLeaf === false || sec.needs_review || recon.status === 'disagreed';
+    const keepWithheld = sec.isPlantLeaf === false
+      || sec.needs_review
+      || recon.status === 'disagreed'
+      || recon.status === 'inconclusive';
     const secRecord = {
       requested: true,
       farmerConsented: true,

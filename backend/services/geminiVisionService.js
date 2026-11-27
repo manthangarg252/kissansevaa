@@ -71,11 +71,11 @@ export async function analyzeCropWithGeminiVision(
   }[(language || 'en').toLowerCase().trim()] || 'English';
 
   const contextHint = primaryPrediction
-    ? `Note: Local DINOv2 model returned an uncertain/flagged match "${primaryPrediction}". Independently verify whether this is actually a diseased or healthy plant leaf.`
+    ? `Note: Local DINOv2 model returned an uncertain/flagged match "${primaryPrediction}". Independently inspect whether this is a healthy/diseased plant leaf, an unsupported crop outside the local taxonomy, or inconclusive.`
     : '';
 
   const prescriptionRule = includePrescriptions
-    ? 'Provide up to 3 practical organic and 3 safe standard chemical treatments ONLY if confident (>= 0.60) and it is a real plant leaf.'
+    ? 'Provide up to 3 practical organic and 3 safe standard chemical treatments ONLY if confident (>= 0.60) and visual leaf pathology is clear.'
     : 'Leave treatment.organic and treatment.chemical as empty arrays [].';
 
   const prompt = `You are a senior Agronomist and Plant Pathologist.
@@ -84,9 +84,10 @@ Context: Location=${location || 'India'}, Soil=${soilType || 'Unknown'}, Respons
 ${contextHint}
 Rules:
 1. If the photo is NOT a plant leaf or crop (e.g., screenshot, wall, person, animal, random object), set isPlantLeaf=false, diseaseName="Non-Leaf Image", confidence=0.15, and leave treatment arrays empty.
-2. Give confidence in [0.0, 1.0].
-3. ${prescriptionRule}
-4. Provide 2-3 clear prevention practices in ${langName}.
+2. Describe visible leaf symptoms clearly in summary. If image lighting, blur, or symptoms are unclear/ambiguous, set diseaseName="Inconclusive Visual Screening", confidence <= 0.50, and leave treatment arrays empty []. Do NOT force unfamiliar crops/diseases into an unrelated label.
+3. Give confidence in [0.0, 1.0] strictly as a heuristic screening score (never treat it as calibrated probability).
+4. ${prescriptionRule}
+5. Provide 2-3 clear prevention practices in ${langName}.
 Return strictly structured JSON matching the schema.`;
 
   try {
