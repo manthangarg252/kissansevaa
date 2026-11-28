@@ -1,490 +1,130 @@
 # KissanSevaAI 🌾
 
-<div align="center">
-  
-  **Smart Farming Platform powered by AI**
-  
-  [![Made with React](https://img.shields.io/badge/Made%20with-React-61DAFB?style=flat&logo=react)](https://reactjs.org/)
-  [![Powered by Gemini](https://img.shields.io/badge/Powered%20by-Gemini%20AI-4285F4?style=flat&logo=google)](https://ai.google.dev/)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat&logo=typescript)](https://www.typescriptlang.org/)
-  [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-</div>
+**Offline-First, Multilingual AI Agricultural Platform for Indian Farmers**
+
+KissanSevaAI combines computer vision crop disease retrieval (**DINOv2-S/14 ONNX + FAISS**), safety-first veterinary triage, offline multilingual voice auto-fill, live meteorological & mandi market intelligence, bilingual government scheme discovery, and cloud/USB deployment into an end-to-end native Android + Node.js/MongoDB + FastAPI architecture.
 
 ---
 
-## 📋 Table of Contents
+## Core Capabilities
 
-- [About](#about)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
-- [Project Structure](#project-structure)
-- [Multilingual Support](#multilingual-support)
-- [API Reference](#api-reference)
-- [Contributing](#contributing)
-- [License](#license)
-
----
-
-## 🌟 About
-
-**KissanSevaAI** is a comprehensive smart farming platform designed to empower farmers with AI-driven insights and tools. From crop disease detection to market intelligence, loan advisory, and carbon credit estimation, KissanSevaAI brings modern technology to agriculture in an accessible, multilingual interface.
-
-### Why KissanSevaAI?
-
-- 🤖 **AI-Powered Analysis** - Advanced crop disease detection and livestock health monitoring
-- 🌍 **Multilingual** - Available in English, Hindi, Marathi, Punjabi, and Sanskrit
-- 📊 **Real-time Insights** - Live market prices, IoT sensor monitoring, and trends
-- 💰 **Financial Tools** - Loan recommendations, EMI calculators, and eligibility checks
-- 🌱 **Sustainability** - Carbon credit estimation and organic farming guidance
-- 🔍 **Market Intelligence** - Trader directories and comprehensive market analysis
+- **Crop Disease Detection (V1 Production + V3 Shadow R&D):**
+  - On-server **DINOv2-S/14 ONNX** feature extraction (`dinov2_vits14_cls_mean.onnx`, `768`-dim CLS + mean patch embeddings) + **FAISS `IndexFlatIP`** cosine similarity search across **67 crop-disease classes** (`2,144` reference embeddings).
+  - Clean minimalist result card displaying top predicted disease, crop, severity, text-to-speech (`Read aloud`), Organic & Chemical treatment tips, and prevention strategies.
+  - Versioned **V3 Hybrid Candidate** (`CalibratedClassifierCV(LinearSVC, C=2.0)` + Full FAISS weighted fusion + 6-signal open-set OOD gate) runs strictly in **shadow mode** (`ENABLE_V3_SHADOW=true`) logging comparison telemetry without modifying production predictions.
+- **Safety-First Livestock Care:**
+  - Deterministic clinical red-flag escalation engine covering **7 species** (`Cattle`, `Buffalo`, `Goat`, `Sheep`, `Poultry`, `Pig`, `Other`) across English and Hindi/regional keywords.
+  - Intentionally withholds unverified prescription antibiotics, steroids, and injectable dosages while highlighting `URGENT VETERINARY ESCALATION RECOMMENDED` and **Pashu Helpline `1962`**.
+- **Multilingual Smart Voice Auto-Fill (Stage 4):**
+  - Offline-first Android `SpeechRecognizer` (`EXTRA_PARTIAL_RESULTS`) + deterministic `AgriculturalVoiceParser` supporting **Hindi (Devanagari & Romanized), English, Punjabi, Marathi, and Bhojpuri**.
+  - Normalizes regional crop/soil/irrigation terms, converts `hectare` -> acres, flags ambiguous units (`bigha`), and requires farmer confirmation before saving.
+- **Automatic Farm Location & GPS Personalization:**
+  - Multi-layer location pipeline (`FusedLocationProviderClient` High Accuracy -> Balanced Wi-Fi/Cell indoor fallback -> OS `LocationManager` -> cached last fix + Android `Geocoder`) with explicit farmer confirmation (`"Use this location for your farm?"`) and manual district/state fallback.
+- **Live Weather, AGMARKNET Mandi Rates & Bilingual Schemes:**
+  - **Open-Meteo Weather:** 7-day forecast + Spraying Window suitability (`Temperature`, `Humidity`, `Wind Speed`) + offline cache (`WeatherCache`).
+  - **Live AGMARKNET Mandi Rates:** Observation dates (`Obs:`), state/commodity search, `Compare Mandis` spread analysis, Dashboard prioritization/deduplication by farmer crops, and saved favorites.
+  - **Verified Government Schemes:** Curated catalog (`2026.11`, 10 schemes including `PM-KISAN`, `PMFBY`, `KCC`, `PM-KUSUM`, `Soil Health Card`) with full **English + Hindi** cards, eligibility checker, document lists, and official portal links.
+- **Smart 7-Day Crop Planner & Offline Sync:**
+  - Room DB v5 (**15 local entities**, account-isolated `MIGRATION_4_5`) + WorkManager `DataSyncWorker` syncing queued offline task completions, task edits (`title`, `description`, `scheduledDate`, `reminderEnabled`), and bookmarks to `/api/sync/batch`.
+- **Grounded AI Chatbot & Inclusive Helpline:**
+  - Multi-turn Gemini AI assistant (`gemini-3-flash-preview` via `@google/genai`) grounded in live farmer profile, weather, crop history, livestock triage, and market data, with honest quota fallback (`groundedContextSummary`).
+  - Independent **Sarvam AI Telephone Helpline (`+917965861355`)** accessible from Dashboard (`Call Now` via `Intent.ACTION_DIAL` + `Copy Number`) for smartphones and basic keypad phones.
 
 ---
 
-## ✨ Features
+## System Architecture
 
-### 🔬 **Crop Disease Detection**
-- Upload crop images for instant AI analysis
-- Identify diseases with confidence scores
-- Get organic and chemical treatment recommendations
-- Prevention strategies and severity assessment
+```text
++-----------------------------------+
+|      Native Android App           |
+| Kotlin 2.1 • Jetpack Compose (M3) |
+| Hilt • Room v5 • WorkManager      |
+| CameraX • Voice STT/TTS • GPS     |
++-----------------+-----------------+
+                  | HTTP / HTTPS (JSON + Multipart)
+                  | (USB Demo: adb reverse 5050 & 8000)
+                  v
++-----------------------------------+       +----------------------------------+
+|   Node.js + Express Backend       |------>|    FastAPI ML Service (:8000)    |
+| Port 5050/5000 • JWT + bcryptjs   | HTTP  | ONNX Runtime (CPU) + FAISS       |
+| 16 REST Route Modules • Multer    |       | V1 DINOv2 Active • V3 Shadow     |
+| Gemini SDK • AGMARKNET • Meteo    |       +----------------------------------+
++-----------------+-----------------+
+                  | Mongoose ODM
+                  v
++-----------------------------------+
+|      Persistent MongoDB 8         |
+| Port 27017 • 15 Collections       |
++-----------------------------------+
+```
 
-### 🐄 **Livestock Care**
-- Health condition analysis from images
-- Symptom identification
-- Treatment recommendations
-- Veterinary advice
-
-### 📈 **Market Insights**
-- Real-time market price tracking
-- Trend analysis (up/down/stable indicators)
-- State-wise price comparisons
-- SWOT analysis for farm strategies
-
-### 🌡️ **IoT Monitoring**
-- Real-time sensor data visualization
-- Temperature, humidity, soil moisture, pH tracking
-- Historical trends and patterns
-- AI-powered insights and recommendations
-
-### 🏛️ **Government Schemes**
-- Comprehensive scheme directory
-- Eligibility checking
-- AI-powered recommendations
-- Direct links to official portals
-
-### 🤝 **Traders & Buyers Directory**
-- Verified trader listings
-- Location-based search
-- Ratings and reviews
-- Direct contact information
-
-### 💳 **Loans & Credit Hub**
-- Multiple loan product comparisons
-- EMI calculator
-- AI-powered eligibility assessment
-- Document requirement lists
-- Government and private loan options
-
-### 🌿 **Carbon Credits**
-- Carbon footprint estimation
-- Sustainable practice recommendations
-- Credit calculation based on farm practices
-
-### 💬 **AI Chatbot Assistant**
-- Context-aware farming advice
-- Multilingual support
-- Multiple modes (General, Crop, Livestock, Market, etc.)
-- Voice input capability
+For production cloud deployment (`docker-compose.prod.yml`), **Caddy 2** terminates automatic Let's Encrypt HTTPS TLS (`:80` / `:443`) in front of non-root `backend`, read-only `ml-service`, and `--auth`-protected `mongodb` on a private Docker bridge network.
 
 ---
 
-## 🛠️ Tech Stack
+## Repository Structure
 
-### Frontend
-- **React 19.2** - UI framework
-- **TypeScript 5.8** - Type safety
-- **React Router 7** - Navigation
-- **Tailwind CSS** - Styling
-- **Lucide React** - Icons
-- **i18next** - Internationalization
+```text
+kissansevaai-main/
+├── android/                  # Active Native Android Kotlin + Jetpack Compose application
+├── backend/                  # Express.js REST API, Mongoose models, Gemini/Weather/Mandi/Sync services
+├── ml-service/               # FastAPI DINOv2-S/14 ONNX + FAISS inference service & V3 shadow adapter
+├── scripts/                  # One-click local USB demo scripts (start/check/stop-local-demo.sh)
+├── infra/                    # Production Caddyfile, MongoDB auth init, backup/deploy/rollback scripts
+├── docker-compose.prod.yml   # Single-VM production orchestration (Caddy + Backend + ML + MongoDB)
+├── .env.prod.example         # Production environment template (no secrets)
+└── docs/                     # Stage 1–6 engineering reports & Stage 7 demo runbooks (docs/demo/)
+```
 
-### AI & Backend
-- **Google Gemini AI (Flash 3)** - AI processing
-- **Node.js** - Server runtime
-- **Express.js** - API framework
-- **MongoDB** - Database
-- **Mongoose** - ODM
-
-### Authentication & Security
-- **JWT** - Token-based authentication
-- **bcryptjs** - Password hashing
-
-### Development Tools
-- **Vite 6** - Build tool
-- **ESBuild** - Fast bundler
+*(Root legacy React/Vite files from early prototyping remain archived at top level; active development targets `android/`, `backend/`, `ml-service/`, and `infra/`.)*
 
 ---
 
-## 🚀 Getting Started
+## Quick Start (Local Development & USB Phone Demo)
 
-### Prerequisites
+### 1. Prerequisites
+- **Node.js** `>= 20`, **Python** `3.11+` (`ml-service/venv`), **MongoDB** (`mongod`), **JDK 21**, **Android SDK Platform-Tools (`adb`)**
+- Model assets in `ml-service/model_assets/`:
+  `dinov2_vits14_cls_mean.onnx`, `crop_index.faiss`, `train_labels.npy`, `classes.json`, `model_meta.json`
 
-- Node.js >= 18.0.0
-- npm >= 8.0.0
-- Gemini API Key ([Get one here](https://ai.google.dev/))
+### 2. Configure Environment
+```bash
+cp backend/.env.example backend/.env
+# Fill in JWT_SECRET, GEMINI_API_KEY, and optional DATA_GOV_IN_API_KEY
+```
 
-### Installation
+### 3. One-Click Local USB Demo Stack
+Connect an Android phone with USB debugging enabled and run from the repository root:
+```bash
+./scripts/start-local-demo.sh   # Starts ML (:8000), Persistent MongoDB (:27017), Backend (:5050), adb reverse
+./scripts/check-local-demo.sh   # Verifies health, V1 active / V3 shadow flags, and USB reverse tunnels
+./scripts/stop-local-demo.sh    # Cleanly stops services while preserving MongoDB farmer data
+```
+For full demonstration steps and recovery commands, see [LOCAL_DEMO_RUNBOOK.md](docs/demo/LOCAL_DEMO_RUNBOOK.md).
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/kissansevaai.git
-   cd kissansevaai
-   ```
+---
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Configure environment variables**
-   
-   Create a `.env.local` file in the root directory:
-   ```env
-   GEMINI_API_KEY=your_gemini_api_key_here
-   ```
-
-4. **Run the development server**
-   ```bash
-   npm run dev
-   ```
-
-5. **Open your browser**
-   
-   Navigate to `http://localhost:3000`
-
-### Build for Production
+## Running Tests
 
 ```bash
-npm run build
-npm run preview
+# FastAPI ML service (16 tests)
+cd ml-service && venv/bin/pytest tests/ -v
+
+# Node.js backend (uses isolated in-memory MongoDB)
+cd backend && NODE_ENV=test node --test tests/*.test.js
+
+# Android JVM unit tests & debug APK
+./android/gradlew -p android testDebugUnitTest assembleDebug
 ```
 
----
-
-## 📁 Project Structure
-
-```
-kissansevaai/
-├── components/           # Reusable React components
-│   └── Layout.tsx       # Main layout wrapper
-├── pages/               # Page components
-│   ├── Dashboard.tsx    # Main dashboard
-│   ├── CropDisease.tsx  # Crop disease detection
-│   ├── Livestock.tsx    # Livestock health
-│   ├── MarketInsights.tsx
-│   ├── IoTMonitoring.tsx
-│   ├── GovernmentSchemes.tsx
-│   ├── TradersDirectory.tsx
-│   ├── CarbonCredits.tsx
-│   ├── LiveMarketPrices.tsx
-│   ├── LoansPage.tsx
-│   ├── Chatbot.tsx
-│   ├── Login.tsx
-│   └── Signup.tsx
-├── locales/             # Translation files
-│   ├── en.ts           # English
-│   ├── hi.ts           # Hindi
-│   ├── mr.ts           # Marathi
-│   ├── pa.ts           # Punjabi
-│   └── sa.ts           # Sanskrit
-├── constants.tsx        # App constants & data
-├── geminiService.ts     # Gemini AI integration
-├── types.ts             # TypeScript types
-├── i18n.ts              # i18n configuration
-├── index.tsx            # App entry point
-└── index.html           # HTML template
-```
+*(Set `JAVA_HOME` to JDK 21 if your system default differs.)*
 
 ---
 
-## 🌐 Multilingual Support
+## Module Documentation
 
-KissanSevaAI supports **5 languages**:
-
-| Language | Code | Script |
-|----------|------|--------|
-| English | `en` | Latin |
-| Hindi | `hi` | Devanagari |
-| Marathi | `mr` | Devanagari |
-| Punjabi | `pa` | Gurmukhi |
-| Sanskrit | `sa` | Devanagari |
-
-### Switching Languages
-
-Use the language selector in the header to switch between languages. All content, including AI responses, will be delivered in the selected language.
-
----
-
-## 🔌 API Reference
-
-### Gemini AI Service
-
-#### Crop Disease Analysis
-```typescript
-analyzeCropDisease(
-  imageBase64: string,
-  location: string,
-  soilType: string,
-  language: Language
-): Promise<CropDiseaseResult>
-```
-
-**Returns:**
-```typescript
-{
-  cropName: string;
-  diseaseName: string;
-  confidence: number;
-  summary: string;
-  severity: "Low" | "Medium" | "High";
-  treatment: {
-    organic: string[];
-    chemical: string[];
-  };
-  prevention: string[];
-  source: "gemini";
-}
-```
-
-#### Livestock Analysis
-```typescript
-analyzeLivestockDisease(
-  imageBase64: string,
-  animalType: string,
-  language: Language
-): Promise<LivestockResult>
-```
-
-**Returns:**
-```typescript
-{
-  conditionName: string;
-  confidence: string;
-  summary: string;
-  symptoms: string[];
-  treatment: string[];
-  prevention: string[];
-  vetAdvice: string;
-}
-```
-
-#### Market Recommendations
-```typescript
-getMarketRecommendations(
-  farmData: object,
-  language: Language
-): Promise<string>
-```
-
-#### Loan Advisory
-```typescript
-getLoanAdvice(
-  profileData: object,
-  language: Language
-): Promise<LoanAdvisorResult>
-```
-
-**Returns:**
-```typescript
-{
-  eligibilityLevel: "High" | "Medium" | "Low";
-  recommendedLoan: string;
-  amountRange: string;
-  estimatedInterestRange: string;
-  documents: string[];
-  nextSteps: string[];
-  riskNotes: string[];
-}
-```
-
-#### Carbon Credit Estimation
-```typescript
-estimateCarbonCredits(
-  farmData: object,
-  language: Language
-): Promise<string>
-```
-
-#### Voice Field Extraction
-```typescript
-extractFieldsFromSpeech(
-  text: string,
-  fields: string[],
-  language: Language
-): Promise<object>
-```
-
----
-
-## 🎨 Key Components
-
-### Dashboard
-The main landing page showcasing all available features with quick access cards.
-
-### Crop Disease Detection
-- Image upload with preview
-- AI-powered disease identification
-- Treatment recommendations (organic & chemical)
-- Prevention strategies
-- Confidence scoring
-
-### Livestock Care
-- Animal health monitoring
-- Symptom analysis
-- Treatment plans
-- Veterinary advice integration
-
-### IoT Monitoring
-- Real-time sensor data visualization
-- Historical data trends
-- Alerts and notifications
-- AI-powered insights
-
-### Market Insights
-- Live price tracking
-- Trend analysis
-- SWOT analysis generation
-- Market recommendations
-
-### Loans & Credit Hub
-- Loan product comparison
-- EMI calculator
-- AI-powered eligibility checker
-- Document checklist
-
-### Government Schemes
-- Searchable scheme database
-- Category filtering
-- Eligibility checking
-- Direct links to official portals
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-### Code Standards
-
-- Use TypeScript for type safety
-- Follow the existing code style
-- Write meaningful commit messages
-- Add comments for complex logic
-- Test your changes thoroughly
-
-### Development Guidelines
-
-- All AI responses must support multilingual output
-- Follow the existing component structure
-- Use Tailwind utility classes for styling
-- Ensure mobile responsiveness
-- Handle loading and error states properly
-
----
-
-## 🐛 Known Issues
-
-- Voice input may not work on all browsers (Chrome recommended)
-- Image upload limited to 5MB per file
-- IoT sensor data is simulated for demo purposes
-
----
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- **Google Gemini AI** for powerful AI capabilities
-- **React Team** for the amazing framework
-- **Tailwind CSS** for utility-first styling
-- **Lucide** for beautiful icons
-- **i18next** for internationalization support
-- All farmers who inspired this project
-
----
-
-## 📞 Support
-
-For support, email support@kissansevaai.com or create an issue in the repository.
-
----
-
-## 🗺️ Roadmap
-
-- [ ] Mobile app (React Native)
-- [ ] Offline mode support
-- [ ] Weather integration
-- [ ] Pest prediction model
-- [ ] Community forum
-- [ ] Video tutorials
-- [ ] AR crop scanning
-- [ ] Blockchain for carbon credits
-- [ ] SMS alerts for market prices
-- [ ] Integration with government databases
-
----
-
-## 📊 Project Statistics
-
-- **Total Components:** 15+
-- **Supported Languages:** 5
-- **AI Models:** Gemini 3 Flash
-- **Lines of Code:** 5,000+
-- **API Endpoints:** 10+
-
----
-
-## 🔐 Security
-
-- JWT-based authentication
-- Password hashing with bcryptjs
-- Environment variable protection
-- Input validation and sanitization
-- CORS configuration
-
----
-
-## 🌍 Deployment
-
-### Deploy to Vercel
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/kissansevaai)
-
-### Deploy to Netlify
-
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/yourusername/kissansevaai)
-
----
-
-<div align="center">
-  
-  **Made with ❤️ for Farmers**
-  
-  [Website](https://kissansevaai.com) • [Documentation](https://docs.kissansevaai.com) • [Report Bug](https://github.com/yourusername/kissansevaai/issues) • [Request Feature](https://github.com/yourusername/kissansevaai/issues)
-  
-  ---
-  
-  ⭐ Star this repository if you find it helpful!
-  
-</div>
+- **Android App:** [android/README.md](android/README.md)
+- **Backend API:** [backend/README.md](backend/README.md)
+- **ML Inference Service:** [ml-service/README.md](ml-service/README.md)
+- **Cloud Deployment Guides:** [docs/stage6/01_CLOUD_ARCHITECTURE.md](docs/stage6/01_CLOUD_ARCHITECTURE.md)
+- **Demo Verification & Fixes:** [docs/demo/FINAL_DEMO_READINESS.md](docs/demo/FINAL_DEMO_READINESS.md)
