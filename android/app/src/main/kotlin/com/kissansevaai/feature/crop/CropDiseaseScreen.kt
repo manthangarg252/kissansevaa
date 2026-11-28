@@ -336,10 +336,8 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                     val currentLang by viewModel.language.collectAsState()
 
                     FillByVoiceButton(
-                        fields = listOf("cropName", "symptomDescription", "location", "soilType"),
+                        fields = listOf("location", "soilType"),
                         fieldLabels = mapOf(
-                            "cropName" to "Crop Name",
-                            "symptomDescription" to "Symptom Description",
                             "location" to "Farm Location",
                             "soilType" to "Soil Type",
                         ),
@@ -347,37 +345,11 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                         speechToText = viewModel.speechToText,
                         fieldExtractor = viewModel.fieldExtractor,
                         onFill = { data ->
-                            data["cropName"]?.let { cropNameInput = it }
-                            data["symptomDescription"]?.let { symptomDescriptionInput = it }
                             data["location"]?.let { location = it }
                             data["soilType"]?.let { soilType = it }
                         },
                         onMessage = { msg -> permissionNotice = msg },
                         modifier = Modifier.fillMaxWidth()
-                    )
-
-                    VoiceInputField(
-                        value = cropNameInput,
-                        onValueChange = { cropNameInput = it },
-                        label = "Crop Name",
-                        fieldKey = "cropName",
-                        lang = currentLang,
-                        speechToText = viewModel.speechToText,
-                        placeholder = "e.g. Wheat, Paddy, Tomato",
-                        leadingIcon = { Icon(Icons.Default.Eco, null, tint = DeepEmerald) },
-                        onMessage = { permissionNotice = it },
-                    )
-
-                    VoiceInputField(
-                        value = symptomDescriptionInput,
-                        onValueChange = { symptomDescriptionInput = it },
-                        label = "Symptom Description",
-                        fieldKey = "symptomDescription",
-                        lang = currentLang,
-                        speechToText = viewModel.speechToText,
-                        placeholder = "e.g. Yellow rust spots, leaf curl",
-                        leadingIcon = { Icon(Icons.Default.BugReport, null, tint = DeepEmerald) },
-                        onMessage = { permissionNotice = it },
                     )
 
                     VoiceInputField(
@@ -414,8 +386,8 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                             imageUri = it,
                             location = location,
                             soilType = soilType,
-                            cropHint = cropNameInput,
-                            symptomDescription = symptomDescriptionInput,
+                            cropHint = "",
+                            symptomDescription = "",
                         )
                     }
                 },

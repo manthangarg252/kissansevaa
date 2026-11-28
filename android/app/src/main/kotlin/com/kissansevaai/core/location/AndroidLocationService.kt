@@ -94,7 +94,7 @@ class AndroidLocationDetector @Inject constructor(
 
     companion object {
         const val MAX_LOCATION_AGE_MS = 15 * 60 * 1000L
-        const val MAX_FALLBACK_AGE_MS = 60 * 60 * 1000L
+        const val MAX_FALLBACK_AGE_MS = 24 * 60 * 60 * 1000L
         const val DETECTION_TIMEOUT_MS = 6_000L
     }
 
@@ -144,6 +144,34 @@ class AndroidLocationDetector @Inject constructor(
     }
 
     @SuppressLint("MissingPermission")
+    private suspend fun fetchPlatformNetworkFix(timeoutMs: Long): Location? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return null
+        val lm = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return null
+        val provider = when {
+            lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
+            lm.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
+            else -> return null
+        }
+        val osCancel = android.os.CancellationSignal()
+        return withTimeoutOrNull(timeoutMs) {
+            suspendCancellableCoroutine<Location?> { cont ->
+                cont.invokeOnCancellation { osCancel.cancel() }
+                try {
+                    lm.getCurrentLocation(
+                        provider,
+                        osCancel,
+                        ContextCompat.getMainExecutor(context),
+                    ) { loc ->
+                        if (cont.isActive) cont.resume(loc)
+                    }
+                } catch (_: Exception) {
+                    if (cont.isActive) cont.resume(null)
+                }
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
     private suspend fun fetchBestLastKnownLocation(): Location? {
         val fusedLast = try {
             suspendCancellableCoroutine<Location?> { cont ->
@@ -157,7 +185,8 @@ class AndroidLocationDetector @Inject constructor(
         val lm = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
         val gpsLast = runCatching { lm?.getLastKnownLocation(LocationManager.GPS_PROVIDER) }.getOrNull()
         val netLast = runCatching { lm?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER) }.getOrNull()
-        return listOfNotNull(fusedLast, gpsLast, netLast).maxByOrNull { it.time }
+        val passiveLast = runCatching { lm?.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER) }.getOrNull()
+        return listOfNotNull(fusedLast, gpsLast, netLast, passiveLast).maxByOrNull { it.time }
     }
 
     @SuppressLint("MissingPermission")
@@ -198,6 +227,10 @@ class AndroidLocationDetector @Inject constructor(
             } catch (e: Exception) {
                 null
             }
+        }
+
+        if (currentLoc == null) {
+            currentLoc = fetchPlatformNetworkFix(5_000L)
         }
 
         if (currentLoc == null) {

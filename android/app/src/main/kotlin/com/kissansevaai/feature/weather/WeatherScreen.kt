@@ -187,7 +187,7 @@ fun WeatherScreen(onBack: () -> Unit, viewModel: WeatherViewModel = hiltViewMode
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            voiceNotice?.let { note ->
+            (voiceNotice ?: locationPrompt.statusMessage)?.let { note ->
                 Card(
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = AmberTint),
