@@ -94,7 +94,8 @@ class AndroidLocationDetector @Inject constructor(
 
     companion object {
         const val MAX_LOCATION_AGE_MS = 15 * 60 * 1000L
-        const val DETECTION_TIMEOUT_MS = 12_000L
+        const val MAX_FALLBACK_AGE_MS = 60 * 60 * 1000L
+        const val DETECTION_TIMEOUT_MS = 6_000L
     }
 
     private val fusedClient by lazy { LocationServices.getFusedLocationProviderClient(context) }
@@ -124,6 +125,42 @@ class AndroidLocationDetector @Inject constructor(
     }
 
     @SuppressLint("MissingPermission")
+    private suspend fun fetchSingleFix(priority: Int, timeoutMs: Long): Location? {
+        val request = CurrentLocationRequest.Builder()
+            .setPriority(priority)
+            .setGranularity(Granularity.GRANULARITY_PERMISSION_LEVEL)
+            .setMaxUpdateAgeMillis(120_000L)
+            .setDurationMillis(timeoutMs)
+            .build()
+        val cts = CancellationTokenSource()
+        return withTimeoutOrNull(timeoutMs + 1_000L) {
+            suspendCancellableCoroutine { cont ->
+                cont.invokeOnCancellation { cts.cancel() }
+                fusedClient.getCurrentLocation(request, cts.token)
+                    .addOnSuccessListener { loc -> if (cont.isActive) cont.resume(loc) }
+                    .addOnFailureListener { if (cont.isActive) cont.resume(null) }
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private suspend fun fetchBestLastKnownLocation(): Location? {
+        val fusedLast = try {
+            suspendCancellableCoroutine<Location?> { cont ->
+                fusedClient.lastLocation
+                    .addOnSuccessListener { loc -> if (cont.isActive) cont.resume(loc) }
+                    .addOnFailureListener { if (cont.isActive) cont.resume(null) }
+            }
+        } catch (_: Exception) {
+            null
+        }
+        val lm = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        val gpsLast = runCatching { lm?.getLastKnownLocation(LocationManager.GPS_PROVIDER) }.getOrNull()
+        val netLast = runCatching { lm?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER) }.getOrNull()
+        return listOfNotNull(fusedLast, gpsLast, netLast).maxByOrNull { it.time }
+    }
+
+    @SuppressLint("MissingPermission")
     override suspend fun detectCurrentLocation(): LocationDetectionResult {
         if (!hasLocationPermission()) {
             return LocationDetectionResult.PermissionDenied
@@ -137,71 +174,56 @@ class AndroidLocationDetector @Inject constructor(
         } catch (_: Exception) {
             ConnectionResult.SERVICE_MISSING
         }
-        if (gmsStatus != ConnectionResult.SUCCESS) {
-            return LocationDetectionResult.PlayServicesUnavailable(
-                "Google Play Services is unavailable on this device (code $gmsStatus). Enter district & state manually."
-            )
-        }
 
         val preciseGranted = hasFineLocationPermission()
-        val request = CurrentLocationRequest.Builder()
-            .setPriority(if (preciseGranted) Priority.PRIORITY_HIGH_ACCURACY else Priority.PRIORITY_BALANCED_POWER_ACCURACY)
-            .setGranularity(Granularity.GRANULARITY_PERMISSION_LEVEL)
-            .setMaxUpdateAgeMillis(60_000L)
-            .setDurationMillis(DETECTION_TIMEOUT_MS)
-            .build()
+        var currentLoc: Location? = null
 
-        val cts = CancellationTokenSource()
-        val currentLoc: Location? = try {
-            withTimeoutOrNull(DETECTION_TIMEOUT_MS + 1_000L) {
-                suspendCancellableCoroutine { cont ->
-                    cont.invokeOnCancellation { cts.cancel() }
-                    fusedClient.getCurrentLocation(request, cts.token)
-                        .addOnSuccessListener { loc ->
-                            if (cont.isActive) cont.resume(loc)
-                        }
-                        .addOnFailureListener {
-                            if (cont.isActive) cont.resume(null)
-                        }
+        if (gmsStatus == ConnectionResult.SUCCESS) {
+            currentLoc = try {
+                // Try high accuracy first when fine permission is granted, then fall back to balanced (Wi-Fi/cell) for indoor speed
+                val primary = fetchSingleFix(
+                    priority = if (preciseGranted) Priority.PRIORITY_HIGH_ACCURACY else Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                    timeoutMs = DETECTION_TIMEOUT_MS,
+                )
+                primary ?: if (preciseGranted) {
+                    fetchSingleFix(
+                        priority = Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                        timeoutMs = 5_000L,
+                    )
+                } else {
+                    null
                 }
+            } catch (_: SecurityException) {
+                return LocationDetectionResult.PermissionDenied
+            } catch (e: Exception) {
+                null
             }
-        } catch (e: SecurityException) {
-            return LocationDetectionResult.PermissionDenied
-        } catch (e: Exception) {
-            return LocationDetectionResult.Error("Location detection error: ${e.localizedMessage ?: "unknown"}")
         }
 
         if (currentLoc == null) {
-            // Check lastLocation ONLY to distinguish stale cache vs empty provider (never silently adopt stale GPS!)
-            val lastLoc: Location? = try {
-                suspendCancellableCoroutine { cont ->
-                    fusedClient.lastLocation
-                        .addOnSuccessListener { loc -> if (cont.isActive) cont.resume(loc) }
-                        .addOnFailureListener { if (cont.isActive) cont.resume(null) }
-                }
-            } catch (_: Exception) {
-                null
-            }
+            val lastLoc = fetchBestLastKnownLocation()
             if (lastLoc != null) {
-                val ageMs = System.currentTimeMillis() - lastLoc.time
-                val ageMins = (ageMs / 60_000L).coerceAtLeast(0L)
-                return LocationDetectionResult.NullOrStaleLocation(
-                    message = "Current GPS signal timed out and last cached fix is stale (${ageMins}m old). Move outdoors or enter location manually.",
-                    cachedAgeMinutes = ageMins,
+                val ageMs = (System.currentTimeMillis() - lastLoc.time).coerceAtLeast(0L)
+                if (ageMs <= MAX_FALLBACK_AGE_MS) {
+                    currentLoc = lastLoc
+                } else {
+                    val ageMins = ageMs / 60_000L
+                    return LocationDetectionResult.NullOrStaleLocation(
+                        message = "Current GPS signal timed out and last cached fix is stale (${ageMins}m old). Move outdoors or enter location manually.",
+                        cachedAgeMinutes = ageMins,
+                    )
+                }
+            } else if (gmsStatus != ConnectionResult.SUCCESS) {
+                return LocationDetectionResult.PlayServicesUnavailable(
+                    "Google Play Services is unavailable on this device (code $gmsStatus). Enter district & state manually."
                 )
+            } else {
+                return LocationDetectionResult.Timeout("Unable to acquire current location. Check GPS signal or enter location manually.")
             }
-            return LocationDetectionResult.Timeout("Unable to acquire current location within 12s. Check GPS signal or enter location manually.")
         }
 
-        val ageMs = System.currentTimeMillis() - currentLoc.time
+        val ageMs = (System.currentTimeMillis() - currentLoc.time).coerceAtLeast(0L)
         val isStale = ageMs > MAX_LOCATION_AGE_MS
-        if (isStale) {
-            return LocationDetectionResult.NullOrStaleLocation(
-                message = "Location fix is stale (${ageMs / 60_000L}m old). Retry outdoors or select location manually.",
-                cachedAgeMinutes = ageMs / 60_000L,
-            )
-        }
-
         val effectivePrecise = preciseGranted && (currentLoc.accuracy <= 100f)
         val source = if (effectivePrecise) "gps_precise" else "gps_approximate"
         val geo = reverseGeocoder.reverseGeocode(currentLoc.latitude, currentLoc.longitude)
@@ -214,7 +236,7 @@ class AndroidLocationDetector @Inject constructor(
                 isPrecise = effectivePrecise,
                 locationSource = source,
                 timestampMs = currentLoc.time,
-                isStale = false,
+                isStale = isStale,
                 village = geo.village,
                 city = geo.city,
                 district = geo.district,

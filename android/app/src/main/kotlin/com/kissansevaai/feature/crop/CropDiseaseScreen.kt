@@ -461,105 +461,45 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                 }
             }
 
-            // Diagnosis Result Card
+            // Diagnosis Result Card (Minimalist: Best Answer + Treatment Tips)
             state.result?.let { r ->
                 Card(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = CardWhite),
-                    border = BorderStroke(1.5.dp, GreenTint),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                    border = BorderStroke(1.dp, GreenTint),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // Header with verification status, separate source attribution pills, and TTS
+                        // Clean Header: Best Answer label + Read Aloud TTS
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.weight(1f)
+                            Surface(
+                                shape = RoundedCornerShape(9999.dp),
+                                color = GreenTint
                             ) {
-                                val effectivePredSource = r.predictionSource ?: r.source
-                                Surface(
-                                    shape = RoundedCornerShape(9999.dp),
-                                    color = if (r.needs_review) AmberTint else GreenTint
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = if (r.needs_review) Icons.Default.Warning else Icons.Default.CheckCircle,
-                                            contentDescription = null,
-                                            tint = if (r.needs_review) SecondaryOrange else DeepEmerald,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                        Spacer(Modifier.width(4.dp))
-                                        Text(
-                                            text = if (r.needs_review) {
-                                                stringResource(R.string.crop_status_needs_review)
-                                            } else if (effectivePredSource == "dinov2") {
-                                                stringResource(R.string.crop_status_retrieval_match)
-                                            } else if (r.confidence != null) {
-                                                "Est. ${"%.0f".format(r.confidence * 100)}%"
-                                            } else {
-                                                stringResource(R.string.crop_analysis_result)
-                                            },
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (r.needs_review) SecondaryOrange else DeepEmerald
-                                        )
-                                    }
-                                }
-
-                                val sourceLabel = when (effectivePredSource) {
-                                    "dinov2" -> "Model: DINOv2-S/14"
-                                    "gemini" -> "Vision: Gemini"
-                                    "mock" -> "Offline Template"
-                                    else -> effectivePredSource?.uppercase() ?: "AI"
-                                }
-                                Surface(
-                                    shape = RoundedCornerShape(9999.dp),
-                                    color = if (effectivePredSource == "dinov2") GreenTintLight else SurfaceContainerLow,
-                                    border = BorderStroke(1.dp, if (effectivePredSource == "dinov2") DeepEmerald.copy(alpha = 0.5f) else BorderMedium)
-                                ) {
-                                    Text(
-                                        text = sourceLabel,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = if (effectivePredSource == "dinov2") DeepEmerald else TextMuted,
-                                        maxLines = 1,
-                                        softWrap = false,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = DeepEmerald,
+                                        modifier = Modifier.size(14.dp)
                                     )
-                                }
-
-                                if (r.advisorySource != null && r.advisorySource != effectivePredSource) {
-                                    val advLabel = when (r.advisorySource) {
-                                        "gemini" -> "Notes: Gemini"
-                                        else -> "Notes: Local"
-                                    }
-                                    Surface(
-                                        shape = RoundedCornerShape(9999.dp),
-                                        color = SurfaceContainerLow,
-                                        border = BorderStroke(1.dp, BorderMedium)
-                                    ) {
-                                        Text(
-                                            text = advLabel,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = TextMuted,
-                                            maxLines = 1,
-                                            softWrap = false,
-                                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
-                                            fontSize = 10.sp
-                                        )
-                                    }
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(
+                                        text = stringResource(R.string.crop_analysis_result),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = DeepEmerald
+                                    )
                                 }
                             }
 
@@ -581,46 +521,10 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                     "sa" -> "रोगः"
                                     else -> "Disease"
                                 }
-                                val severityPrefix = when (currentLang.lowercase().trim()) {
-                                    "hi" -> "गंभीरता"
-                                    "mr" -> "तीव्रता"
-                                    "pa" -> "ਗੰਭੀਰਤਾ"
-                                    "bho" -> "गंभीरता"
-                                    "sa" -> "तीव्रता"
-                                    else -> "Severity"
-                                }
-                                val localizedSeverity = when (r.severity?.lowercase()?.trim()) {
-                                    "low" -> when (currentLang.lowercase().trim()) {
-                                        "hi" -> "कम"
-                                        "mr" -> "कमी"
-                                        "pa" -> "ਘੱਟ"
-                                        "bho" -> "कम"
-                                        "sa" -> "अल्पा"
-                                        else -> "Low"
-                                    }
-                                    "medium", "moderate" -> when (currentLang.lowercase().trim()) {
-                                        "hi" -> "मध्यम"
-                                        "mr" -> "मध्यम"
-                                        "pa" -> "ਦਰਮਿਆਨੀ"
-                                        "bho" -> "मध्यम"
-                                        "sa" -> "मध्यमा"
-                                        else -> "Medium"
-                                    }
-                                    "high", "severe" -> when (currentLang.lowercase().trim()) {
-                                        "hi" -> "गंभीर"
-                                        "mr" -> "जास्त"
-                                        "pa" -> "ਗੰਭੀਰ"
-                                        "bho" -> "गंभीर"
-                                        "sa" -> "तीव्रा"
-                                        else -> "High"
-                                    }
-                                    else -> r.severity ?: ""
-                                }
                                 val delimiter = if (currentLang.lowercase().trim() in listOf("hi", "pa", "bho", "sa")) "।" else "."
                                 val cropPart = if (!r.cropName.isNullOrBlank()) "$cropPrefix: ${r.cropName}$delimiter " else ""
-                                val severityPart = if (localizedSeverity.isNotBlank()) "$severityPrefix: $localizedSeverity$delimiter " else ""
                                 val summaryPart = r.summary ?: ""
-                                "$diseasePrefix: ${r.diseaseName}$delimiter $cropPart$severityPart$summaryPart".trim()
+                                "$diseasePrefix: ${r.diseaseName}$delimiter $cropPart$summaryPart".trim()
                             }
                             com.kissansevaai.ui.component.TTSButton(
                                 ttsEngine = viewModel.ttsEngine,
@@ -630,143 +534,12 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                             )
                         }
 
-                        // Uncertainty Warning Banner
-                        if (r.needs_review || r.warning != null) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = AmberTint,
-                                border = BorderStroke(1.dp, HarvestAmber.copy(alpha = 0.5f)),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.Top,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Warning,
-                                        contentDescription = "Uncertainty Warning",
-                                        tint = HarvestAmber,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                        Text(
-                                            text = stringResource(R.string.crop_uncertain_warning_title),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = SecondaryOrange
-                                        )
-                                        Text(
-                                            text = r.warning ?: stringResource(R.string.crop_uncertain_warning_desc),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = TextCharcoal
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // Similarity & Neighbor Agreement Metrics (distinct retrieval metrics, never generic % confidence)
-                        if (r.top_cosine_similarity != null || r.neighbor_agreement != null) {
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    r.top_cosine_similarity?.let { cosSim ->
-                                        Card(
-                                            shape = RoundedCornerShape(10.dp),
-                                            colors = CardDefaults.cardColors(containerColor = GreenBg),
-                                            border = BorderStroke(1.dp, GreenTint),
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            Column(modifier = Modifier.padding(10.dp)) {
-                                                Text(stringResource(R.string.crop_match_similarity), style = MaterialTheme.typography.labelSmall, color = TextMuted)
-                                                Text(
-                                                    text = "%.3f".format(cosSim),
-                                                    style = MaterialTheme.typography.titleMedium,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = DeepEmerald
-                                                )
-                                                Text("Embedding distance (0–1)", style = MaterialTheme.typography.labelSmall, color = TextMuted, fontSize = 9.sp)
-                                            }
-                                        }
-                                    }
-                                    r.neighbor_agreement?.let { agreement ->
-                                        Card(
-                                            shape = RoundedCornerShape(10.dp),
-                                            colors = CardDefaults.cardColors(containerColor = GreenBg),
-                                            border = BorderStroke(1.dp, GreenTint),
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            Column(modifier = Modifier.padding(10.dp)) {
-                                                Text("k-NN Neighbor Agreement", style = MaterialTheme.typography.labelSmall, color = TextMuted)
-                                                Text(
-                                                    text = "${"%.1f".format(agreement * 100)}% consensus",
-                                                    style = MaterialTheme.typography.titleMedium,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = DeepEmerald
-                                                )
-                                                Text("Ref neighbor vote share", style = MaterialTheme.typography.labelSmall, color = TextMuted, fontSize = 9.sp)
-                                            }
-                                        }
-                                    }
-                                }
-                                Text(
-                                    text = "* Cosine similarity and neighbor agreement describe vector retrieval consensus, NOT calibrated disease probability.",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = TextMuted,
-                                    fontSize = 10.sp
-                                )
-                            }
-                        }
-
-                        // Nearest Reference Matches (Top 5)
-                        if (r.matches.isNotEmpty()) {
-                            Card(
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow),
-                                border = BorderStroke(1.dp, BorderLight),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Text(
-                                        text = stringResource(R.string.crop_top_matches),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = TextCharcoal
-                                    )
-                                    r.matches.take(5).forEachIndexed { idx, match ->
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                text = "${idx + 1}. ${match.class_name.replace("___", " - ").replace("_", " ")}",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = TextCharcoal,
-                                                modifier = Modifier.weight(1f),
-                                                maxLines = 1
-                                            )
-                                            Text(
-                                                text = "Sim: ${"%.3f".format(match.cosine_similarity)}",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = DeepEmerald
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Disease & Crop details
+                        // Best Answer: Disease & Crop
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
                                 text = r.diseaseName,
                                 style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.ExtraBold,
+                                fontWeight = FontWeight.Medium,
                                 color = TextCharcoal
                             )
                             Row(
@@ -784,7 +557,6 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                         Text(
                                             text = it,
                                             style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold,
                                             color = SecondaryOrange,
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                         )
@@ -802,43 +574,14 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                             )
                         }
 
-                        // Treatment section: withhold ALL treatment prescriptions (both organic and chemical) when uncertain
-                        val hideTreatments = r.needs_review || r.treatmentWithheld
-                        if (hideTreatments) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = ErrorContainer.copy(alpha = 0.35f),
-                                border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.45f)),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.Top,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.HealthAndSafety,
-                                        contentDescription = null,
-                                        tint = ErrorRed,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Text(
-                                            text = stringResource(R.string.crop_treatments_withheld_title),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = ErrorRed
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.crop_treatments_withheld_desc),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = TextCharcoal
-                                        )
-                                    }
-                                }
-                            }
-                        } else if (r.treatment.organic.isNotEmpty() || r.treatment.chemical.isNotEmpty()) {
-                            // Treatment Tabs (Organic vs Chemical)
+                        // Treatment Tips (Organic & Chemical)
+                        if (r.treatment.organic.isNotEmpty() || r.treatment.chemical.isNotEmpty()) {
+                            HorizontalDivider(color = BorderLight)
+                            Text(
+                                text = "Treatment Tips",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = TextCharcoal
+                            )
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
                                 color = SurfaceContainerLow,
@@ -858,7 +601,6 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                         Text(
                                             text = stringResource(R.string.crop_organic_treatment),
                                             style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.Bold,
                                             color = if (treatmentTab == 0) Color.White else TextMuted,
                                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                             modifier = Modifier.padding(vertical = 8.dp)
@@ -874,7 +616,6 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                         Text(
                                             text = stringResource(R.string.crop_chemical_treatment),
                                             style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.Bold,
                                             color = if (treatmentTab == 1) Color.White else TextMuted,
                                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                             modifier = Modifier.padding(vertical = 8.dp)
@@ -911,13 +652,12 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                             }
                         }
 
-                        // Prevention Section
+                        // Prevention Tips
                         if (r.prevention.isNotEmpty()) {
                             HorizontalDivider(color = BorderLight)
                             Text(
                                 text = stringResource(R.string.crop_prevention_strategies),
                                 style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
                                 color = TextCharcoal
                             )
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -928,142 +668,6 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                     ) {
                                         Icon(Icons.Default.Shield, null, tint = Blue500, modifier = Modifier.size(16.dp))
                                         Text(item, style = MaterialTheme.typography.bodySmall, color = TextCharcoal)
-                                    }
-                                }
-                            }
-                        }
-
-                        HorizontalDivider(color = BorderLight)
-                        Text(
-                            text = "⚠️ Disclaimer: This tool provides automated visual screening based on computer vision. Always consult an agronomist or local Krishi Vigyan Kendra (KVK) before applying chemical or large-scale treatments.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextMuted,
-                            fontSize = 11.sp,
-                            lineHeight = 15.sp
-                        )
-
-                        // Explicit Farmer-Consent Gemini Second Opinion (Preserves DINOv2 primary result)
-                        val showConsentPrompt = (r.needs_review || r.secondOpinionEligible) && r.secondOpinion == null
-                        if (showConsentPrompt) {
-                            var consentChecked by remember(r.id) { mutableStateOf(false) }
-                            HorizontalDivider(color = BorderLight)
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = SurfaceContainerLow,
-                                border = BorderStroke(1.dp, BorderMedium),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.crop_second_opinion_title),
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = DeepEmerald
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.crop_second_opinion_desc),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = TextCharcoal
-                                    )
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.clickable { consentChecked = !consentChecked }
-                                    ) {
-                                        Checkbox(
-                                            checked = consentChecked,
-                                            onCheckedChange = { consentChecked = it },
-                                            colors = CheckboxDefaults.colors(checkedColor = DeepEmerald)
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.crop_second_opinion_consent),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = TextCharcoal
-                                        )
-                                    }
-                                    Button(
-                                        onClick = { viewModel.requestSecondOpinion(selectedUri, location, soilType) },
-                                        enabled = consentChecked && !state.isSecondOpinionLoading,
-                                        shape = RoundedCornerShape(9999.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        if (state.isSecondOpinionLoading) {
-                                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
-                                        } else {
-                                            Text(stringResource(R.string.crop_second_opinion_btn), fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-                                    state.secondOpinionError?.let { secErr ->
-                                        Text(secErr, color = ErrorRed, style = MaterialTheme.typography.labelSmall)
-                                    }
-                                }
-                            }
-                        }
-
-                        r.secondOpinion?.let { sec ->
-                            HorizontalDivider(color = BorderLight)
-                            val reconColor = when (r.reconciliationStatus) {
-                                "agreed" -> DeepEmerald
-                                "disagreed", "unsupported_or_non_leaf", "inconclusive" -> SecondaryOrange
-                                else -> TextMuted
-                            }
-                            val reconLabel = when (r.reconciliationStatus) {
-                                "agreed" -> "Agreed"
-                                "disagreed" -> "Disagreed"
-                                "inconclusive" -> "Inconclusive"
-                                "unsupported_or_non_leaf" -> "Non-Leaf / Unsupported"
-                                else -> r.reconciliationStatus ?: "Reviewed"
-                            }
-                            Surface(
-                                shape = RoundedCornerShape(14.dp),
-                                color = if (r.reconciliationStatus == "agreed") GreenBg else AmberTint,
-                                border = BorderStroke(1.dp, reconColor),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text = "Gemini Second Opinion ($reconLabel)",
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = reconColor
-                                    )
-                                    Text(
-                                        text = "DINOv2 Primary: ${r.cropName ?: "Crop"} — ${r.diseaseName}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = TextCharcoal
-                                    )
-                                    if (!sec.diseaseName.isNullOrBlank()) {
-                                        val confNote = sec.confidence?.let { " (screening heuristic ${(it * 100).toInt()}%, not calibrated probability)" }.orEmpty()
-                                        Text(
-                                            text = "Gemini Vision: ${sec.cropName ?: "Crop"} — ${sec.diseaseName}$confNote",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = DeepEmerald
-                                        )
-                                    }
-                                    r.reconciliationNote?.let { note ->
-                                        Text(note, style = MaterialTheme.typography.bodySmall, color = TextCharcoal)
-                                    }
-                                    sec.summary?.let { sum ->
-                                        Text(sum, style = MaterialTheme.typography.bodySmall, color = TextMuted)
-                                    }
-                                    if (r.reconciliationStatus == "agreed" && !r.treatmentWithheld && (sec.treatment.organic.isNotEmpty() || sec.treatment.chemical.isNotEmpty())) {
-                                        if (sec.treatment.organic.isNotEmpty()) {
-                                            Text("Agreed Organic Care: ${sec.treatment.organic.joinToString("; ")}", style = MaterialTheme.typography.bodySmall, color = DeepEmerald)
-                                        }
-                                        if (sec.treatment.chemical.isNotEmpty()) {
-                                            Text("Agreed Chemical Guidance (verify dosage at KVK): ${sec.treatment.chemical.joinToString("; ")}", style = MaterialTheme.typography.bodySmall, color = TextCharcoal)
-                                        }
-                                    }
-                                    if (sec.prevention.isNotEmpty()) {
-                                        Text("Prevention: ${sec.prevention.joinToString("; ")}", style = MaterialTheme.typography.labelSmall, color = TextMuted)
                                     }
                                 }
                             }
