@@ -176,6 +176,41 @@ class CropPlannerViewModel @Inject constructor(
         }
     }
 
+    fun editTask(
+        task: PlannerTaskDto,
+        newTitle: String,
+        newDescription: String,
+        newScheduledDate: String,
+        reminderEnabled: Boolean,
+    ) {
+        val id = task.id ?: return
+        viewModelScope.launch {
+            repository.updateTaskDetails(
+                taskId = id,
+                title = newTitle,
+                description = newDescription,
+                scheduledDate = newScheduledDate,
+                reminderEnabled = reminderEnabled,
+            )
+            val updated = _uiState.value.tasks.map {
+                if (it.id == id) {
+                    it.copy(
+                        title = newTitle.trim(),
+                        description = newDescription.trim(),
+                        scheduledDate = newScheduledDate.trim(),
+                        reminderEnabled = reminderEnabled,
+                    )
+                } else {
+                    it
+                }
+            }
+            _uiState.value = _uiState.value.copy(
+                tasks = updated,
+                aiStatusMessage = "Task updated and synced.",
+            )
+        }
+    }
+
     fun regenerateActivePlan() {
         val planId = _uiState.value.selectedPlanId ?: return
         viewModelScope.launch {
@@ -223,6 +258,71 @@ fun CropPlannerScreen(onBack: () -> Unit, viewModel: CropPlannerViewModel = hilt
     var location by remember(savedFarm) { mutableStateOf(savedFarm?.formattedSummary.orEmpty()) }
     var ambiguousWarnings by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var notice by remember { mutableStateOf<String?>(null) }
+    var editingTask by remember { mutableStateOf<PlannerTaskDto?>(null) }
+
+    editingTask?.let { taskToEdit ->
+        var editTitle by remember(taskToEdit.id) { mutableStateOf(taskToEdit.title) }
+        var editDate by remember(taskToEdit.id) { mutableStateOf(taskToEdit.scheduledDate) }
+        var editDescription by remember(taskToEdit.id) { mutableStateOf(taskToEdit.description) }
+        var editReminder by remember(taskToEdit.id) { mutableStateOf(taskToEdit.reminderEnabled) }
+
+        AlertDialog(
+            onDismissRequest = { editingTask = null },
+            containerColor = CardWhite,
+            title = { Text("Edit Planner Task", fontWeight = FontWeight.Bold, color = DeepEmerald) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = editTitle,
+                        onValueChange = { editTitle = it },
+                        label = { Text("Task Title") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = editDate,
+                        onValueChange = { editDate = it },
+                        label = { Text("Scheduled Date (YYYY-MM-DD)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = editDescription,
+                        onValueChange = { editDescription = it },
+                        label = { Text("Description") },
+                        maxLines = 3,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Reminder Notification", style = MaterialTheme.typography.bodyMedium, color = TextCharcoal)
+                        Switch(checked = editReminder, onCheckedChange = { editReminder = it })
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.editTask(taskToEdit, editTitle, editDescription, editDate, editReminder)
+                        editingTask = null
+                    },
+                    enabled = editTitle.isNotBlank() && editDate.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
+                    shape = RoundedCornerShape(9999.dp),
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingTask = null }) {
+                    Text("Cancel", color = TextMuted)
+                }
+            },
+        )
+    }
 
     val stages = listOf("pre_sowing", "sowing", "vegetative", "flowering", "fruiting", "maturity", "harvest")
 
@@ -539,6 +639,17 @@ fun CropPlannerScreen(onBack: () -> Unit, viewModel: CropPlannerViewModel = hilt
                                             style = MaterialTheme.typography.labelSmall,
                                             color = SecondaryOrange,
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = { editingTask = task },
+                                        modifier = Modifier.size(28.dp),
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Edit,
+                                            contentDescription = "Edit Task",
+                                            tint = DeepEmerald,
+                                            modifier = Modifier.size(16.dp),
                                         )
                                     }
                                 }

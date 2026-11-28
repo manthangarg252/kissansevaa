@@ -129,9 +129,21 @@ class DashboardViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            val saved = farmLocationRepository.getSavedFarmLocationOnce()
+            val farmState = saved?.state?.trim().orEmpty()
+            val primaryCropsLower = saved?.primaryCrops.orEmpty().map { it.trim().lowercase() }.toSet()
             pricesRepository.getMarketPrices().collect { res ->
                 if (res is Resource.Success && res.data.isNotEmpty()) {
-                    _mandiPrices.value = res.data.take(4)
+                    val sorted = res.data.sortedWith(
+                        compareByDescending<MarketPrice> {
+                            farmState.isNotBlank() && it.state.equals(farmState, ignoreCase = true)
+                        }.thenByDescending {
+                            primaryCropsLower.any { crop -> it.crop.lowercase().contains(crop) }
+                        }
+                    )
+                    _mandiPrices.value = sorted
+                        .distinctBy { it.crop.trim().lowercase() }
+                        .take(4)
                 }
             }
         }

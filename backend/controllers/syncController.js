@@ -75,9 +75,23 @@ export const processSyncBatch = async (req, res) => {
                 task = await PlannerTask.findOne({ planId: parentPlan._id, userId, dayOffset: offset });
               }
             }
-            if (task && ['pending', 'completed', 'skipped'].includes(payload.status)) {
-              task.status = payload.status;
-              task.completedAt = payload.status === 'completed' ? new Date() : null;
+            if (task) {
+              if (payload.status && ['pending', 'completed', 'skipped'].includes(payload.status)) {
+                task.status = payload.status;
+                task.completedAt = payload.status === 'completed' ? new Date() : null;
+              }
+              if (typeof payload.title === 'string' && payload.title.trim()) {
+                task.title = payload.title.trim();
+              }
+              if (typeof payload.description === 'string') {
+                task.description = payload.description.trim();
+              }
+              if (typeof payload.scheduledDate === 'string' && payload.scheduledDate.trim()) {
+                task.scheduledDate = payload.scheduledDate.trim();
+              }
+              if (typeof payload.reminderEnabled === 'boolean') {
+                task.reminderEnabled = payload.reminderEnabled;
+              }
               await task.save();
               resultId = String(task._id);
             } else {

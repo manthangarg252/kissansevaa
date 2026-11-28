@@ -21,7 +21,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -272,7 +276,7 @@ fun ChatbotScreen(onBack: () -> Unit, viewModel: ChatViewModel = hiltViewModel()
                         ) {
                             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text(
-                                    text = msg.text,
+                                    text = formatChatMarkdown(msg.text),
                                     color = if (msg.isUser) Color.White else TextCharcoal,
                                     style = MaterialTheme.typography.bodyMedium,
                                     lineHeight = 22.sp
@@ -416,5 +420,23 @@ fun ChatbotScreen(onBack: () -> Unit, viewModel: ChatViewModel = hiltViewModel()
                 }
             }
         }
+    }
+}
+
+private fun formatChatMarkdown(raw: String): AnnotatedString = buildAnnotatedString {
+    val normalized = raw.replace(Regex("""(?m)^\s*\*\s+"""), "• ")
+    val boldRegex = Regex("""\*\*(.+?)\*\*""")
+    var cursor = 0
+    for (match in boldRegex.findAll(normalized)) {
+        if (match.range.first > cursor) {
+            append(normalized.substring(cursor, match.range.first))
+        }
+        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+            append(match.groupValues[1])
+        }
+        cursor = match.range.last + 1
+    }
+    if (cursor < normalized.length) {
+        append(normalized.substring(cursor))
     }
 }

@@ -202,6 +202,88 @@ class PlannerRepository @Inject constructor(
         }
     }
 
+    suspend fun updateTaskDetails(
+        taskId: String,
+        title: String,
+        description: String,
+        scheduledDate: String,
+        reminderEnabled: Boolean,
+    ): Resource<Unit> {
+        val userId = dataStore.userId.first().orEmpty()
+        val cleanTitle = title.trim()
+        val cleanDesc = description.trim()
+        val cleanDate = scheduledDate.trim()
+        val localTask = taskDao.getById(taskId)
+        taskDao.updateDetails(
+            taskId = taskId,
+            title = cleanTitle,
+            description = cleanDesc,
+            scheduledDate = cleanDate,
+            reminderEnabled = reminderEnabled,
+            pendingSync = true,
+        )
+
+        if (taskId.startsWith("localtask_") || localTask?.planId?.startsWith("local_") == true) {
+            val planClientReqId = (localTask?.planId ?: "").removePrefix("local_")
+            val payloadMap = buildMap<String, JsonPrimitive> {
+                put("taskId", JsonPrimitive(taskId))
+                put("title", JsonPrimitive(cleanTitle))
+                put("description", JsonPrimitive(cleanDesc))
+                put("scheduledDate", JsonPrimitive(cleanDate))
+                put("reminderEnabled", JsonPrimitive(reminderEnabled))
+                put("dayOffset", JsonPrimitive(localTask?.dayOffset ?: 0))
+                if (planClientReqId.isNotBlank()) put("planClientRequestId", JsonPrimitive(planClientReqId))
+            }
+            syncDao.enqueue(
+                SyncOperationEntity(
+                    operationId = "task_edit_${taskId}_${System.currentTimeMillis()}",
+                    userId = userId,
+                    opType = "planner_task_update",
+                    payloadJson = json.encodeToString(payloadMap),
+                ),
+            )
+            return Resource.Success(Unit)
+        }
+
+        return try {
+            api.updatePlannerTask(
+                taskId,
+                TaskStatusUpdateRequest(
+                    title = cleanTitle,
+                    description = cleanDesc,
+                    scheduledDate = cleanDate,
+                    reminderEnabled = reminderEnabled,
+                ),
+            )
+            taskDao.updateDetails(
+                taskId = taskId,
+                title = cleanTitle,
+                description = cleanDesc,
+                scheduledDate = cleanDate,
+                reminderEnabled = reminderEnabled,
+                pendingSync = false,
+            )
+            Resource.Success(Unit)
+        } catch (_: Exception) {
+            val payloadMap = mapOf(
+                "taskId" to JsonPrimitive(taskId),
+                "title" to JsonPrimitive(cleanTitle),
+                "description" to JsonPrimitive(cleanDesc),
+                "scheduledDate" to JsonPrimitive(cleanDate),
+                "reminderEnabled" to JsonPrimitive(reminderEnabled),
+            )
+            syncDao.enqueue(
+                SyncOperationEntity(
+                    operationId = "task_edit_${taskId}_${System.currentTimeMillis()}",
+                    userId = userId,
+                    opType = "planner_task_update",
+                    payloadJson = json.encodeToString(payloadMap),
+                ),
+            )
+            Resource.Success(Unit)
+        }
+    }
+
     fun regenerateTasks(planId: String, stage: String? = null): Flow<Resource<CropPlanBundleResponse>> = flow {
         emit(Resource.Loading)
         val userId = dataStore.userId.first().orEmpty()

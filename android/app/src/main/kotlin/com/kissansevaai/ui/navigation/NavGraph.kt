@@ -1,12 +1,20 @@
 package com.kissansevaai.ui.navigation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.kissansevaai.ui.theme.DeepEmerald
+import com.kissansevaai.ui.theme.SurfaceBg
 import com.kissansevaai.feature.auth.AuthViewModel
 import com.kissansevaai.feature.auth.LoginScreen
 import com.kissansevaai.feature.auth.SignupScreen
@@ -27,12 +35,24 @@ import com.kissansevaai.feature.weather.WeatherScreen
 
 @Composable
 fun KissanNavGraph() {
-    val navController = rememberNavController()
     val authVm: AuthViewModel = hiltViewModel()
-    val isLoggedIn by authVm.isLoggedIn.collectAsState()
+    val isLoggedInState by authVm.isLoggedInState.collectAsState()
 
-    androidx.compose.runtime.LaunchedEffect(isLoggedIn) {
-        if (!isLoggedIn) {
+    val resolvedLoggedIn = isLoggedInState
+    if (resolvedLoggedIn == null) {
+        Box(
+            modifier = Modifier.fillMaxSize().background(SurfaceBg),
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator(color = DeepEmerald)
+        }
+        return
+    }
+
+    val navController = rememberNavController()
+
+    androidx.compose.runtime.LaunchedEffect(resolvedLoggedIn) {
+        if (!resolvedLoggedIn) {
             val currentRoute = navController.currentBackStackEntry?.destination?.route
             if (currentRoute != null && !currentRoute.contains("Login") && !currentRoute.contains("Signup")) {
                 navController.navigate(Screen.Login) {
@@ -42,7 +62,7 @@ fun KissanNavGraph() {
         }
     }
 
-    val startDest: Any = if (isLoggedIn) Screen.Dashboard else Screen.Login
+    val startDest: Any = if (resolvedLoggedIn) Screen.Dashboard else Screen.Login
 
     NavHost(navController = navController, startDestination = startDest) {
 

@@ -41,6 +41,10 @@ class AuthViewModel @Inject constructor(
         .map { !it.isNullOrBlank() }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
+    val isLoggedInState: StateFlow<Boolean?> = dataStore.token
+        .map<String?, Boolean?> { !it.isNullOrBlank() }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     val baseUrl: StateFlow<String?> = dataStore.baseUrl
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 

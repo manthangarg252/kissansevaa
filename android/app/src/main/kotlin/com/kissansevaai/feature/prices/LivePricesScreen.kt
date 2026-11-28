@@ -533,6 +533,16 @@ fun LivePricesScreen(onBack: () -> Unit, viewModel: PricesViewModel = hiltViewMo
                                             color = TextMuted,
                                             style = MaterialTheme.typography.bodySmall,
                                         )
+                                        val obsDate = p.arrivalDate?.takeIf { it.isNotBlank() }
+                                            ?: p.lastUpdated?.take(10)?.takeIf { it.isNotBlank() }
+                                        if (obsDate != null) {
+                                            Text(
+                                                text = "Obs: $obsDate",
+                                                color = TextMuted,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontSize = 10.sp,
+                                            )
+                                        }
                                     }
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically) {

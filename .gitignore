@@ -45,6 +45,7 @@ android/local.properties
 
 # Backups & Database Exports
 backups/
+.demo_pids/
 *.archive.gz
 *.dump
 

@@ -36,6 +36,7 @@ import com.kissansevaai.ui.component.LoadingOverlay
 import com.kissansevaai.ui.component.VoiceInputField
 import com.kissansevaai.ui.theme.*
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewModel()) {
     val context = LocalContext.current
@@ -479,9 +480,9 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
+                            FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
                                 modifier = Modifier.weight(1f)
                             ) {
                                 val effectivePredSource = r.predictionSource ?: r.source
@@ -533,6 +534,8 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = if (effectivePredSource == "dinov2") DeepEmerald else TextMuted,
+                                        maxLines = 1,
+                                        softWrap = false,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                     )
                                 }
@@ -551,6 +554,8 @@ fun CropDiseaseScreen(onBack: () -> Unit, viewModel: CropViewModel = hiltViewMod
                                             text = advLabel,
                                             style = MaterialTheme.typography.labelSmall,
                                             color = TextMuted,
+                                            maxLines = 1,
+                                            softWrap = false,
                                             modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
                                             fontSize = 10.sp
                                         )

@@ -158,6 +158,9 @@ interface PlannerTaskDao {
     @Query("UPDATE planner_tasks SET status = :status, completedAt = :completedAt, pendingSync = :pendingSync WHERE id = :taskId")
     suspend fun updateStatus(taskId: String, status: String, completedAt: String?, pendingSync: Boolean)
 
+    @Query("UPDATE planner_tasks SET title = :title, description = :description, scheduledDate = :scheduledDate, reminderEnabled = :reminderEnabled, pendingSync = :pendingSync WHERE id = :taskId")
+    suspend fun updateDetails(taskId: String, title: String, description: String, scheduledDate: String, reminderEnabled: Boolean, pendingSync: Boolean)
+
     @Query("DELETE FROM planner_tasks WHERE planId = :planId")
     suspend fun deleteForPlan(planId: String)
 

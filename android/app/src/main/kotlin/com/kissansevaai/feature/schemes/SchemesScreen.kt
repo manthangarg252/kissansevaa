@@ -219,7 +219,12 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
                         Row(modifier = Modifier.padding(vertical = 10.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.AccountBalance, null, tint = if (selectedTab == 0) Color.White else TextMuted, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Verified Schemes", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = if (selectedTab == 0) Color.White else TextCharcoal)
+                            Text(
+                                text = if (currentLang.startsWith("hi")) "सत्यापित योजनाएं" else "Verified Schemes",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (selectedTab == 0) Color.White else TextCharcoal
+                            )
                         }
                     }
 
@@ -231,7 +236,12 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
                         Row(modifier = Modifier.padding(vertical = 10.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.CheckCircle, null, tint = if (selectedTab == 1) Color.White else TextMuted, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Eligibility Check", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = if (selectedTab == 1) Color.White else TextCharcoal)
+                            Text(
+                                text = if (currentLang.startsWith("hi")) "पात्रता जांच" else "Eligibility Check",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (selectedTab == 1) Color.White else TextCharcoal
+                            )
                         }
                     }
                 }
@@ -267,7 +277,7 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
                             FilterChip(
                                 selected = selectedStateFilter.isBlank(),
                                 onClick = { selectedStateFilter = "" },
-                                label = { Text("All States") },
+                                label = { Text(if (currentLang.startsWith("hi")) "सभी राज्य" else "All States") },
                             )
                         }
                         item {
@@ -275,7 +285,7 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
                                 selected = savedOnly,
                                 onClick = { savedOnly = !savedOnly },
                                 leadingIcon = { Icon(Icons.Default.Bookmark, null, modifier = Modifier.size(15.dp)) },
-                                label = { Text("Saved (${savedIds.size})") },
+                                label = { Text(if (currentLang.startsWith("hi")) "सहेजी गई (${savedIds.size})" else "Saved (${savedIds.size})") },
                             )
                         }
                         items(listOf("All", "Income", "Insurance", "Credit", "Irrigation", "Soil", "Market", "Organic", "Livestock")) { cat ->
@@ -317,11 +327,21 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    val isHindi = currentLang.startsWith("hi")
+                                    val displayTitle = if (isHindi && !scheme.nameHi.isNullOrBlank()) scheme.nameHi else scheme.name
+                                    val displayCategory = if (isHindi && !scheme.categoryHi.isNullOrBlank()) scheme.categoryHi else scheme.category
+                                    val displayDesc = if (isHindi && !scheme.descriptionHi.isNullOrBlank()) scheme.descriptionHi else scheme.description
+                                    val displayBenefit = if (isHindi && !scheme.benefitsHi.isNullOrBlank()) scheme.benefitsHi else scheme.benefits
+
                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                         Column(modifier = Modifier.weight(1f)) {
-                                            Text(scheme.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextCharcoal)
+                                            Text(displayTitle, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextCharcoal)
                                             scheme.lastVerifiedAt?.let {
-                                                Text("Verified $it • ${scheme.category}", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                                                Text(
+                                                    text = if (isHindi) "सत्यापित $it • $displayCategory" else "Verified $it • $displayCategory",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = TextMuted
+                                                )
                                             }
                                         }
                                         IconButton(onClick = { viewModel.toggleBookmark(scheme.id) }) {
@@ -333,11 +353,17 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
                                         }
                                     }
 
-                                    Text(scheme.description, color = TextCharcoal, style = MaterialTheme.typography.bodySmall)
+                                    Text(displayDesc, color = TextCharcoal, style = MaterialTheme.typography.bodySmall)
 
-                                    if (scheme.benefits.isNotBlank()) {
+                                    if (displayBenefit.isNotBlank()) {
                                         Surface(shape = RoundedCornerShape(8.dp), color = GreenBg, border = BorderStroke(1.dp, GreenTint), modifier = Modifier.fillMaxWidth()) {
-                                            Text("Benefit: ${scheme.benefits}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = DeepEmerald, modifier = Modifier.padding(8.dp))
+                                            Text(
+                                                text = if (isHindi) "लाभ: $displayBenefit" else "Benefit: $displayBenefit",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = DeepEmerald,
+                                                modifier = Modifier.padding(8.dp)
+                                            )
                                         }
                                     }
 
@@ -347,7 +373,7 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
                                             modifier = Modifier.weight(1f),
                                             shape = RoundedCornerShape(9999.dp),
                                         ) {
-                                            Text("Explain", color = DeepEmerald, fontSize = 12.sp)
+                                            Text(if (isHindi) "समझें" else "Explain", color = DeepEmerald, fontSize = 12.sp)
                                         }
                                         (scheme.officialPortal ?: scheme.link)?.takeIf { it.isNotBlank() }?.let { url ->
                                             Button(
@@ -356,7 +382,7 @@ fun SchemesScreen(onBack: () -> Unit, viewModel: SchemesViewModel = hiltViewMode
                                                 shape = RoundedCornerShape(9999.dp),
                                                 colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
                                             ) {
-                                                Text("Portal", fontSize = 12.sp)
+                                                Text(if (isHindi) "आधिकारिक पोर्टल" else "Portal", fontSize = 12.sp)
                                                 Spacer(Modifier.width(4.dp))
                                                 Icon(Icons.AutoMirrored.Filled.OpenInNew, null, modifier = Modifier.size(14.dp))
                                             }

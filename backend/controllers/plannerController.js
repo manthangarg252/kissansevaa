@@ -80,7 +80,7 @@ export const getPlanTasks = async (req, res) => {
 
 export const updatePlannerTask = async (req, res) => {
   try {
-    const { status, reminderEnabled } = req.body || {};
+    const { status, reminderEnabled, title, description, scheduledDate } = req.body || {};
     const task = await PlannerTask.findOne({ _id: req.params.taskId, userId: req.user._id });
     if (!task) {
       return res.status(404).json({ error: 'Planner task not found' });
@@ -92,6 +92,15 @@ export const updatePlannerTask = async (req, res) => {
     }
     if (typeof reminderEnabled === 'boolean') {
       task.reminderEnabled = reminderEnabled;
+    }
+    if (typeof title === 'string' && title.trim()) {
+      task.title = title.trim();
+    }
+    if (typeof description === 'string') {
+      task.description = description.trim();
+    }
+    if (typeof scheduledDate === 'string' && scheduledDate.trim()) {
+      task.scheduledDate = scheduledDate.trim();
     }
 
     await task.save();

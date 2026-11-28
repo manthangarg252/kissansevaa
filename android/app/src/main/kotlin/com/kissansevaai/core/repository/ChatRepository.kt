@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import retrofit2.HttpException
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -120,7 +122,29 @@ class ChatRepository @Inject constructor(
             chatDao.insert(assistantEntity)
             emit(Resource.Success(response.response))
         } catch (e: Exception) {
-            val friendlyError = e.toUserFriendlyMessage()
+            var friendlyError = e.toUserFriendlyMessage()
+            var groundedSources = emptyList<String>()
+            if (e is HttpException) {
+                runCatching {
+                    val rawErr = e.response()?.errorBody()?.string()
+                    if (!rawErr.isNullOrBlank()) {
+                        val obj = JSONObject(rawErr)
+                        val msg = obj.optString("error").takeIf { it.isNotBlank() }
+                        val summary = obj.optString("groundedContextSummary").takeIf { it.isNotBlank() && it != "null" }
+                        val srcArr = obj.optJSONArray("groundedSources")
+                        if (srcArr != null) {
+                            groundedSources = (0 until srcArr.length()).mapNotNull { i ->
+                                srcArr.optString(i).takeIf { it.isNotBlank() }
+                            }
+                        }
+                        friendlyError = when {
+                            msg != null && summary != null -> "$msg\n\nLive Farm Context:\n$summary"
+                            msg != null -> msg
+                            else -> friendlyError
+                        }
+                    }
+                }
+            }
             val errorEntity = ChatMessageEntity(
                 id = UUID.randomUUID().toString(),
                 sender = "assistant",
@@ -129,6 +153,7 @@ class ChatRepository @Inject constructor(
                 userId = userId,
                 sessionId = sessionId,
                 category = mode?.lowercase() ?: "general",
+                groundedSources = groundedSources,
                 aiAvailable = false,
             )
             chatDao.insert(errorEntity)

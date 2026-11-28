@@ -367,8 +367,11 @@ data class PlannerListResponse(
 
 @Serializable
 data class TaskStatusUpdateRequest(
-    val status: String,
+    val status: String? = null,
     val reminderEnabled: Boolean? = null,
+    val title: String? = null,
+    val description: String? = null,
+    val scheduledDate: String? = null,
 )
 
 @Serializable
@@ -447,6 +450,7 @@ data class MarketPrice(
     val trend: String = "stable",
     val category: String? = null,
     val sourceBadge: String? = null,
+    val arrivalDate: String? = null,
     val updatedAt: String? = null,
     val lastUpdated: String? = null,
 ) {
@@ -526,10 +530,14 @@ data class MarketRecommendationRequest(
 data class Scheme(
     val id: String = "",
     val name: String = "",
+    val nameHi: String? = null,
     val category: String = "",
+    val categoryHi: String? = null,
     val description: String = "",
+    val descriptionHi: String? = null,
     val eligibility: List<String> = emptyList(),
     val benefits: String = "",
+    val benefitsHi: String? = null,
     val link: String? = null,
     val officialPortal: String? = null,
     val phone: String? = null,
